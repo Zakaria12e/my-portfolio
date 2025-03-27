@@ -76,12 +76,11 @@ export function ModernHero() {
            
           </p>
 
-          <div className="w-full flex justify-center md:justify-start">
-  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    <ProjectButton />
-  </motion.div>
-</div>
-
+          <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <ProjectButton  />
+            </motion.div>
+          </div>
 
           <div className="flex items-center gap-6 pt-4">
             <motion.a
