@@ -106,12 +106,12 @@ export function ModernHero() {
             <motion.a
               href="https://x.com/Z_ElBidali"
               target="_blank"
-              whileHover={{ y: -5, color: "#1DA1F2" }}
+              whileHover={{ y: -5, color: "#cccccc" }}
               className="text-muted-foreground hover:text-foreground transition-colors"
               rel="noreferrer"
             >
              <SiX className="h-5 w-5" />
-              <span className="sr-only">Twitter</span>
+              <span className="sr-only">X</span>
             </motion.a>
           </div>
         </motion.div>
