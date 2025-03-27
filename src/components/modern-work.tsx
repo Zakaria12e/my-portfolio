@@ -154,7 +154,7 @@ export function ModernWork() {
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                  <h3 className="text-2xl font-bold mb-2 text-black dark:text-gray-200">{project.title}</h3>
+                  <h3 className="text-2xl font-bold mb-2 text-white dark:text-gray-200">{project.title}</h3>
                   <p className="hidden sm:block text-gray-800 dark:text-muted-foreground mb-4">
   {project.description}
 </p>
