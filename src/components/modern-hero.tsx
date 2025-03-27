@@ -79,9 +79,9 @@ export function ModernHero() {
          
 
           <div className="flex items-center gap-6 pt-4">
-             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+             
               <ProjectButton  />
-            </motion.div>
+            
             <motion.a
               href="https://github.com"
               target="_blank"
