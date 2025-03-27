@@ -78,7 +78,7 @@ export function ModernHero() {
 
          
 
-          <div className="flex items-center gap-6 pt-4">
+          <div className="flex items-center gap-8 pt-4">
              
               <ProjectButton  />
             
