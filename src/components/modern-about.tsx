@@ -223,29 +223,32 @@ export function ModernAbout() {
             </p>
 
             {/* NEW: Personal facts */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-green-300" />
-                <span className="text-sm">Available: 20hrs/week</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-yellow-500" />
-                <span className="text-sm">3+ Years Experience</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-red-500" />
-                <span className="text-sm">Continuous Learner</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-blue-400" />
-                <span className="text-sm">10+ Projects Completed</span>
-              </div>
-            </div>
-
-            <div className="pt-4">
+            <div className="flex justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-green-300" />
+          <span className="text-sm">Available: 20hrs/week</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Award className="h-4 w-4 text-yellow-500" />
+          <span className="text-sm">3+ Years Experience</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-red-500" />
+          <span className="text-sm">Continuous Learner</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-blue-400" />
+          <span className="text-sm">10+ Projects Completed</span>
+        </div>
+        </div>
+      </div>
               <h4 className="text-xl font-semibold mb-3 drop-shadow-[0_0_7px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_7px_rgba(200,200,200,1)]">
                 My Skills
               </h4>
+
+            <div className="pt-4 flex justify-center">
+              
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
                   <Badge key={skill} variant="secondary" className="flex items-center gap-2 rounded-full px-3 py-1">
