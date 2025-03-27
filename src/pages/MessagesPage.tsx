@@ -1,19 +1,19 @@
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -21,59 +21,60 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { formatDistanceToNow } from "date-fns"
-import { ArrowLeft, Mail, User, FileText, Calendar } from "lucide-react"
-import {MessagesHeader} from "@/components/modern-header"
-
+} from "@/components/ui/table";
+import { formatDistanceToNow } from "date-fns";
+import { ArrowLeft, Mail, User, FileText, Calendar } from "lucide-react";
+import { MessagesHeader } from "@/components/modern-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
-  _id: string
-  name: string
-  email: string
-  subject: string
-  message: string
-  createdAt: string
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  createdAt: string;
 }
 
 export default function MessagesPage() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
-  const [currentPage, setCurrentPage] = useState<number>(1)
-  const messagesPerPage = 5
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const messagesPerPage = 5;
 
-  const totalPages = Math.ceil(messages.length / messagesPerPage)
-  const startIndex = (currentPage - 1) * messagesPerPage
-  const endIndex = startIndex + messagesPerPage
-  const currentMessages = messages.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(messages.length / messagesPerPage);
+  const startIndex = (currentPage - 1) * messagesPerPage;
+  const endIndex = startIndex + messagesPerPage;
+  const currentMessages = messages.slice(startIndex, endIndex);
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("https://portfolio-backend-ashen-tau.vercel.app/contact");
+      const res = await fetch(
+        "https://portfolio-backend-ashen-tau.vercel.app/contact"
+      );
       const data = await res.json();
-      setMessages(data); 
-      console.log(data);
+      setMessages(data);
     } catch (error) {
       console.error("Fetch error:", error);
+    } finally {
+      setIsLoading(false);
     }
-    
-  }
+  };
 
   useEffect(() => {
-    fetchMessages()
-  }, [])
+    fetchMessages();
+  }, []);
 
   const handleRowClick = (message: Message) => {
-    setSelectedMessage(message)
-    setIsDialogOpen(true)
-  }
+    setSelectedMessage(message);
+    setIsDialogOpen(true);
+  };
 
   return (
-
-
     <div className="container py-12">
       <MessagesHeader />
       <div className="max-w-5xl mx-auto">
@@ -108,58 +109,75 @@ export default function MessagesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentMessages.map((message) => (
-                  <TableRow
-                    key={message._id}
-                    className="cursor-pointer hover:bg-muted/50 text-muted-foreground"
-                    onClick={() => handleRowClick(message)}
-                  >
-                    <TableCell className="font-medium">
-                      {message.name}
-                    </TableCell>
-                    <TableCell>{message.subject}</TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(message.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {isLoading
+                  ? [...Array(messagesPerPage)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Skeleton className="h-4 w-24" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : currentMessages.map((message) => (
+                      <TableRow
+                        key={message._id}
+                        className="cursor-pointer hover:bg-muted/50 text-muted-foreground"
+                        onClick={() => handleRowClick(message)}
+                      >
+                        <TableCell className="font-medium">
+                          {message.name}
+                        </TableCell>
+                        <TableCell>{message.subject}</TableCell>
+                        <TableCell>
+                          {formatDistanceToNow(new Date(message.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
               </TableBody>
             </Table>
 
             {messages.length > messagesPerPage && (
-  <div className="flex justify-between items-center pt-4">
-    {currentPage > 1 ? (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-      >
-        Previous
-      </Button>
-    ) : (
-      <div />
-    )}
+              <div className="flex justify-between items-center pt-4">
+                {currentPage > 1 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
+                  >
+                    Previous
+                  </Button>
+                ) : (
+                  <div />
+                )}
 
-    <span className="text-sm text-muted-foreground">
-      Page {currentPage} of {totalPages}
-    </span>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
 
-    {currentPage < totalPages ? (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-      >
-        Next
-      </Button>
-    ) : (
-      <div />
-    )}
-  </div>
-)}
-
+                {currentPage < totalPages ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <div />
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -230,5 +248,5 @@ export default function MessagesPage() {
         </Dialog>
       )}
     </div>
-  )
+  );
 }
