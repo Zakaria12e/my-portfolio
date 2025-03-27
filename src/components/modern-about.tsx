@@ -47,7 +47,7 @@ export function ModernAbout() {
     TypeScript: <SiTypescript className="text-blue-500" />,
     Laravel: <SiLaravel className="text-red-500" />,
     React: <SiReact className="text-cyan-400" />,
-    "ShadCN UI": <LayoutGrid className="text-purple-500 w-4 h-4" />,
+    "ShadCN UI": <LayoutGrid className="text-black dark:text-white w-4 h-4" />,
     Mysql: <SiMysql className="text-blue-600" />,
     Java: <FaJava className="text-red-600" />,
     Python: <SiPython className="text-yellow-500" />,
@@ -59,6 +59,23 @@ export function ModernAbout() {
     Git: <SiGit className="text-orange-500" />,
   }
 
+  const skillColors: { [key: string]: string } = {
+    JavaScript: "#FACC15",
+    TypeScript: "#3B82F6",
+    Laravel: "#EF4444",
+    React: "#22D3EE",
+    "ShadCN UI": "#000000",
+    Mysql: "#2563EB",
+    Java: "#DC2626",
+    Python: "#EAB308",
+    "Node.js": "#16A34A",
+    Express: "#4B5563", // Dark Gray
+    MongoDB: "#22C55E",
+    "Socket.io": "#4B5563", // Dark Gray
+    "Tailwind CSS": "#38BDF8",
+    Git: "#F97316",
+  }
+  
   // NEW: Skill levels for progress bars
   const skillLevels = {
     JavaScript: 85,
@@ -276,7 +293,19 @@ export function ModernAbout() {
                     </div>
                     <span className="text-sm text-muted-foreground">{level}%</span>
                   </div>
-                  <Progress value={level} className="h-2" />
+                  <div className="relative w-full">
+  <Progress value={level} className="h-2 bg-muted" />
+  <div
+    className="absolute top-0 left-0 h-2 rounded-full"
+    style={{
+      width: `${level+1}%`,
+      backgroundColor: skillColors[skill],
+      transition: "all 0.3s ease",
+    }}
+  />
+</div>
+
+
                 </motion.div>
               ))}
           </div>
