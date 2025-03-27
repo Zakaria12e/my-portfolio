@@ -64,14 +64,14 @@ export function ModernAbout() {
     TypeScript: "#3B82F6",
     Laravel: "#EF4444",
     React: "#22D3EE",
-    "ShadCN UI": "#000000",
+    "ShadCN UI": "#404040",
     Mysql: "#2563EB",
     Java: "#DC2626",
     Python: "#EAB308",
     "Node.js": "#16A34A",
-    Express: "#4B5563", // Dark Gray
+    Express: "#4B5563",
     MongoDB: "#22C55E",
-    "Socket.io": "#4B5563", // Dark Gray
+    "Socket.io": "#4B5563",
     "Tailwind CSS": "#38BDF8",
     Git: "#F97316",
   }
@@ -80,15 +80,16 @@ export function ModernAbout() {
   const skillLevels = {
     JavaScript: 85,
     TypeScript: 75,
-    Express: 70,
+    Express: 90,
     Laravel: 70,
     React: 80,
-    "ShadCN UI": 75,
-    Mysql: 70,
+    "ShadCN UI": 100, 
+    MongoDB: 100,
     Java: 65,
+    Mysql: 70,
     Python: 60,
     "Node.js": 75,
-    MongoDB: 65,
+   
     "Socket.io": 60,
     "Tailwind CSS": 90,
     Git: 80,
@@ -224,19 +225,19 @@ export function ModernAbout() {
             {/* NEW: Personal facts */}
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+                <Clock className="h-4 w-4 text-green-300" />
                 <span className="text-sm">Available: 20hrs/week</span>
               </div>
               <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-primary" />
+                <Award className="h-4 w-4 text-yellow-500" />
                 <span className="text-sm">3+ Years Experience</span>
               </div>
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
+                <BookOpen className="h-4 w-4 text-red-500" />
                 <span className="text-sm">Continuous Learner</span>
               </div>
               <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-primary" />
+                <Briefcase className="h-4 w-4 text-blue-400" />
                 <span className="text-sm">10+ Projects Completed</span>
               </div>
             </div>
@@ -276,7 +277,7 @@ export function ModernAbout() {
           <h3 className="text-2xl font-bold text-center mb-8">Skill Proficiency</h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {Object.entries(skillLevels)
-              .slice(0, 6)
+              .slice(0, 8)
               .map(([skill, level], index) => (
                 <motion.div
                   key={skill}
