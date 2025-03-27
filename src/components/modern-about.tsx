@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { motion } from "framer-motion";
-import { JSX } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Palette, LayoutGrid } from "lucide-react";
-import { FaJava } from "react-icons/fa";
-import { AboutStars } from "@/components/stars";
+import { motion } from "framer-motion"
+import type { JSX } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Code, Palette, LayoutGrid, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
+import { FaJava } from "react-icons/fa"
+import { AboutStars } from "@/components/stars"
 import {
   SiJavascript,
   SiTypescript,
@@ -20,7 +20,9 @@ import {
   SiTailwindcss,
   SiSocketdotio,
   SiGit,
-} from "react-icons/si";
+} from "react-icons/si"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 
 export function ModernAbout() {
   const skills = [
@@ -38,7 +40,7 @@ export function ModernAbout() {
     "Socket.io",
     "Tailwind CSS",
     "Git",
-  ];
+  ]
 
   const skillIcons: { [key: string]: JSX.Element } = {
     JavaScript: <SiJavascript className="text-yellow-400" />,
@@ -55,7 +57,25 @@ export function ModernAbout() {
     MongoDB: <SiMongodb className="text-green-500" />,
     "Tailwind CSS": <SiTailwindcss className="text-sky-400" />,
     Git: <SiGit className="text-orange-500" />,
-  };
+  }
+
+  // NEW: Skill levels for progress bars
+  const skillLevels = {
+    JavaScript: 85,
+    TypeScript: 75,
+    Express: 70,
+    Laravel: 70,
+    React: 80,
+    "ShadCN UI": 75,
+    Mysql: 70,
+    Java: 65,
+    Python: 60,
+    "Node.js": 75,
+    MongoDB: 65,
+    "Socket.io": 60,
+    "Tailwind CSS": 90,
+    Git: 80,
+  }
 
   const experiences = [
     {
@@ -73,7 +93,7 @@ export function ModernAbout() {
         "Built an internal Email Management System to organize and automate email workflows. Integrated features like user tagging, mail categorization, and real-time notifications.",
     },
   ]
-  
+
   const education = [
     {
       degree: "High School Diploma (Baccalaureate)",
@@ -93,25 +113,30 @@ export function ModernAbout() {
       period: "2024 - Present",
       description: "Pursuing advanced studies in systems architecture, software engineering, and project management.",
     },
-  ];
-  
+  ]
 
   const services = [
     {
       icon: <Code className="h-10 w-10 text-primary" />,
       title: "Web Development",
-      description:
-        "Building fast, responsive, and user-friendly websites and web applications.",
+      description: "Building fast, responsive, and user-friendly websites and web applications.",
     },
     {
       icon: <Palette className="h-10 w-10 text-primary" />,
       title: "UI/UX Design",
-      description:
-        "Creating intuitive and visually appealing user interfaces and experiences.",
+      description: "Creating intuitive and visually appealing user interfaces and experiences.",
     },
-   
-  
-  ];
+    {
+      icon: <Briefcase className="h-10 w-10 text-primary" />,
+      title: "Full-Stack Solutions",
+      description: "Developing end-to-end applications with robust backend systems and polished frontends.",
+    },
+    {
+      icon: <Lightbulb className="h-10 w-10 text-primary" />,
+      title: "Technical Consultation",
+      description: "Providing expert advice on technology choices, architecture, and implementation strategies.",
+    },
+  ]
 
   return (
     <section id="about" className="py-24 relative">
@@ -132,8 +157,8 @@ export function ModernAbout() {
             My Journey & Expertise
           </h2>
           <p className="text-muted-foreground text-lg">
-            A passionate developer with a keen eye for design and a commitment
-            to creating exceptional digital experiences.
+            A passionate developer with a keen eye for design and a commitment to creating exceptional digital
+            experiences.
           </p>
         </motion.div>
 
@@ -147,7 +172,7 @@ export function ModernAbout() {
           >
             <AboutStars />
 
-            <span className="block  w-full mx-auto filter drop-shadow-[0_0_100px_rgba(80,90,90,1)] dark:drop-shadow-[0_0_40px_rgba(200,200,200,1)]">
+            <span className="block w-full mx-auto filter drop-shadow-[0_0_100px_rgba(80,90,90,1)] dark:drop-shadow-[0_0_40px_rgba(200,200,200,1)]">
               <img
                 src="/memoji-nbg.png"
                 alt="programmer"
@@ -170,16 +195,34 @@ export function ModernAbout() {
               </span>
             </h3>
             <p className="text-muted-foreground">
-              I'm a full-stack developer and passionate student with 3 years of
-              hands-on experience building digital products that solve
-              real-world problems. I love crafting web experiences that are both
-              functional and visually engaging.
+              I'm a full-stack developer and passionate student with 3 years of hands-on experience building digital
+              products that solve real-world problems. I love crafting web experiences that are both functional and
+              visually engaging.
             </p>
             <p className="text-muted-foreground">
-              With a strong foundation in both design and development, I
-              approach every project with a balanced mindset — blending
-              creativity with clean, efficient code to bring ideas to life.
+              With a strong foundation in both design and development, I approach every project with a balanced mindset
+              — blending creativity with clean, efficient code to bring ideas to life.
             </p>
+
+            {/* NEW: Personal facts */}
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="text-sm">Available: 20hrs/week</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                <span className="text-sm">3+ Years Experience</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="text-sm">Continuous Learner</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-primary" />
+                <span className="text-sm">10+ Projects Completed</span>
+              </div>
+            </div>
 
             <div className="pt-4">
               <h4 className="text-xl font-semibold mb-3 drop-shadow-[0_0_7px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_7px_rgba(200,200,200,1)]">
@@ -187,19 +230,57 @@ export function ModernAbout() {
               </h4>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant="secondary"
-                    className="flex items-center gap-2 rounded-full px-3 py-1"
-                  >
+                  <Badge key={skill} variant="secondary" className="flex items-center gap-2 rounded-full px-3 py-1">
                     {skillIcons[skill]}
                     {skill}
                   </Badge>
                 ))}
               </div>
             </div>
+
+            {/* NEW: Resume download button */}
+            <div className="pt-4">
+              <Button className="flex items-center gap-2" variant="outline">
+                <Download className="h-4 w-4" />
+                Download Resume
+              </Button>
+            </div>
           </motion.div>
         </div>
+
+        {/* NEW: Skill progress bars */}
+        <motion.div
+          className="mb-24"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <h3 className="text-2xl font-bold text-center mb-8">Skill Proficiency</h3>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {Object.entries(skillLevels)
+              .slice(0, 6)
+              .map(([skill, level], index) => (
+                <motion.div
+                  key={skill}
+                  className="space-y-2"
+                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {skillIcons[skill]}
+                      <span>{skill}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{level}%</span>
+                  </div>
+                  <Progress value={level} className="h-2" />
+                </motion.div>
+              ))}
+          </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -267,9 +348,7 @@ export function ModernAbout() {
                   transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
                   <div className="mb-4">{service.icon}</div>
-                  <h4 className="text-xl font-semibold mb-2">
-                    {service.title}
-                  </h4>
+                  <h4 className="text-xl font-semibold mb-2">{service.title}</h4>
                   <p className="text-muted-foreground">{service.description}</p>
                 </motion.div>
               ))}
@@ -278,5 +357,6 @@ export function ModernAbout() {
         </motion.div>
       </div>
     </section>
-  );
+  )
 }
+
