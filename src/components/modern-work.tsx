@@ -155,7 +155,10 @@ export function ModernWork() {
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
                   <h3 className="text-2xl font-bold mb-2">{project.title}</h3>
-                  <p className="text-gray-800 dark:text-muted-foreground  mb-4">{project.description}</p>
+                  <p className="hidden sm:block text-gray-800 dark:text-muted-foreground mb-4">
+  {project.description}
+</p>
+
                   <div className="flex flex-wrap gap-2 mb-4">
   {project.tags.map((tag) => (
     <Badge
