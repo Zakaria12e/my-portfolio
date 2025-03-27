@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Github, Linkedin, Twitter } from "lucide-react"
+import { Github, Linkedin, X } from "lucide-react"
 import {ProjectButton } from "@/components/GlowEffectButton"
 import {TextLoop} from "@/components/text-loop"
 import {HeroStars} from "@/components/stars"
@@ -83,7 +83,7 @@ export function ModernHero() {
               <ProjectButton  />
             
             <motion.a
-              href="https://github.com"
+              href="https://github.com/Zakaria12e"
               target="_blank"
               whileHover={{ y: -5, color: "#333" }}
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -103,13 +103,13 @@ export function ModernHero() {
               <span className="sr-only">LinkedIn</span>
             </motion.a>
             <motion.a
-              href="https://twitter.com"
+              href="https://x.com/Z_ElBidali"
               target="_blank"
               whileHover={{ y: -5, color: "#1DA1F2" }}
               className="text-muted-foreground hover:text-foreground transition-colors"
               rel="noreferrer"
             >
-              <Twitter className="h-5 w-5" />
+              <X className="h-5 w-5" />
               <span className="sr-only">Twitter</span>
             </motion.a>
           </div>
