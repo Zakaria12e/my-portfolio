@@ -51,7 +51,7 @@ export default function MessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("https://portfolio-backend-production-dadc.up.railway.app/api/contact");
+      const res = await fetch("https://portfolio-backend-production-47fc.up.railway.app/api/contact");
       const data = await res.json();
       console.log(data);
     } catch (error) {
