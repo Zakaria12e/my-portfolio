@@ -7,6 +7,7 @@ import { ModernWork } from "@/components/modern-work"
 import { ModernAbout } from "@/components/modern-about"
 import { ModernContact } from "@/components/modern-contact"
 import { ModernFooter } from "@/components/modern-footer"
+import { MouseTrail } from "@/components/mouse-trail"
 
 export default function Home() {
 
@@ -42,6 +43,7 @@ export default function Home() {
 
       </main>
       <ModernFooter />
+      <MouseTrail />
     </div>
   )
 }
