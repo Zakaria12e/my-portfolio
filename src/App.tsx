@@ -4,6 +4,7 @@ import Home from './page'
 import MessagesPageWithOtp from '@/pages/CheckAuth'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/react"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster />
+      <Analytics />
     </ThemeProvider>
   )
 }
