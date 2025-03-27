@@ -4,6 +4,7 @@ import Home from './page'
 import MessagesPageWithOtp from '@/pages/CheckAuth'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from "@/components/ui/sonner"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster />
+      <SpeedInsights />
     </ThemeProvider>
   )
 }
