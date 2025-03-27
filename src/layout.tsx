@@ -15,11 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           {children}
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
