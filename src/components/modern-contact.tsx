@@ -27,7 +27,7 @@ export function ModernContact() {
     e.preventDefault()
   
     try {
-      const res = await fetch("https://portfolio-backend-production-47fc.up.railway.app/api/contact", {
+      const res = await fetch("https://portfolio-backend-ashen-tau.vercel.app/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
