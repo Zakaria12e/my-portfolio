@@ -69,8 +69,8 @@ export function ModernFooter() {
               whileHover={{ y: -5 }}
               rel="noreferrer"
             >
-             <SiX className="h-5 w-5" />
-              <span className="sr-only">Twitter</span>
+             <SiX className="h-5 w-5 text-black dark:text-zinc-100" />
+              <span className="sr-only">X</span>
             </motion.a>
             <motion.a
               href="https://www.instagram.com/zaki0dev/"
