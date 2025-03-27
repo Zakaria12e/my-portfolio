@@ -110,7 +110,7 @@ export function ModernHero() {
               className="text-muted-foreground hover:text-foreground transition-colors"
               rel="noreferrer"
             >
-            <SiX className="h-5 w-5 text-black dark:text-zinc-100" />
+            <SiX className="h-5 w-5 text-black" />
 
               <span className="sr-only">X</span>
             </motion.a>

@@ -69,7 +69,7 @@ export function ModernFooter() {
               whileHover={{ y: -5 }}
               rel="noreferrer"
             >
-             <SiX className="h-5 w-5 text-black dark:text-zinc-100" />
+             <SiX className="h-5 w-5 text-black" />
               <span className="sr-only">X</span>
             </motion.a>
             <motion.a
