@@ -37,7 +37,8 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const [messages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
 
@@ -53,6 +54,7 @@ export default function MessagesPage() {
     try {
       const res = await fetch("https://portfolio-backend-ashen-tau.vercel.app/contact");
       const data = await res.json();
+      setMessages(data); 
       console.log(data);
     } catch (error) {
       console.error("Fetch error:", error);
