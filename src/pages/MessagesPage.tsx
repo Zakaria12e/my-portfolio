@@ -37,7 +37,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages] = useState<Message[]>([])
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
 
