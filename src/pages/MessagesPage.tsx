@@ -51,12 +51,13 @@ export default function MessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("https://portfolio-backend-production-dadc.up.railway.app/api/contact")
-      const data = await res.json()
-      setMessages(data)
+      const res = await fetch("https://portfolio-backend-production-dadc.up.railway.app/api/contact");
+      const data = await res.json();
+      console.log(data);
     } catch (error) {
-      console.error("Failed to fetch messages", error)
+      console.error("Fetch error:", error);
     }
+    
   }
 
   useEffect(() => {
