@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Github, Linkedin, Twitter, Instagram, ArrowUp } from "lucide-react"
+import { Github, Linkedin, Instagram, ArrowUp } from "lucide-react"
+import { SiX } from "react-icons/si"
 
 export function ModernFooter() {
   const scrollToTop = () => {
@@ -42,7 +43,7 @@ export function ModernFooter() {
 
           <div className="flex gap-4 mb-8">
             <motion.a
-              href="https://github.com"
+              href="https://github.com/Zakaria12e"
               target="_blank"
               className="h-10 w-10 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               whileHover={{ y: -5 }}
@@ -62,17 +63,17 @@ export function ModernFooter() {
               <span className="sr-only">LinkedIn</span>
             </motion.a>
             <motion.a
-              href="https://twitter.com"
+              href="https://x.com/Z_ElBidali"
               target="_blank"
               className="h-10 w-10 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               whileHover={{ y: -5 }}
               rel="noreferrer"
             >
-              <Twitter className="h-5 w-5" />
+             <SiX className="h-5 w-5" />
               <span className="sr-only">Twitter</span>
             </motion.a>
             <motion.a
-              href="https://instagram.com"
+              href="https://www.instagram.com/zaki0dev/"
               target="_blank"
               className="h-10 w-10 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               whileHover={{ y: -5 }}

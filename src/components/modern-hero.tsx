@@ -1,7 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Github, Linkedin, X } from "lucide-react"
+import { Github, Linkedin} from "lucide-react"
+import { SiX } from "react-icons/si"
 import {ProjectButton } from "@/components/GlowEffectButton"
 import {TextLoop} from "@/components/text-loop"
 import {HeroStars} from "@/components/stars"
@@ -109,7 +110,7 @@ export function ModernHero() {
               className="text-muted-foreground hover:text-foreground transition-colors"
               rel="noreferrer"
             >
-              <X className="h-5 w-5" />
+             <SiX className="h-5 w-5" />
               <span className="sr-only">Twitter</span>
             </motion.a>
           </div>
