@@ -25,7 +25,7 @@ export function ModernHero() {
           transition={{ duration: 0.8 }}
         >
          
-         <div className='inline-flex whitespace-pre-wrap text-sm inline-block rounded-full bg-muted px-4 py-1.5 text-sm font-semibold text-'>
+         <div className='inline-flex whitespace-pre-wrap text-sm inline-block rounded-full bg-transparent px-4 py-1.5 font-semibold text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700'>
       Hello I'm{' '}
       <TextLoop
         className='overflow-y-clip'
