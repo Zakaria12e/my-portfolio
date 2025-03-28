@@ -251,7 +251,7 @@ export function ModernAbout() {
               
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="flex items-center gap-2 rounded-full px-3 py-1">
+                  <Badge key={skill}  className="flex items-center gap-2 rounded-full px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                     {skillIcons[skill]}
                     {skill}
                   </Badge>
@@ -322,7 +322,7 @@ export function ModernAbout() {
           transition={{ duration: 0.6 }}
         >
           <Tabs defaultValue="experience" className="w-full max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-card">
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
