@@ -5,7 +5,7 @@ import { Github, Linkedin} from "lucide-react"
 import { SiX } from "react-icons/si"
 import {ProjectButton } from "@/components/GlowEffectButton"
 import {TextLoop} from "@/components/text-loop"
-import {HeroStars} from "@/components/stars"
+import StarsCanvas from "@/components/StarBackground"
 
 
 
@@ -16,10 +16,7 @@ export function ModernHero() {
     
     >
       {/* Background elements */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
+      <StarsCanvas />
       <div className="container grid lg:grid-cols-2 gap-12 items-center">
         <motion.div
           className="space-y-8"
@@ -126,14 +123,15 @@ export function ModernHero() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-      <HeroStars/>
+     
 
       
       <span className="block mx-auto filter drop-shadow-[0_0_100px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)]">
   <img
-    src="/moon-removebg-preview.png"
+    src="/mainIconsdark.svg"
     alt="Moon"
-    className="w-[190px] sm:w-[200px] md:w-[250px] lg:w-[300px] h-auto object-contain mx-auto"
+  
+    className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto"
   />
 </span>
 

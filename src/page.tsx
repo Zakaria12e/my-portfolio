@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
+// Update these imports to match your actual file structure
+// Use relative paths instead of alias paths
 import { ModernHeader } from "@/components/modern-header"
 import { ModernHero } from "@/components/modern-hero"
 import { ModernWork } from "@/components/modern-work"
@@ -10,9 +12,8 @@ import { ModernFooter } from "@/components/modern-footer"
 import { MouseTrail } from "@/components/mouse-trail"
 
 export default function Home() {
-
   useEffect(() => {
-    const handleAnchorClick = (e : any) => {
+    const handleAnchorClick = (e: any) => {
       const target = e.target
       if (target.tagName === "A" && target.getAttribute("href")?.startsWith("#")) {
         e.preventDefault()
@@ -32,15 +33,13 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative">
       <ModernHeader />
       <main>
         <ModernHero />
         <ModernWork />
         <ModernAbout />
         <ModernContact />
-        
-
       </main>
       <ModernFooter />
       <MouseTrail />
