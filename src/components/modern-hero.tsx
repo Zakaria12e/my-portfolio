@@ -126,14 +126,21 @@ export function ModernHero() {
      
 
       
-      <span className="block mx-auto filter drop-shadow-[0_0_100px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)]">
+     <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-10 drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] ">
+
+  <img
+    src="/mainIcons.svg"
+    alt="Moon Light"
+    className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto block dark:hidden translate-x-4"
+  />
+
   <img
     src="/mainIconsdark.svg"
-    alt="Moon"
-  
-    className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto"
+    alt="Moon Dark"
+    className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto hidden dark:block translate-x-4"
   />
 </span>
+
 
         </motion.div>
       </div>
