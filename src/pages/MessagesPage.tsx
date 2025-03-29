@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Mail, User, FileText, Calendar, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Mail, User, FileText, Calendar, Trash2 } from "lucide-react";
 import { MessagesHeader } from "@/components/sections/header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
