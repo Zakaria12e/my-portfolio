@@ -35,17 +35,22 @@ export function ModernHeader() {
     >
       <div className="container flex items-center justify-between">
         {/* Left: Logo */}
-       <motion.div
- className="text-[30px] filter drop-shadow-[0_0_100px_rgba(80,100,246,1)]"
-  whileHover={{ scale: 1.05 }}
-  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
->
-<img
-    src="/moon-removebg-preview.png"
-    alt="Moon"
-    className="w-12 h-12"
-  />
-</motion.div>
+      <motion.div
+     className="text-[30px] filter drop-shadow-[0_0_100px_rgba(80,100,246,1)]"
+      whileHover={{ scale: 1.05 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+    >
+    <img
+        src="/moon-purple.png"
+        alt="Moon"
+        className="w-12 h-12 hidden dark:block"
+      />
+       <img
+        src="/moon-dark.png"
+        alt="Moon"
+        className="w-12 h-12 block dark:hidden"
+      />
+    </motion.div>
 
 
         {/* Center: Navigation */}
