@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, Mail, User, FileText, Calendar } from "lucide-react";
-import { MessagesHeader } from "@/components/modern-header";
+import { MessagesHeader } from "@/components/sections/header";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {

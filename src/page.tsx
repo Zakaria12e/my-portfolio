@@ -3,12 +3,12 @@
 import { useEffect } from "react"
 // Update these imports to match your actual file structure
 // Use relative paths instead of alias paths
-import { ModernHeader } from "@/components/modern-header"
-import { ModernHero } from "@/components/modern-hero"
-import { ModernWork } from "@/components/modern-work"
-import { ModernAbout } from "@/components/modern-about"
-import { ModernContact } from "@/components/modern-contact"
-import { ModernFooter } from "@/components/modern-footer"
+import { ModernHeader } from "@/components/sections/header"
+import { ModernHero } from "@/components/sections/hero"
+import { ModernWork } from "@/components/sections/work"
+import { ModernAbout } from "@/components/sections/about"
+import { ModernContact } from "@/components/sections/contact"
+import { ModernFooter } from "@/components/sections/footer"
 import { MouseTrail } from "@/components/mouse-trail"
 
 export default function Home() {
