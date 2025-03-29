@@ -96,7 +96,7 @@ export function ModernWork() {
     activeFilter === "All" ? projects : projects.filter((project) => project.category === activeFilter)
 
   return (
-    <section id="work" className="py-24 relative">
+    <section id="work" className="py-24 relative mb-[-100px]">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       </div>

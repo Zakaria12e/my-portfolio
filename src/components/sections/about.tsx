@@ -157,7 +157,7 @@ export function ModernAbout() {
   ]
 
   return (
-    <section id="about" className="py-24 relative">
+    <section id="about" className="py-24 relative mb-[-50px]">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute bottom-1/3 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
       </div>
