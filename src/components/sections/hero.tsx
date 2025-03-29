@@ -11,7 +11,7 @@ export function ModernHero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center pt-10 mb-[-100px]"
+      className="relative min-h-screen flex items-center pt-20 mb-[-100px]"
     >
       {/* Background elements */}
       <StarsCanvas />
@@ -113,7 +113,7 @@ export function ModernHero() {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <HeroStars />
-          <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-13 drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] ">
+            <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-13 drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] translate-x-[-10px] sm:translate-x-0">
             <img
               src="/mainIcons.svg"
               alt="Light mode svg"
@@ -125,7 +125,7 @@ export function ModernHero() {
               alt="Dark mode svg"
               className="w-[260px] sm:w-[280px] md:w-[310px] lg:w-[400px] h-auto object-contain mx-auto hidden dark:block translate-x-4"
             />
-          </span>
+            </span>
         </motion.div>
       </div>
     </section>
