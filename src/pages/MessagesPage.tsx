@@ -27,6 +27,7 @@ import { ArrowLeft, Mail, User, FileText, Calendar, Trash2 } from "lucide-react"
 import { MessagesHeader } from "@/components/sections/header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   _id: string;
@@ -35,6 +36,7 @@ interface Message {
   subject: string;
   message: string;
   createdAt: string;
+  read: boolean;
 }
 
 export default function MessagesPage() {
@@ -67,7 +69,7 @@ export default function MessagesPage() {
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent row click event
+    e.stopPropagation();
     
     try {
       const response = await fetch(
@@ -89,13 +91,35 @@ export default function MessagesPage() {
     }
   };
 
+  const markAsRead = async (id: string) => {
+    try {
+      const response = await fetch(
+        `https://portfolio-backend-ashen-tau.vercel.app/contact/${id}/read`,
+        {
+          method: 'PATCH',
+        }
+      );
+
+      if (response.ok) {
+        setMessages(messages.map(msg => 
+          msg._id === id ? { ...msg, read: true } : msg
+        ));
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMessages();
   }, []);
 
-  const handleRowClick = (message: Message) => {
+  const handleRowClick = async (message: Message) => {
     setSelectedMessage(message);
     setIsDialogOpen(true);
+    if (!message.read) {
+      await markAsRead(message._id);
+    }
   };
 
   return (
@@ -154,11 +178,19 @@ export default function MessagesPage() {
                   : currentMessages.map((message) => (
                       <TableRow
                         key={message._id}
-                        className="cursor-pointer hover:bg-muted/50 text-muted-foreground"
+                        className="cursor-pointer hover:bg-muted/50 text-muted-foreground relative"
                         onClick={() => handleRowClick(message)}
                       >
                         <TableCell className="font-medium">
-                          {message.name}
+                          <div className="flex items-center gap-2">
+                            {message.name}
+                            {!message.read && (
+                              <Badge 
+                                variant="default" 
+                                className="h-2 w-2 rounded-full p-0 bg-blue-500"
+                              />
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>{message.subject}</TableCell>
                         <TableCell>
