@@ -36,7 +36,7 @@ export function ModernHeader() {
       <div className="container flex items-center justify-between">
         {/* Left: Logo */}
       <motion.div
-     className="text-[30px] filter drop-shadow-[0_0_100px_rgba(80,100,246,1)]"
+     className="text-[30px] filter drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_100px_rgba(80,100,246,1)]"
       whileHover={{ scale: 1.05 }}
       transition={{ type: 'spring', stiffness: 400, damping: 10 }}
     >
