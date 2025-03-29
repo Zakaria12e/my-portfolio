@@ -183,13 +183,14 @@ export default function MessagesPage() {
                       >
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {message.name}
-                            {!message.read && (
+                          {!message.read && (
                               <Badge 
                                 variant="default" 
-                                className="h-2 w-2 rounded-full p-0 bg-blue-500"
+                                className="h-2 w-2 rounded-full p-0 bg-white-500"
                               />
                             )}
+                            {message.name}
+                           
                           </div>
                         </TableCell>
                         <TableCell>{message.subject}</TableCell>
