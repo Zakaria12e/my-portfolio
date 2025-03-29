@@ -137,7 +137,7 @@ export function ModernWork() {
         </motion.div>
         
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-4 gap-8">
           {filteredProjects.map((project, index) => (
             <motion.div
               key={project.id}
@@ -182,20 +182,30 @@ export function ModernWork() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-white/20 hover:bg-white/5 transition-colors"
+                      className="border-white/20 hover:bg-white/5 text-primary/50 transition-colors"
                       asChild
                     >
-                      <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                         <Github className="mr-2 h-4 w-4" />
                         Code
-                      </a>
+                        </a>
                     </Button>
-                    <Button size="sm" className="bg-btnback text-primary/90 hover:bg-btnback/90 transition-colors" asChild>
-                      <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 hover:bg-white/5 text-primary/50 transition-colors"
+                      asChild
+                    >
+                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Live Demo
-                      </a>
+                        </a>
+                        
+                      
+          
                     </Button>
+                    
                   </div>
                 </div>
               </div>
