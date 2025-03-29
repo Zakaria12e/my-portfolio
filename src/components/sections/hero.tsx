@@ -3,9 +3,9 @@
 import { motion } from "framer-motion"
 import { Github, Linkedin} from "lucide-react"
 import { SiX } from "react-icons/si"
-import {ProjectButton } from "@/components/GlowEffectButton"
-import {TextLoop} from "@/components/text-loop"
-import StarsCanvas from "@/components/StarBackground"
+import {ProjectButton } from "@/components/effects/GlowEffectButton"
+import {TextLoop} from "@/components/effects/text-loop"
+import StarsCanvas from "@/components/effects/StarBackground"
 
 
 

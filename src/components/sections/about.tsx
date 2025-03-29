@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Code, Palette, LayoutGrid, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
 import { FaJava } from "react-icons/fa"
-import { AboutStars } from "@/components/stars"
+import { AboutStars } from "@/components/effects/stars"
 import {
   SiJavascript,
   SiTypescript,

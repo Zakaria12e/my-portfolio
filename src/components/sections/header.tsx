@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ModeToggle } from "@/components/mode-toggle"
+import { ModeToggle } from "@/components/effects/mode-toggle"
 
 export function ModernHeader() {
   const [scrolled, setScrolled] = useState(false)

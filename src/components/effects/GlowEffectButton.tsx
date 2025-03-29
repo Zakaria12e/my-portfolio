@@ -1,4 +1,4 @@
-import { GlowEffect } from '@/components/glow-effect';
+import { GlowEffect } from '@/components/effects/glow-effect';
 import { ArrowRight } from "lucide-react"
 
 export function ProjectButton() {

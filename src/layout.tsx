@@ -1,6 +1,6 @@
 import type React from "react"
 import "@/app/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/effects/theme-provider"
 
 export const metadata = {
   title: "Portfolio",
