@@ -68,7 +68,7 @@ export function ModernHeader() {
 
         {/* Right: Mode toggle & mobile menu */}
         <div className="flex items-center gap-2">
-            <div className="mr-15"><ModeToggle /></div>
+            <div className="mr-11 lg:mr-15"><ModeToggle /></div>
         
           {/* Mobile menu */}
           <div className="md:hidden">
