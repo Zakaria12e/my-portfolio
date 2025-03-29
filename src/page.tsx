@@ -1,8 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
-// Update these imports to match your actual file structure
-// Use relative paths instead of alias paths
+import { useEffect } from "react" 
 import { ModernHeader } from "@/components/sections/header"
 import { ModernHero } from "@/components/sections/hero"
 import { ModernWork } from "@/components/sections/work"

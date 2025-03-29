@@ -23,9 +23,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Mail, User, FileText, Calendar } from "lucide-react";
+import { ArrowLeft, Mail, User, FileText, Calendar, Trash2, Edit } from "lucide-react";
 import { MessagesHeader } from "@/components/sections/header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface Message {
   _id: string;
@@ -62,6 +63,29 @@ export default function MessagesPage() {
       console.error("Fetch error:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click event
+    
+    try {
+      const response = await fetch(
+        `https://portfolio-backend-ashen-tau.vercel.app/contact/${id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (response.ok) {
+        setMessages(messages.filter(message => message._id !== id));
+        toast.success('Message deleted successfully');
+      } else {
+        toast.error('Failed to delete message');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Error deleting message');
     }
   };
 
@@ -106,6 +130,7 @@ export default function MessagesPage() {
                     Subject
                   </TableHead>
                   <TableHead className="text-center font-bold">Date</TableHead>
+                  <TableHead className="text-center font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -117,6 +142,9 @@ export default function MessagesPage() {
                         </TableCell>
                         <TableCell>
                           <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-20" />
                         </TableCell>
                         <TableCell>
                           <Skeleton className="h-4 w-20" />
@@ -137,6 +165,18 @@ export default function MessagesPage() {
                           {formatDistanceToNow(new Date(message.createdAt), {
                             addSuffix: true,
                           })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => handleDelete(message._id, e)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

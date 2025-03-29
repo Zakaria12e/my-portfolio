@@ -30,7 +30,7 @@ export default function OtpGate({ onSuccess }: { onSuccess: () => void }) {
         <Input
           type="number"
           maxLength={4}
-          placeholder="4-digit code"
+          placeholder="Auth code"
           value={otp}
           onChange={(e) => setOtp(e.target.value)}
           className="text-center text-lg tracking-widest"
