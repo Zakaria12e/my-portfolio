@@ -259,7 +259,7 @@ export function ModernAbout() {
               </div>
             </div>
 
-            {/* NEW: Resume download button */}
+          
             <div className="pt-4">
               <Button className="flex items-center gap-2" variant="outline">
                 <Download className="h-4 w-4" />
@@ -269,7 +269,7 @@ export function ModernAbout() {
           </motion.div>
         </div>
 
-        {/* NEW: Skill progress bars */}
+        {/* Skill progress bars */}
         <motion.div
           className="mb-24"
           initial={{ opacity: 0, y: 50 }}
