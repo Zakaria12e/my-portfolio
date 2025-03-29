@@ -63,7 +63,7 @@ export function ModernHero() {
       </TextLoop>
       </div>
 
- <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight drop-shadow-[0_0_30px_rgba(100,100,246,1)]">
+ <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(100,100,246,1)]">
             Creating digital <span className="text-primary">experiences</span> that matter
             </h1>
           
@@ -126,17 +126,17 @@ export function ModernHero() {
      
 
       
-     <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-10 drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] ">
+     <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-10 drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] ">
 
   <img
     src="/mainIcons.svg"
-    alt="Moon Light"
+    alt="Light mode svg"
     className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto block dark:hidden translate-x-4"
   />
 
   <img
     src="/mainIconsdark.svg"
-    alt="Moon Dark"
+    alt="Dark mode svg"
     className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto hidden dark:block translate-x-4"
   />
 </span>
