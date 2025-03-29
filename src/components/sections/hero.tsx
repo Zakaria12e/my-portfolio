@@ -6,7 +6,7 @@ import { SiX } from "react-icons/si";
 import { ProjectButton } from "@/components/effects/GlowEffectButton";
 import { TextLoop } from "@/components/effects/text-loop";
 import StarsCanvas from "@/components/effects/StarBackground";
-
+import {HeroStars} from "@/components/effects/stars";
 export function ModernHero() {
   return (
     <section
@@ -112,17 +112,18 @@ export function ModernHero() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
+          <HeroStars />
           <span className="block mx-auto relative w-fit w:left-5 mb-[-30px] lg:left-13 drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(160,100,246,1)] dark:drop-shadow-[0_0_20px_rgba(120,100,246,1)] ">
             <img
               src="/mainIcons.svg"
               alt="Light mode svg"
-              className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto block dark:hidden translate-x-4"
+              className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[400px] h-auto object-contain mx-auto block dark:hidden translate-x-4"
             />
 
             <img
               src="/mainIconsdark.svg"
               alt="Dark mode svg"
-              className="w-[230px] sm:w-[280px] md:w-[310px] lg:w-[350px] h-auto object-contain mx-auto hidden dark:block translate-x-4"
+              className="w-[260px] sm:w-[280px] md:w-[310px] lg:w-[400px] h-auto object-contain mx-auto hidden dark:block translate-x-4"
             />
           </span>
         </motion.div>
