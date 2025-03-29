@@ -1,10 +1,10 @@
 "use client"
 
-import { useState , JSX } from "react"
+import { useState, type JSX } from "react"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Github, ExternalLink } from "lucide-react"
+import { Github, ExternalLink, ArrowRight } from "lucide-react"
 import {
   SiJavascript,
   SiTypescript,
@@ -19,7 +19,7 @@ import {
   SiFigma,
   SiGooglemaps,
   SiSocketdotio,
-  SiStripe
+  SiStripe,
 } from "react-icons/si"
 
 export function ModernWork() {
@@ -32,7 +32,7 @@ export function ModernWork() {
       id: 1,
       title: "E-Commerce Platform",
       description: "A modern e-commerce platform with a seamless shopping experience and secure payment processing.",
-      image: "underC.JPG",
+      image: "coming-soon.jpg",
       category: "Web",
       tags: ["React", "Node.js", "MongoDB", "Stripe"],
       liveUrl: "#",
@@ -42,7 +42,7 @@ export function ModernWork() {
       id: 2,
       title: "Travel App",
       description: "A mobile app for travelers to discover and book unique experiences around the world.",
-      image: "underC.JPG",
+      image: "coming-soon.jpg",
       category: "Mobile",
       tags: ["React", "Firebase", "Google Maps API"],
       liveUrl: "#",
@@ -52,7 +52,7 @@ export function ModernWork() {
       id: 3,
       title: "Dashboard UI",
       description: "A comprehensive admin dashboard with data visualization and user management.",
-      image: "underC.JPG",
+      image: "coming-soon.jpg",
       category: "Design",
       tags: ["Figma", "UI/UX", "Design System"],
       liveUrl: "#",
@@ -62,7 +62,7 @@ export function ModernWork() {
       id: 4,
       title: "Social Media Platform",
       description: "A social platform focused on connecting creative professionals and showcasing their work.",
-      image: "underC.JPG",
+      image: "coming-soon.jpg",
       category: "Web",
       tags: ["React", "GraphQL", "Socket.io"],
       liveUrl: "#",
@@ -82,8 +82,8 @@ export function ModernWork() {
     Git: <SiGit className="mr-1 text-orange-500" />,
     MySQL: <SiMysql className="mr-1 text-blue-700" />,
     Python: <SiPython className="mr-1 text-blue-600" />,
-    Firebase: <SiMongodb className="mr-1 text-yellow-400" />, // Placeholder
-    GraphQL: <SiMongodb className="mr-1 text-pink-500" />, // Placeholder
+    Firebase: <SiMongodb className="mr-1 text-yellow-400" />,
+    GraphQL: <SiMongodb className="mr-1 text-pink-500" />,
     Stripe: <SiStripe className="mr-1 text-indigo-500" />,
     "Google Maps API": <SiGooglemaps className="mr-1 text-red-500" />,
     "Socket.io": <SiSocketdotio className="mr-1 text-black dark:text-white " />,
@@ -91,8 +91,6 @@ export function ModernWork() {
     "UI/UX": <SiTailwindcss className="mr-1 text-sky-400" />,
     "Design System": <SiTailwindcss className="mr-1 text-sky-400" />,
   }
-  
-  
 
   const filteredProjects =
     activeFilter === "All" ? projects : projects.filter((project) => project.category === activeFilter)
@@ -111,13 +109,12 @@ export function ModernWork() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-        
           <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium mb-4">
-  <span className="h-2 w-2 rounded-full bg-green-500"></span>
-  <span>Available for work</span>
-</div>
+            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+            <span>Available for work</span>
+          </div>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">
-             Featured Projects
+            Featured Projects
           </h2>
 
           <p className="text-muted-foreground text-lg">
@@ -138,52 +135,62 @@ export function ModernWork() {
             ))}
           </div>
         </motion.div>
+        
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {filteredProjects.map((project, index) => (
             <motion.div
               key={project.id}
-              className="group relative"
+              className="group"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <div className="relative overflow-hidden rounded-xl">
-                <div className="aspect-video overflow-hidden">
+              
+              <div className="bg-background/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                {/* Image */}
+                <div className="relative aspect-video overflow-hidden">
                   <img
-                    src={project.image || "/placeholder.svg"}
+                    src={project.image || "/coming-soon.jpg"}
                     alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                  <h3 className="text-2xl font-bold mb-2 text-white dark:text-gray-200">{project.title}</h3>
-                  <p className="hidden sm:block text-gray-800 dark:text-muted-foreground mb-4">
-  {project.description}
-</p>
 
+                {/* Content */}
+                <div className="p-6">
+                  {/* Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">
-  {project.tags.map((tag) => (
-    <Badge
-      key={tag}
-      variant="secondary"
-      className="bg-background/20 backdrop-blur-sm flex items-center gap-1"
-    >
-      {tagIcons[tag] || null}
-      {tag}
-    </Badge>
-  ))}
-</div>
+                    {project.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="bg-background/30 backdrop-blur-sm border border-white/10 flex items-center gap-1 text-xs font-normal"
+                      >
+                        {tagIcons[tag] || null}
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
 
+                  {/* Title */}
+                    <h3 className="text-2xl font-extrabold mb-4 tracking-tight text-primary">{project.title}</h3>
+
+                  {/* Buttons */}
                   <div className="flex gap-3">
-                    <Button size="sm" variant="outline" className="bg-primary/90 dark:bg-background/20 backdrop-blur-sm" asChild>
-                      <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="text-white">
-                        <Github className="mr-2 h-4 w-4 " />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 hover:bg-white/5 transition-colors"
+                      asChild
+                    >
+                      <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+                        <Github className="mr-2 h-4 w-4" />
                         Code
                       </a>
                     </Button>
-                    <Button size="sm" className="bg-primary/90" asChild>
+                    <Button size="sm" className="bg-btnback text-primary/90 hover:bg-btnback/90 transition-colors" asChild>
                       <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Live Demo
@@ -197,8 +204,9 @@ export function ModernWork() {
         </div>
 
         <div className="flex justify-center mt-16">
-          <Button variant="outline" size="lg" className="rounded-full px-8">
+          <Button variant="outline" size="lg" className="rounded-full px-8 group border-white/20 hover:bg-white/5">
             View All Projects
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           </Button>
         </div>
       </div>
