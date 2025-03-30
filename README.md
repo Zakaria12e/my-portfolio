@@ -11,10 +11,10 @@ This portfolio is designed to provide insight into my technical journey and crea
 
 The project is built using the following cutting-edge technologies:
 
-- **TypeScript**: A strongly-typed superset of JavaScript that improves code quality and maintainability.
-- **React**: A powerful library for building interactive user interfaces.
-- **Vite**: An efficient build tool that ensures a fast development experience.
-- **Shadcn UI**: A versatile UI component library used to create a consistent and stylish design.
+- **TypeScript**:  <img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript Icon" width="20" /> A strongly-typed superset of JavaScript that improves code quality and maintainability.
+- **React**:  <img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" alt="React Icon" width="20" /> A powerful library for building interactive user interfaces.
+- **Vite**: <img src="https://vitejs.dev/logo.svg" alt="Vite Icon" width="20" /> An efficient build tool that ensures a fast development experience.
+- **Shadcn UI**:  <img src="https://images.seeklogo.com/logo-png/51/1/shadcn-ui-logo-png_seeklogo-519786.png"  width="20" />  A versatile UI component library used to create a consistent and stylish design.
 
 ## Installation
 
