@@ -79,17 +79,16 @@ export function ModernAbout() {
   // NEW: Skill levels for progress bars
   const skillLevels = {
     JavaScript: 85,
-    TypeScript: 75,
+    TypeScript: 80,
     Express: 90,
     Laravel: 70,
     React: 80,
     "ShadCN UI": 100, 
     MongoDB: 100,
-    Java: 65,
-    Mysql: 70,
-    Python: 60,
+    Java: 87,
+    Mysql: 100,
+    Python: 78,
     "Node.js": 75,
-   
     "Socket.io": 60,
     "Tailwind CSS": 90,
     Git: 80,
@@ -122,7 +121,7 @@ export function ModernAbout() {
     {
       degree: "University Diploma in Computer Science",
       institution: "Higher School of Technology, Sidi Bennour",
-      period: "2021 - 2024",
+      period: "2022 - 2024",
       description: "Studied core topics in software development, databases, and computer systems.",
     },
     {
