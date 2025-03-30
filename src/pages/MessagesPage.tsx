@@ -138,7 +138,7 @@ export default function MessagesPage() {
           </Button>
         </div>
 
-        <Card>
+        <Card className="bg-primary/5 dark:bg-background">
           <CardHeader>
             <CardTitle>Recent Messages</CardTitle>
             <CardDescription>
@@ -148,7 +148,7 @@ export default function MessagesPage() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-primary/10 dark:hover:bg-muted/50">
                   <TableHead className="text-center font-bold">Name</TableHead>
                   <TableHead className="text-center font-bold">
                     Subject
@@ -188,7 +188,7 @@ export default function MessagesPage() {
                   currentMessages.map((message) => (
                     <TableRow
                       key={message._id}
-                      className="cursor-pointer hover:bg-muted/50 text-muted-foreground relative"
+                      className="cursor-pointer hover:bg-primary/10 dark:hover:bg-muted/50 text-muted-foreground relative"
                       onClick={() => handleRowClick(message)}
                     >
                       <TableCell className="font-medium">
