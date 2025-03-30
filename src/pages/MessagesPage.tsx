@@ -158,60 +158,71 @@ export default function MessagesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading
-                  ? [...Array(messagesPerPage)].map((_, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-20" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-20" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : currentMessages.map((message) => (
-                      <TableRow
-                        key={message._id}
-                        className="cursor-pointer hover:bg-muted/50 text-muted-foreground relative"
-                        onClick={() => handleRowClick(message)}
-                      >
-                        <TableCell className="font-medium">
-                            <div className="flex items-center gap-2 justify-center relative">
-                            {!message.read && (
-                              <Badge 
-                              variant="default" 
-                              className="absolute left-0 h-2 w-2 rounded-full p-0 bg-primary"
-                              />
-                            )}
-                            <span>{message.name}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell>{message.subject}</TableCell>
-                        <TableCell>
-                          {formatDistanceToNow(new Date(message.createdAt), {
-                            addSuffix: true,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => handleDelete(message._id, e)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                {isLoading ? (
+                  [...Array(messagesPerPage)].map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : messages.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Mail className="h-8 w-8 text-muted-foreground/40" />
+                        <p className="text-muted-foreground">No messages found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  currentMessages.map((message) => (
+                    <TableRow
+                      key={message._id}
+                      className="cursor-pointer hover:bg-muted/50 text-muted-foreground relative"
+                      onClick={() => handleRowClick(message)}
+                    >
+                      <TableCell className="font-medium">
+                          <div className="flex items-center gap-2 justify-center relative">
+                          {!message.read && (
+                            <Badge 
+                            variant="default" 
+                            className="absolute left-0 h-2 w-2 rounded-full p-0 bg-primary"
+                            />
+                          )}
+                          <span>{message.name}</span>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableCell>
+                      <TableCell>{message.subject}</TableCell>
+                      <TableCell>
+                        {formatDistanceToNow(new Date(message.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => handleDelete(message._id, e)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
 
