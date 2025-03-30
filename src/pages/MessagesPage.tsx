@@ -182,16 +182,15 @@ export default function MessagesPage() {
                         onClick={() => handleRowClick(message)}
                       >
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                          {!message.read && (
+                            <div className="flex items-center gap-2 justify-center relative">
+                            {!message.read && (
                               <Badge 
-                                variant="default" 
-                                className="h-2 w-2 rounded-full p-0 bg-white-500"
+                              variant="default" 
+                              className="absolute left-0 h-2 w-2 rounded-full p-0 bg-primary"
                               />
                             )}
-                            {message.name}
-                           
-                          </div>
+                            <span>{message.name}</span>
+                            </div>
                         </TableCell>
                         <TableCell>{message.subject}</TableCell>
                         <TableCell>
