@@ -298,18 +298,18 @@ export function ModernAbout() {
                     <span className="text-sm text-muted-foreground">{level}%</span>
                   </div>
                   <div className="relative w-full">
-  <Progress value={level} className="h-2 bg-muted" />
-  <div
-    className="absolute top-0 left-0 h-2 rounded-full"
-    style={{
-      width: `${level+1}%`,
-      backgroundColor: skillColors[skill],
-      transition: "all 0.3s ease",
-    }}
-  />
-</div>
-
-
+                    <Progress value={0} className="h-2 bg-muted" />
+                    <motion.div
+                      className="absolute top-0 left-0 h-2 rounded-full"
+                      initial={{ width: "0%" }}
+                      whileInView={{ width: `${level}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1, delay: index * 0.1, ease: "easeOut" }}
+                      style={{
+                        backgroundColor: skillColors[skill],
+                      }}
+                    />
+                  </div>
                 </motion.div>
               ))}
           </div>
