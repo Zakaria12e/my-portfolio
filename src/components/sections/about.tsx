@@ -64,7 +64,7 @@ export function ModernAbout() {
     TypeScript: "#3B82F6",
     Laravel: "#EF4444",
     React: "#22D3EE",
-    "ShadCN UI": "#404040",
+    "ShadCN UI": "#000000",
     Mysql: "#2563EB",
     Java: "#DC2626",
     Python: "#EAB308",
