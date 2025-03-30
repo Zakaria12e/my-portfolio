@@ -43,7 +43,7 @@
 }
 
 .dark {
-  --background: #030014;
+  --background: black;
   --foreground: oklch(0.985 0 0);
   --btnback: oklch(0.284 0.109 3.907);
   --card: #6e669e23;
