@@ -60,7 +60,7 @@ export function ModernHero() {
             </TextLoop>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_30px_rgba(100,100,246,1)]">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight drop-shadow-[0_0_30px_rgba(95,95,95,1)] dark:drop-shadow-[0_0_100px_rgba(100,100,246,1)]">
             Creating digital experiences that matter
           </h1>
 

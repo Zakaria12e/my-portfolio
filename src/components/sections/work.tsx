@@ -109,10 +109,7 @@ export function ModernWork() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium mb-4">
-            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-            <span>Available for work</span>
-          </div>
+         
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">
             Featured Projects
           </h2>
