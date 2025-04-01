@@ -34,6 +34,7 @@ export function ModernAbout() {
     "Mysql",
     "Java",
     "Python",
+    "framermotion",
     "Node.js",
     "Express",
     "MongoDB",
@@ -47,10 +48,48 @@ export function ModernAbout() {
     TypeScript: <SiTypescript className="text-blue-500" />,
     Laravel: <SiLaravel className="text-red-500" />,
     React: <SiReact className="text-cyan-400" />,
-    "ShadCN UI": <LayoutGrid className="text-black dark:text-white w-4 h-4" />,
-    Mysql: <SiMysql className="text-blue-600" />,
-    Java: <FaJava className="text-red-600" />,
-    Python: <SiPython className="text-yellow-500" />,
+    "ShadCN UI": (
+      <span>
+      <img
+        src="/shadcn.svg"
+        alt="Framer Motion"
+        className="mr-1 w-4 h-4 block dark:hidden"
+      />
+      <img
+        src="/shadcn-fordark.png"
+        alt="Framer Motion"
+        className="mr-1 w-4 h-4 hidden dark:block"
+      />
+      </span>
+    ),
+    Mysql:(
+      <img
+        src="/sql.png"
+        alt="sql"
+        className="mr-1 w-4 h-4 "
+      />
+    ),
+    Java: (
+      <img
+        src="/java.png"
+        alt="Phyton"
+        className="mr-1 w-4 h-4 "
+      />
+    ),
+    Python: (
+      <img
+        src="/py.png"
+        alt="Phyton"
+        className="mr-1 w-4 h-4 "
+      />
+    ),
+    framermotion: (
+      <img
+        src="/fm.svg"
+        alt="Framer Motion"
+        className="mr-1 w-4 h-4 inline-block"
+      />
+    ),
     "Node.js": <SiNodedotjs className="text-green-600" />,
     Express: <SiExpress className="text-black dark:text-white" />,
     "Socket.io": <SiSocketdotio className="text-black dark:text-white" />,
@@ -64,11 +103,11 @@ export function ModernAbout() {
     TypeScript: "#3B82F6",
     Laravel: "#EF4444",
     React: "#22D3EE",
-    "ShadCN UI": "#404040",
     Mysql: "#2563EB",
     Java: "#DC2626",
     Python: "#EAB308",
     "Node.js": "#16A34A",
+    "ShadCN UI": "#4B5563",
     Express: "#4B5563",
     MongoDB: "#22C55E",
     "Socket.io": "#4B5563",
@@ -247,12 +286,14 @@ export function ModernAbout() {
               </h4>
 
             <div className="pt-4 flex justify-center">
-              
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 w-full max-w-[800px]">
                 {skills.map((skill) => (
-                  <Badge key={skill}  className="flex items-center gap-2 rounded-full px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                  <Badge 
+                    key={skill}  
+                    className="flex items-center justify-center gap-2 rounded-full  px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-xs sm:text-sm"
+                  >
                     {skillIcons[skill]}
-                    {skill}
+                    <span className="truncate">{skill}</span>
                   </Badge>
                 ))}
               </div>
