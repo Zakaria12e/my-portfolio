@@ -4,6 +4,7 @@ import { useState, type JSX } from "react"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Github, ExternalLink, ArrowRight } from "lucide-react"
 import {
   SiJavascript,
@@ -109,7 +110,6 @@ export function ModernWork() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-         
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">
             Featured Projects
           </h2>
@@ -132,7 +132,6 @@ export function ModernWork() {
             ))}
           </div>
         </motion.div>
-        
 
         <div className="grid md:grid-cols-4 gap-8">
           {filteredProjects.map((project, index) => (
@@ -144,68 +143,58 @@ export function ModernWork() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              
-              <div className="bg-background/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-                {/* Image */}
-                <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={project.image || "/coming-soon.jpg"}
-                    alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
+              <Card className="max-w-xs shadow-none bg-background/5 backdrop-blur-sm border-white/10">
+               
 
-                {/* Content */}
-                <div className="p-6">
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                <CardContent className="text-[15px] text-muted-foreground px-5">
+                 
+                  <div className="mt-5 w-full aspect-video bg-muted rounded-xl overflow-hidden">
+                    <img
+                      src={project.image || "/coming-soon.jpg"}
+                      alt={project.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </div>
+                    <p className="mt-4 text-sm text-muted-foreground">{project.description}</p>
+                    <div className="grid grid-cols-4 gap-2 mt-4">
                     {project.tags.map((tag) => (
                       <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="bg-background/30 backdrop-blur-sm border border-white/10 flex items-center gap-1 text-xs font-normal"
+                      key={tag}
+                      variant="secondary"
+                      className="bg-background/30 backdrop-blur-sm border border-white/10 flex items-center gap-1 text-xs font-normal"
                       >
-                        {tagIcons[tag] || null}
-                        {tag}
+                      {tagIcons[tag] || null}
+                      {tag}
                       </Badge>
                     ))}
-                  </div>
+                    </div>
+                </CardContent>
 
-                  {/* Title */}
-                    <h3 className="text-2xl font-extrabold mb-4 tracking-tight text-primary">{project.title}</h3>
-
-                  {/* Buttons */}
-                  <div className="flex gap-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 hover:bg-white/5 text-primary/50 transition-colors"
-                      asChild
-                    >
-                        <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                        <Github className="mr-2 h-4 w-4" />
-                        Code
-                        </a>
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 hover:bg-white/5 text-primary/50 transition-colors"
-                      asChild
-                    >
-                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Live Demo
-                        </a>
-                        
-                      
-          
-                    </Button>
-                    
-                  </div>
-                </div>
-              </div>
+                <CardFooter className="px-5 gap-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 hover:bg-white/5"
+                    asChild
+                  >
+                    <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      <Github className="h-4 w-4" />
+                      Code
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 hover:bg-white/5"
+                    asChild
+                  >
+                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Live Demo
+                    </a>
+                  </Button>
+                </CardFooter>
+              </Card>
             </motion.div>
           ))}
         </div>
