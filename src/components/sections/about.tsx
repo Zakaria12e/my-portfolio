@@ -285,17 +285,18 @@ export function ModernAbout() {
               </h4>
 
             <div className="pt-4 flex justify-center">
-              <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 w-full max-w-[800px]">
-                {skills.map((skill) => (
-                  <Badge 
-                    key={skill}  
-                    className="flex items-center justify-center gap-2 rounded-full  px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground bg-gray-50 dark:hover:bg-white/10 transition-colors text-xs sm:text-sm"
-                  >
-                    {skillIcons[skill]}
-                    <span className="truncate">{skill}</span>
-                  </Badge>
-                ))}
-              </div>
+            <div className="grid grid-cols-3 gap-1 justify-center text-[0.65rem] sm:text-xs sm:flex sm:flex-wrap">
+  {skills.map((skill) => (
+    <Badge
+      key={skill}
+      className="flex items-center gap-[0.2rem] rounded-full px-[0.5rem] py-[0.2rem] bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border-muted text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors sm:gap-1 sm:px-2 sm:py-1"
+    >
+      {skillIcons[skill]}
+      {skill}
+    </Badge>
+  ))}
+</div>
+
             </div>
 
           
