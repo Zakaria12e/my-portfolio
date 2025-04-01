@@ -22,6 +22,7 @@ import {
   SiSocketdotio,
   SiStripe,
 } from "react-icons/si"
+import { Svg } from "@react-three/drei"
 
 export function ModernWork() {
   const [activeFilter, setActiveFilter] = useState("All")
@@ -45,7 +46,7 @@ export function ModernWork() {
       description: "A mobile app for travelers to discover and book unique experiences around the world.",
       image: "coming-soon.jpg",
       category: "Mobile",
-      tags: ["React", "Firebase", "Google Maps API"],
+      tags: ["React", "framermotion", "Google Maps API"],
       liveUrl: "#",
       githubUrl: "#",
     },
@@ -81,6 +82,13 @@ export function ModernWork() {
     MongoDB: <SiMongodb className="mr-1 text-green-500" />,
     TailwindCSS: <SiTailwindcss className="mr-1 text-sky-400" />,
     Git: <SiGit className="mr-1 text-orange-500" />,
+    framermotion: (
+      <img
+        src="/fm.svg"
+        alt="Framer Motion"
+        className="mr-1 w-4 h-4 inline-block"
+      />
+    ),
     MySQL: <SiMysql className="mr-1 text-blue-700" />,
     Python: <SiPython className="mr-1 text-blue-600" />,
     Firebase: <SiMongodb className="mr-1 text-yellow-400" />,
@@ -143,7 +151,7 @@ export function ModernWork() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <Card className="max-w-xs shadow-none bg-background/5 backdrop-blur-sm border-white/10">
+              <Card className="max-w-xs  dark:bg-background/5 backdrop-blur-sm border-neutral-300">
                
 
                 <CardContent className="text-[15px] text-muted-foreground px-5">
@@ -156,15 +164,15 @@ export function ModernWork() {
                     />
                   </div>
                     <p className="mt-4 text-sm text-muted-foreground">{project.description}</p>
-                    <div className="grid grid-cols-4 gap-2 mt-4">
+                    <div className="flex  mt-4 ">
                     {project.tags.map((tag) => (
-                      <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="bg-background/30 backdrop-blur-sm border border-white/10 flex items-center gap-1 text-xs font-normal"
+                        <Badge
+                        key={tag}
+                        variant="secondary"
+                      className="bg-background/30 backdrop-blur-sm  border-white/10 flex items-center  text-xs font-normal p-0"
                       >
                       {tagIcons[tag] || null}
-                      {tag}
+                     
                       </Badge>
                     ))}
                     </div>
@@ -174,7 +182,7 @@ export function ModernWork() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-white/20 hover:bg-white/5"
+                    className="border-neutral-800 dark:border-white/20 hover:bg-neutral-100 dark:hover:bg-white/5 text-neutral-800 dark:text-white"
                     asChild
                   >
                     <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
@@ -185,8 +193,8 @@ export function ModernWork() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-white/20 hover:bg-white/5"
-                    asChild
+                    className="border-neutral-800 dark:border-white/20 hover:bg-neutral-100 dark:hover:bg-white/5 text-neutral-800 dark:text-white"
+                    asChild 
                   >
                     <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                       <ExternalLink className="h-4 w-4" />
@@ -200,7 +208,7 @@ export function ModernWork() {
         </div>
 
         <div className="flex justify-center mt-16">
-          <Button variant="outline" size="lg" className="rounded-full px-8 group border-white/20 hover:bg-white/5">
+          <Button variant="outline" size="lg" className="rounded-full px-8 group border-neutral-800 dark:border-white/20 hover:bg-neutral-100 dark:hover:bg-white/5 text-neutral-800 dark:text-white">
             View All Projects
             <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           </Button>
