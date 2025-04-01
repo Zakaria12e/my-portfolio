@@ -4,16 +4,13 @@ import { motion } from "framer-motion"
 import type { JSX } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Code, Palette, LayoutGrid, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
-import { FaJava } from "react-icons/fa"
+import { Code, Palette, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
 import { AboutStars } from "@/components/effects/stars"
 import {
   SiJavascript,
   SiTypescript,
   SiReact,
-  SiMysql,
   SiLaravel,
-  SiPython,
   SiNodedotjs,
   SiExpress,
   SiMongodb,
@@ -107,13 +104,15 @@ export function ModernAbout() {
     Java: "#DC2626",
     Python: "#EAB308",
     "Node.js": "#16A34A",
-    "ShadCN UI": "#4B5563",
+    "ShadCN UI": "var(--shadcn-color)",
     Express: "#4B5563",
     MongoDB: "#22C55E",
     "Socket.io": "#4B5563",
     "Tailwind CSS": "#38BDF8",
     Git: "#F97316",
   }
+
+
   
   // NEW: Skill levels for progress bars
   const skillLevels = {
