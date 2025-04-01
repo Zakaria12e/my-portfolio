@@ -171,10 +171,14 @@ export function ModernContact() {
                     />
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full rounded-lg gap-2 dark:bg-black text-white">
+                    <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full rounded-lg gap-2 dark:bg-black text-white dark:border dark:border-secondary-100"
+                    >
                     Send Message
                     <Send className="h-4 w-4" />
-                  </Button>
+                    </Button>
                 </form>
               </CardContent>
             </Card>
