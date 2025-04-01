@@ -151,7 +151,7 @@ export function ModernWork() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <Card className="max-w-xs  dark:bg-background/5 backdrop-blur-sm border-neutral-300">
+              <Card className="max-w-xs  dark:bg-background/5 backdrop-blur-sm dark:border-white/10 border-neutral-300 shadow-lg transition-transform duration-300 transform hover:scale-105">
                
 
                 <CardContent className="text-[15px] text-muted-foreground px-5">
