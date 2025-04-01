@@ -289,7 +289,7 @@ export function ModernAbout() {
                 {skills.map((skill) => (
                   <Badge 
                     key={skill}  
-                    className="flex items-center justify-center gap-2 rounded-full  px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-xs sm:text-sm"
+                    className="flex items-center justify-center gap-2 rounded-full  px-3 py-1 bg-transparent border text-gray-700 border-gray-300 dark:bg-transparent border border-muted text-muted-foreground bg-gray-50 dark:hover:bg-white/10 transition-colors text-xs sm:text-sm"
                   >
                     {skillIcons[skill]}
                     <span className="truncate">{skill}</span>
