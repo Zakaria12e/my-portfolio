@@ -117,6 +117,9 @@ export function ModernWork() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
+            <Badge className="mb-4" variant="secondary">
+            Projects
+            </Badge>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">
             Featured Projects
           </h2>

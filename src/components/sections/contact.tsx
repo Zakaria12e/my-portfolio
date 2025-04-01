@@ -64,7 +64,7 @@ export function ModernContact() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <Badge className="mb-4">Get In Touch</Badge>
+          <Badge className="mb-4" variant="secondary">Get In Touch</Badge>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">Let's Work Together</h2>
           <p className="text-muted-foreground text-lg">
             Have a project in mind or want to discuss potential opportunities? I'd love to hear from you.
