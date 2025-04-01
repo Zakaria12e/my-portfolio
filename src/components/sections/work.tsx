@@ -22,7 +22,6 @@ import {
   SiSocketdotio,
   SiStripe,
 } from "react-icons/si"
-import { Svg } from "@react-three/drei"
 
 export function ModernWork() {
   const [activeFilter, setActiveFilter] = useState("All")
