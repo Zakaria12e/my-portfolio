@@ -31,9 +31,9 @@ export function ModernWork() {
   const projects = [
     {
       id: 1,
-      title: "E-Commerce Platform",
+      title: "Real-Time Vehicle Tracking System",
       description: "A modern e-commerce platform with a seamless shopping experience and secure payment processing.",
-      image: "coming-soon.jpg",
+      image: "Real-Time Vehicle Tracking System.jpg",
       category: "Web",
       tags: ["React", "Node.js", "MongoDB", "Stripe"],
       liveUrl: "#",
