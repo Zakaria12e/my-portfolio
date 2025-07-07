@@ -32,12 +32,12 @@ export function ModernWork() {
     {
       id: 1,
       title: "Real-Time Vehicle Tracking System",
-      description: "A modern e-commerce platform with a seamless shopping experience and secure payment processing.",
+      description: "A real-time vehicle tracking platform offering seamless fleet monitoring, live GPS positioning, and smart alerting.",
       image: "Real-Time Vehicle Tracking System.jpg",
       category: "Web",
-      tags: ["React", "Node.js", "MongoDB", "Stripe"],
+      tags: ["React", "Node.js", "MongoDB", "Socket.io"],
       liveUrl: "#",
-      githubUrl: "#",
+      githubUrl: "https://github.com/Zakaria12e/vehicle-tracker-sys-frontend",
     },
     {
       id: 2,
