@@ -169,7 +169,7 @@ export function ModernAbout() {
       description: "Pursuing advanced studies in systems architecture, software engineering, and project management.",
     },
     {
-  degree: "Master's Degree in Software Engineering and Business Intelligence",
+  degree: "Master’s Degree in Software Engineering and Decision Support Systems",
   institution: "Faculty of Sciences, Mohammed V University, Rabat",
   period: "2025 - present",
   description: "Specialized training in software architecture, distributed systems, data engineering, machine learning, and decision-support systems."
