@@ -165,9 +165,15 @@ export function ModernAbout() {
     {
       degree: "Bachelor's Degree in Software and Systems Engineering",
       institution: "Higher School of Technology, Essaouira",
-      period: "2024 - Present",
+      period: "2024 - 2025",
       description: "Pursuing advanced studies in systems architecture, software engineering, and project management.",
     },
+    {
+  degree: "Master's Degree in Software Engineering and Business Intelligence",
+  institution: "Faculty of Sciences, Mohammed V University, Rabat",
+  period: "2025 - present",
+  description: "Specialized training in software architecture, distributed systems, data engineering, machine learning, and decision-support systems."
+},
   ]
 
   const services = [
@@ -250,7 +256,7 @@ export function ModernAbout() {
               </span>
             </h3>
             <p className="text-muted-foreground">
-              I'm a full-stack developer and passionate student with 3 years of hands-on experience building digital
+              I'm a full-stack developer and passionate student with 4 years of hands-on experience building digital
               products that solve real-world problems. I love crafting web experiences that are both functional and
               visually engaging.
             </p>
@@ -268,7 +274,7 @@ export function ModernAbout() {
         </div>
         <div className="flex items-center gap-2">
           <Award className="h-4 w-4 text-yellow-500" />
-          <span className="text-sm">3+ Years Experience</span>
+          <span className="text-sm">4+ Years Experience</span>
         </div>
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-red-500" />
