@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -140,9 +140,6 @@ export const Keyboard = ({ className }: { className?: string }) => {
     { label: "▾" },
     { label: "▸" },
   ];
-
-  // Animate a sequence of keys lighting up when in view
-  const [activeKeys, setActiveKeys] = useState<number[]>([]);
 
   useEffect(() => {
     if (isInView) {

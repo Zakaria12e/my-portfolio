@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
+import { Keyboard } from "@/components/ui/keyboard"
 import { toast } from "sonner"
 import { Mail, MapPin, Send } from "lucide-react"
 
@@ -112,6 +113,13 @@ export function ModernContact() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            <div className="pt-4 overflow-x-auto">
+              <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-widest">Press any key to say hi</p>
+              <div className="scale-[0.72] origin-left">
+                <Keyboard />
+              </div>
             </div>
           </motion.div>
 
