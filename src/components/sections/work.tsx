@@ -59,14 +59,14 @@ const projects = [
   },
   {
     id: 2,
-    title: "Travel App",
+    title: "Garamitos E-Commerce",
     description:
-      "A mobile app for travelers to discover and book unique experiences around the world.",
-    image: "/coming-soon.jpg",
-    category: "Mobile",
-    tags: ["React", "framermotion", "Google Maps API"],
-    liveUrl: "#",
-    githubUrl: "#",
+      "A full-stack e-commerce platform with a React storefront, REST API, JWT authentication, and MongoDB-powered product & order management.",
+    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
+    category: "Web",
+    tags: ["React", "Node.js", "Express", "MongoDB", "TailwindCSS"],
+    liveUrl: "https://garamitos.vercel.app",
+    githubUrl: "https://github.com/Zakaria12e/Garamitos_Ecom",
   },
   {
     id: 3,
