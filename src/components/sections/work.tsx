@@ -73,7 +73,7 @@ const projects = [
     title: "Dashboard UI",
     description:
       "A comprehensive admin dashboard with data visualization and user management.",
-    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775080088/203_1x_shots_so_yqf8zp.png",
+    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
     category: "Design",
     tags: ["Figma", "UI/UX", "Design System"],
     liveUrl: "#",
