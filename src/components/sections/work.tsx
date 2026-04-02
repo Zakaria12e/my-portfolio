@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type JSX } from "react"
+import { useState, useEffect, type JSX } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -97,6 +97,14 @@ const filters = ["All", "Web", "Mobile", "Design"]
 export function ModernWork() {
   const [activeFilter, setActiveFilter] = useState("All")
   const [current, setCurrent] = useState(0)
+  const [macWidth, setMacWidth] = useState(420)
+
+  useEffect(() => {
+    const update = () => setMacWidth(window.innerWidth < 640 ? Math.min(window.innerWidth - 48, 320) : 420)
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
 
   const filtered =
     activeFilter === "All" ? projects : projects.filter((p) => p.category === activeFilter)
@@ -159,7 +167,7 @@ export function ModernWork() {
           >
             {/* MacBook */}
             <div className="flex-shrink-0 flex justify-center w-full lg:w-auto">
-              <MacbookPro src={project.image} width={420} />
+              <MacbookPro src={project.image} width={macWidth} />
             </div>
 
             {/* Project info */}
