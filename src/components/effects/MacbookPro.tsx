@@ -64,7 +64,7 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     },
     bezel: {
       position: "absolute",
-      top: 5, left: 5, right: 5, bottom: 0,
+      top: 5, left: 5, right: 5, bottom: 5,
       background: isDark ? "#0a0a0c" : "#1a1a1c",
       borderRadius: "6px 6px 0 0",
       overflow: "hidden",
