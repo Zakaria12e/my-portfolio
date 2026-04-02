@@ -51,7 +51,7 @@ const projects = [
     title: "Real-Time Vehicle Tracking System",
     description:
       "A real-time vehicle tracking platform offering seamless fleet monitoring, live GPS positioning, and smart alerting.",
-    image: "/Real-Time Vehicle Tracking System.jpg",
+    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775163711/31_1x_shots_so_ki7fmn.png",
     category: "Web",
     tags: ["React", "Node.js", "MongoDB", "Socket.io"],
     liveUrl: "#",
