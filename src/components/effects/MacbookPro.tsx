@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, CSSProperties } from "react"
+import { useTheme } from "./theme-provider"
 
 interface MacbookProProps {
   src?: string
@@ -11,6 +12,8 @@ interface MacbookProProps {
 export default function MacbookPro({ src, width = 440, className = "" }: MacbookProProps) {
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
+  const { theme } = useTheme()
+  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   useEffect(() => {
     if (!hovered) {
@@ -41,9 +44,9 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     lid: {
       width: w,
       height: h,
-      background: "#1e1e20",
+      background: isDark ? "#1e1e20" : "#e8e8ea",
       borderRadius: `${Math.round(w * 0.023)}px ${Math.round(w * 0.023)}px 0 0`,
-      border: "1.5px solid #2e2e30",
+      border: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
       borderBottom: "none",
       position: "relative",
       overflow: "hidden",
@@ -56,7 +59,7 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     bezel: {
       position: "absolute",
       top: 5, left: 5, right: 5, bottom: 0,
-      background: "#0a0a0c",
+      background: isDark ? "#0a0a0c" : "#1a1a1c",
       borderRadius: "6px 6px 0 0",
       overflow: "hidden",
     },
@@ -213,21 +216,30 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     green: { color: "#32d74b", fontWeight: 600 },
     hingeBump: {
       position: "absolute",
-      bottom: 0,
+      top: 0,
       left: "50%",
       transform: "translateX(-50%)",
-      width: 80, height: 4,
-      background: "#2a2a2c",
-      borderRadius: "2px 2px 0 0",
+      width: 80, height: 5,
+      background: isDark
+        ? "linear-gradient(180deg, #4a4a4e 0%, #3a3a3c 100%)"
+        : "linear-gradient(180deg, #c0c0c2 0%, #b0b0b2 100%)",
+      borderRadius: "0 0 6px 6px",
+      border: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderTop: "none",
+      boxShadow: isDark
+        ? "0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)"
+        : "0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.5)",
       zIndex: 20,
     },
     base: {
       width: baseW,
       height: baseH,
-      background: "linear-gradient(180deg,#2c2c2e 0%,#222224 55%,#1a1a1c 100%)",
+      background: isDark
+        ? "linear-gradient(180deg,#2c2c2e 0%,#222224 55%,#1a1a1c 100%)"
+        : "linear-gradient(180deg,#dcdcde 0%,#d0d0d2 55%,#c8c8ca 100%)",
       borderRadius: "0 0 8px 8px",
-      border: "1px solid #181819",
-      borderTop: "1.5px solid #3a3a3c",
+      border: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderTop: isDark ? "1.5px solid #3a3a3c" : "1.5px solid #e8e8ea",
       transform: hovered
         ? "perspective(1200px) rotateX(-2deg)"
         : "perspective(1200px) rotateX(-4deg)",
@@ -238,7 +250,7 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     shadow: {
       width: Math.round(w * 0.91),
       height: 12,
-      background: "rgba(0,0,0,0.5)",
+      background: isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.2)",
       borderRadius: "50%",
       filter: "blur(12px)",
       marginTop: 2,
@@ -263,7 +275,6 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
             <div style={s.micDot} />
             <div style={s.cam} />
           </div>
-          <div style={s.hingeBump} />
           <div style={s.screen}>
             <div style={s.screenOff} />
             <div style={s.screenOn}>
@@ -272,30 +283,6 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
               ) : (
                 <div style={{ width: "100%", height: "100%", background: "#0a0a0c" }} />
               )}
-              <div style={s.mbar}>
-                <svg width="8" height="9" viewBox="0 0 44 53" fill="rgba(255,255,255,0.85)">
-                  <path d={applePath} />
-                </svg>
-                <span style={s.mbarText}>Finder</span>
-                <span style={s.mbarDim}>File</span>
-                <span style={s.mbarDim}>Edit</span>
-                <span style={s.mbarDim}>View</span>
-                <div style={s.mbarRight}>
-                  <div style={s.battWrap}>
-                    <div style={s.battBody}>
-                      <div style={s.battFill} />
-                      <svg
-                        style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}
-                        width="5" height="7" viewBox="0 0 5 7" fill="none"
-                      >
-                        <path d={boltPath} fill="#32d74b" />
-                      </svg>
-                    </div>
-                    <div style={s.battNub} />
-                  </div>
-                  <span style={s.mbarText}>9:41</span>
-                </div>
-              </div>
               <div style={s.notifPill}>
                 <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <div style={s.notifBattShell}>
@@ -317,7 +304,9 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
       </div>
 
       {/* Base */}
-      <div style={s.base} />
+      <div style={s.base}>
+        <div style={s.hingeBump} />
+      </div>
 
       {/* Ground shadow */}
       <div style={s.shadow} />
