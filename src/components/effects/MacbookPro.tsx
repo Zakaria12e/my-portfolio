@@ -12,18 +12,24 @@ interface MacbookProProps {
 export default function MacbookPro({ src, width = 440, className = "" }: MacbookProProps) {
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
+  const [notifBig, setNotifBig] = useState(false)
   const { theme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   useEffect(() => {
     if (!hovered) {
       setShowNotif(false)
+      setNotifBig(false)
       return
     }
-    const show = setTimeout(() => setShowNotif(true), 300)
-    const hide = setTimeout(() => setShowNotif(false), 2700)
+    const show    = setTimeout(() => setShowNotif(true),  300)
+    const expand  = setTimeout(() => setNotifBig(true),   500)
+    const shrink  = setTimeout(() => setNotifBig(false), 2200)
+    const hide    = setTimeout(() => setShowNotif(false), 2700)
     return () => {
       clearTimeout(show)
+      clearTimeout(expand)
+      clearTimeout(shrink)
       clearTimeout(hide)
     }
   }, [hovered])
@@ -65,21 +71,23 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     },
     notch: {
       position: "absolute",
-      top: 3,
+      top: 4,
       left: "50%",
       transform: "translateX(-50%)",
-      width: 72,
-      height: 16,
+      width: 44,
+      height: 10,
       background: "#000",
       borderRadius: 20,
       zIndex: 10,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 5,
+      gap: 4,
+      opacity: showNotif ? 0 : 1,
+      transition: "opacity 0.2s",
     },
     cam: {
-      width: 6, height: 6,
+      width: 4, height: 4,
       borderRadius: "50%",
       background: "#141414",
       border: "1px solid #1c1c1c",
@@ -87,7 +95,7 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
       flexShrink: 0,
     },
     micDot: {
-      width: 3, height: 3,
+      width: 2, height: 2,
       borderRadius: "50%",
       background: "#1a1a1a",
       flexShrink: 0,
@@ -174,27 +182,36 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     },
     notifPill: {
       position: "absolute",
-      top: 22,
+      top: 4,
       left: "50%",
-      transform: showNotif
-        ? "translateX(-50%) translateY(0px)"
-        : "translateX(-50%) translateY(-36px)",
+      transform: "translateX(-50%)",
+      width: notifBig ? 110 : 44,
+      height: notifBig ? 22 : 10,
       opacity: showNotif ? 1 : 0,
-      background: "#1d1d1f",
+      background: "#000",
       borderRadius: 20,
-      padding: "3px 9px 3px 6px",
+      padding: notifBig ? "0 8px" : 0,
       display: "flex",
       alignItems: "center",
+      justifyContent: "center",
       gap: 4,
-      fontSize: 7.5,
+      fontSize: 7,
       fontWeight: 500,
       color: "#fff",
       whiteSpace: "nowrap",
+      overflow: "hidden",
       zIndex: 12,
-      boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
       fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-      transition: "opacity 0.35s ease, transform 0.35s cubic-bezier(0.22,0.6,0.32,1)",
+      transition: "width 0.4s cubic-bezier(0.22,0.6,0.32,1), height 0.4s cubic-bezier(0.22,0.6,0.32,1), opacity 0.25s ease",
       pointerEvents: "none",
+    },
+    notifContent: {
+      opacity: notifBig ? 1 : 0,
+      transition: "opacity 0.2s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
     },
     notifBattShell: {
       width: 15, height: 7,
@@ -284,19 +301,21 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
                 <div style={{ width: "100%", height: "100%", background: "#0a0a0c" }} />
               )}
               <div style={s.notifPill}>
-                <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <div style={s.notifBattShell}>
-                    <div style={s.notifBattFill} />
-                    <svg
-                      style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}
-                      width="5" height="7" viewBox="0 0 5 7" fill="none"
-                    >
-                      <path d={boltPath} fill="#32d74b" />
-                    </svg>
+                <div style={s.notifContent}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <div style={s.notifBattShell}>
+                      <div style={s.notifBattFill} />
+                      <svg
+                        style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}
+                        width="5" height="7" viewBox="0 0 5 7" fill="none"
+                      >
+                        <path d={boltPath} fill="#32d74b" />
+                      </svg>
+                    </div>
+                    <div style={s.notifNub} />
                   </div>
-                  <div style={s.notifNub} />
+                  Charging &nbsp;<span style={s.green}>63%</span>
                 </div>
-                Charging &nbsp;<span style={s.green}>63%</span>
               </div>
             </div>
           </div>
