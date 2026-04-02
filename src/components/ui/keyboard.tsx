@@ -506,7 +506,7 @@ export const Keyboard = ({
         className={cn(
           compact
             ? "mx-auto w-fit [zoom:0.65]"
-            : "mx-auto w-fit [zoom:0.8] sm:[zoom:1.25] md:[zoom:1.5] lg:[zoom:1.75] xl:[zoom:2]",
+            : "mx-auto w-fit [zoom:0.55] xs:[zoom:0.65] sm:[zoom:1.25] md:[zoom:1.5] lg:[zoom:1.75] xl:[zoom:2]",
           className,
         )}
       >
@@ -841,6 +841,16 @@ const Key = ({
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMouseDown();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMouseUp();
+  };
+
   return (
     <div className={cn("rounded-[4px] p-[0.5px]", containerClassName)}>
       <button
@@ -848,6 +858,8 @@ const Key = ({
         onMouseDown={(e) => { e.preventDefault(); handleMouseDown(); }}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className={cn(
           "flex h-6 w-6 cursor-pointer items-center justify-center rounded-[3.5px] bg-gray-100 shadow-[0px_0px_1px_0px_rgba(0,0,0,0.5),0px_1px_1px_0px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(255,255,255,1)_inset] transition-transform duration-75 active:scale-[0.98]",
           isPressed &&
@@ -904,6 +916,16 @@ const ModifierKey = ({
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMouseDown();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMouseUp();
+  };
+
   return (
     <div className={cn("rounded-[4px] p-[0.5px]", containerClassName)}>
       <button
@@ -911,6 +933,8 @@ const ModifierKey = ({
         onMouseDown={(e) => { e.preventDefault(); handleMouseDown(); }}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className={cn(
           "flex h-6 w-6 cursor-pointer items-center justify-center rounded-[3.5px] bg-gray-100 shadow-[0px_0px_1px_0px_rgba(0,0,0,0.5),0px_1px_1px_0px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(255,255,255,1)_inset] transition-transform duration-75 active:scale-[0.98]",
           isPressed &&
