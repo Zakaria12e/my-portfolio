@@ -65,7 +65,7 @@ const projects = [
     image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
     category: "Web",
     tags: ["React", "Node.js", "Express", "MongoDB", "TailwindCSS"],
-    liveUrl: "https://garamitos.vercel.app",
+    liveUrl: "https://garamitos-ecom-demo.vercel.app",
     githubUrl: "https://github.com/Zakaria12e/Garamitos_Ecom",
   },
   {
