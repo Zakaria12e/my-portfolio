@@ -18,8 +18,12 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [termInput, setTermInput] = useState("")
+  const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
   const [scales, setScales] = useState<number[]>([])
-  const dockRef = useRef<HTMLDivElement>(null)
+  const dockRef    = useRef<HTMLDivElement>(null)
+  const inputRef   = useRef<HTMLInputElement>(null)
+  const termBodyRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
@@ -44,6 +48,17 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
+
+  // Auto-focus input when terminal opens
+  useEffect(() => {
+    if (terminalOpen) setTimeout(() => inputRef.current?.focus(), 50)
+    else { setTermLines([]); setTermInput("") }
+  }, [terminalOpen])
+
+  // Auto-scroll terminal body
+  useEffect(() => {
+    if (termBodyRef.current) termBodyRef.current.scrollTop = termBodyRef.current.scrollHeight
+  }, [termLines])
 
   useEffect(() => {
     const ones = imgList.map(() => 1)
@@ -300,6 +315,104 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                 />
               ) : (
                 <div style={{ position: "absolute", inset: 0, background: "#0a0a0c" }} />
+              )}
+
+              {/* Terminal overlay */}
+              {terminalOpen && (
+                <div style={{
+                  position: "absolute", inset: 0, zIndex: 20,
+                  background: "rgba(0,0,0,0.82)",
+                  backdropFilter: "blur(4px)",
+                  WebkitBackdropFilter: "blur(4px)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: 10,
+                  animation: "mbFade 0.2s ease",
+                }}>
+                  <div style={{
+                    width: "100%", maxWidth: "72%",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    background: "rgba(18,18,20,0.97)",
+                    border: "0.5px solid rgba(255,255,255,0.1)",
+                    boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
+                    fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
+                    fontSize: Math.round(w * 0.022),
+                    lineHeight: 1.6,
+                  }}>
+                    {/* Title bar */}
+                    <div style={{
+                      height: Math.round(w * 0.052),
+                      background: "rgba(28,28,30,0.98)",
+                      borderBottom: "0.5px solid rgba(255,255,255,0.08)",
+                      display: "flex", alignItems: "center",
+                      padding: `0 ${Math.round(w * 0.02)}px`, gap: 5,
+                      position: "relative",
+                    }}>
+                      {/* Traffic lights */}
+                      {[
+                        { bg: "#ff5f57", onClick: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
+                        { bg: "#febc2e", onClick: undefined },
+                        { bg: "#28c840", onClick: undefined },
+                      ].map((btn, i) => (
+                        <div
+                          key={i}
+                          onClick={(e) => { e.stopPropagation(); btn.onClick?.() }}
+                          style={{
+                            width: Math.round(w * 0.025), height: Math.round(w * 0.025),
+                            borderRadius: "50%", background: btn.bg, cursor: btn.onClick ? "pointer" : "default",
+                            flexShrink: 0, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.3)",
+                          }}
+                        />
+                      ))}
+                      <span style={{
+                        position: "absolute", left: "50%", transform: "translateX(-50%)",
+                        fontSize: Math.round(w * 0.02), color: "rgba(255,255,255,0.3)",
+                        fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif", fontWeight: 500,
+                        letterSpacing: 0.2, pointerEvents: "none",
+                      }}>
+                        terminal
+                      </span>
+                    </div>
+
+                    {/* Output area */}
+                    <div
+                      ref={termBodyRef}
+                      style={{
+                        padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
+                        minHeight: Math.round(w * 0.18),
+                        maxHeight: Math.round(w * 0.26),
+                        overflowY: "auto", scrollbarWidth: "none",
+                      }}
+                    >
+                      {termLines.map((line, i) => (
+                        <div key={i} style={{ color: line.color ?? "rgba(255,255,255,0.75)", paddingBottom: 1 }}>
+                          {line.text}
+                        </div>
+                      ))}
+
+                      {/* Input row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                        <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
+                        <span style={{ color: "#64d2ff", flexShrink: 0 }}>~ </span>
+                        <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
+                        <input
+                          ref={inputRef}
+                          value={termInput}
+                          onChange={(e) => setTermInput(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => { e.stopPropagation() }}
+                          autoFocus
+                          spellCheck={false}
+                          style={{
+                            flex: 1, background: "transparent", border: "none", outline: "none",
+                            color: "#e2e8f0", fontSize: "inherit", fontFamily: "inherit",
+                            caretColor: "#30d158",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Dock */}
