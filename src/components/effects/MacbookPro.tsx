@@ -6,16 +6,18 @@ import { useTheme } from "./theme-provider"
 interface MacbookProProps {
   src?: string
   images?: string[]
+  description?: string
   width?: number
   className?: string
 }
 
-export default function MacbookPro({ src, images, width = 440, className = "" }: MacbookProProps) {
+export default function MacbookPro({ src, images, description, width = 440, className = "" }: MacbookProProps) {
 
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
+  const [terminalOpen, setTerminalOpen] = useState(false)
   const [scales, setScales] = useState<number[]>([])
   const dockRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
@@ -389,6 +391,42 @@ export default function MacbookPro({ src, images, width = 440, className = "" }:
                         </div>
                       )
                     })}
+
+                    {/* Dock separator + terminal icon */}
+                    {description && <>
+                      <div style={{
+                        width: 0.5, height: slotSize * 0.7, alignSelf: "center",
+                        background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
+                        marginLeft: 1, marginRight: 1,
+                      }} />
+                      <div
+                        style={{
+                          width: slotSize, height: slotSize, flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", overflow: "visible",
+                        }}
+                        onClick={(e) => { e.stopPropagation(); setTerminalOpen(o => !o) }}
+                      >
+                        <div style={{
+                          width: slotSize, height: slotSize,
+                          borderRadius: Math.round(slotSize * 0.22),
+                          background: terminalOpen
+                            ? "linear-gradient(145deg,#1a1a2e,#16213e)"
+                            : "linear-gradient(145deg,#1c1c1e,#2c2c2e)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          boxShadow: terminalOpen
+                            ? "0 0 0 1.5px #30d158, 0 2px 8px rgba(0,0,0,0.6)"
+                            : "0 1px 5px rgba(0,0,0,0.6)",
+                          transition: "box-shadow 0.2s, background 0.2s",
+                          flexShrink: 0,
+                        }}>
+                          <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
+                            <polyline points="4 17 10 11 4 5" stroke="#30d158" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="19" x2="20" y2="19" stroke="#30d158" strokeWidth="2.5" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </>}
                   </div>
 
                   {/* Active dots row — separate so they don't affect icon layout */}
