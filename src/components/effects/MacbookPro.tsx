@@ -11,7 +11,10 @@ interface MacbookProProps {
 }
 
 export default function MacbookPro({ src, images, width = 440, className = "" }: MacbookProProps) {
+
   const [hovered, setHovered] = useState(false)
+  const [showNotif, setShowNotif] = useState(false)
+  const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [scales, setScales] = useState<number[]>([])
   const dockRef = useRef<HTMLDivElement>(null)
@@ -24,6 +27,19 @@ export default function MacbookPro({ src, images, width = 440, className = "" }:
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
   const currentSrc = imgList[activeImg] ?? null
   const hasDock = imgList.length > 1
+
+  useEffect(() => {
+    if (!hovered) {
+      setShowNotif(false)
+      setNotifBig(false)
+      return
+    }
+    const show   = setTimeout(() => setShowNotif(true),  300)
+    const expand = setTimeout(() => setNotifBig(true),   500)
+    const shrink = setTimeout(() => setNotifBig(false), 2400)
+    const hide   = setTimeout(() => setShowNotif(false), 2900)
+    return () => { clearTimeout(show); clearTimeout(expand); clearTimeout(shrink); clearTimeout(hide) }
+  }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
 
@@ -126,9 +142,35 @@ export default function MacbookPro({ src, images, width = 440, className = "" }:
       borderRadius: 20,
       zIndex: 10,
       display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+      opacity: showNotif ? 0 : 1,
+      transition: "opacity 0.2s",
     },
     cam:    { width: 4, height: 4, borderRadius: "50%", background: "#141414", border: "1px solid #1c1c1c", flexShrink: 0 },
     micDot: { width: 2, height: 2, borderRadius: "50%", background: "#1a1a1a", flexShrink: 0 },
+    notifPill: {
+      position: "absolute",
+      top: 4, left: "50%",
+      transform: "translateX(-50%)",
+      width: notifBig ? 172 : 44,
+      height: notifBig ? 28 : 10,
+      opacity: showNotif ? 1 : 0,
+      background: "#000",
+      borderRadius: 20,
+      padding: notifBig ? "0 8px" : 0,
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+      fontSize: 7, fontWeight: 500, color: "#fff",
+      whiteSpace: "nowrap", overflow: "hidden",
+      zIndex: 12,
+      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+      transition: "width 0.4s cubic-bezier(0.22,0.6,0.32,1), height 0.4s cubic-bezier(0.22,0.6,0.32,1), opacity 0.25s ease",
+      pointerEvents: "none",
+    },
+    notifContent: {
+      opacity: notifBig ? 1 : 0,
+      transition: "opacity 0.2s ease",
+      display: "flex", alignItems: "center", gap: 4,
+    },
     screen: {
       position: "absolute", inset: 0,
       borderRadius: "6px 6px 0 0",
@@ -209,6 +251,32 @@ export default function MacbookPro({ src, images, width = 440, className = "" }:
           <div style={s.notch}>
             <div style={s.micDot} />
             <div style={s.cam} />
+          </div>
+
+          {/* Dynamic Island — iMessage from Zakaria */}
+          <div style={s.notifPill}>
+            <div style={s.notifContent}>
+              {/* Messages app icon */}
+              <div style={{
+                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                background: "linear-gradient(145deg, #34c759, #30b350)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                </svg>
+              </div>
+              {/* Text */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 6.5, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: 0.3, lineHeight: 1 }}>
+                  Zakaria
+                </span>
+                <span style={{ fontSize: 7, fontWeight: 500, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>
+                  Let's build something for u 🤝
+                </span>
+              </div>
+            </div>
           </div>
 
           <div style={s.screen}>
