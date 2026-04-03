@@ -18,6 +18,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [termMinimized, setTermMinimized] = useState(false)
+  const [termMaximized, setTermMaximized] = useState(false)
   const [termInput, setTermInput] = useState("")
   const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
   const [scales, setScales] = useState<number[]>([])
@@ -77,10 +79,14 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   useEffect(() => {
     if (terminalOpen) {
       setTermLines([{ text: "Type  desc  to see the project description.", color: "#ffd60a" }])
+      setTermMinimized(false)
+      setTermMaximized(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     } else {
       setTermLines([])
       setTermInput("")
+      setTermMinimized(false)
+      setTermMaximized(false)
     }
   }, [terminalOpen])
 
@@ -354,19 +360,19 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                   backdropFilter: "blur(4px)",
                   WebkitBackdropFilter: "blur(4px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  padding: 10,
                   animation: "mbFade 0.2s ease",
                 }}>
                   <div style={{
-                    width: "100%", maxWidth: "72%",
-                    borderRadius: 8,
+                    width: termMaximized ? "100%" : "72%",
+                    height: termMaximized ? "100%" : "auto",
+                    borderRadius: termMaximized ? 0 : 8,
                     overflow: "hidden",
                     background: "rgba(18,18,20,0.97)",
-                    border: "0.5px solid rgba(255,255,255,0.1)",
-                    boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
                     fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
                     fontSize: Math.round(w * 0.022),
                     lineHeight: 1.6,
+                    display: "flex", flexDirection: "column",
+                    transition: "width 0.2s ease, height 0.2s ease, border-radius 0.2s ease",
                   }}>
                     {/* Title bar */}
                     <div style={{
@@ -380,8 +386,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                       {/* Traffic lights */}
                       {[
                         { bg: "#ff5f57", onClick: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
-                        { bg: "#febc2e", onClick: undefined },
-                        { bg: "#28c840", onClick: undefined },
+                        { bg: "#febc2e", onClick: () => setTermMinimized(m => !m) },
+                        { bg: "#28c840", onClick: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
                       ].map((btn, i) => (
                         <div
                           key={i}
@@ -404,12 +410,13 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                     </div>
 
                     {/* Output area */}
-                    <div
+                    {!termMinimized && <div
                       ref={termBodyRef}
                       style={{
                         padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
                         minHeight: Math.round(w * 0.18),
-                        maxHeight: Math.round(w * 0.26),
+                        maxHeight: termMaximized ? "100%" : Math.round(w * 0.26),
+                        flex: termMaximized ? 1 : "none",
                         overflowY: "auto", scrollbarWidth: "none",
                       }}
                     >
@@ -442,7 +449,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                           }}
                         />
                       </div>
-                    </div>
+                    </div>}
                   </div>
                 </div>
               )}
