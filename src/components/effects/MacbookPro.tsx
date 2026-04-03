@@ -355,7 +355,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                     position: "absolute", inset: 0,
                     width: "100%", height: "100%",
                     objectFit: "cover", display: "block",
-                    animation: "mbImg 0.5s cubic-bezier(0.22,1,0.36,1)",
+                    animation: "mbImg 1.4s cubic-bezier(0.16,1,0.3,1)",
                   }}
                 />
               ) : (
@@ -645,9 +645,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
           100% { transform: scale(1);    opacity: 1;   }
         }
         @keyframes mbImg {
-          0%   { opacity: 0; transform: scale(1.08); filter: blur(6px); }
-          40%  { opacity: 1; filter: blur(0px); }
-          100% { opacity: 1; transform: scale(1);    filter: blur(0px); }
+          0%   { opacity: 0; transform: scale(1.06) translateY(8px); }
+          100% { opacity: 1; transform: scale(1)    translateY(0);   }
         }
       `}</style>
     </div>
