@@ -23,8 +23,10 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   const [termInput, setTermInput] = useState("")
   const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
   const [scales, setScales] = useState<number[]>([])
-  const dockRef    = useRef<HTMLDivElement>(null)
-  const inputRef   = useRef<HTMLInputElement>(null)
+  const [termOrigin, setTermOrigin]   = useState("50% 100%")
+  const screenRef   = useRef<HTMLDivElement>(null)
+  const dockRef     = useRef<HTMLDivElement>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
@@ -50,6 +52,14 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
+
+  const getOrigin = (e: React.MouseEvent): string => {
+    const rect = screenRef.current?.getBoundingClientRect()
+    if (!rect) return "50% 100%"
+    const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(1) + "%"
+    const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1) + "%"
+    return `${x} ${y}`
+  }
 
   const runCommand = useCallback((raw: string) => {
     const cmd = raw.trim().toLowerCase()
@@ -331,7 +341,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
             </div>
           </div>
 
-          <div style={s.screen}>
+          <div ref={screenRef} style={s.screen}>
             <div style={s.screenOff} />
             <div style={s.screenOn}>
 
@@ -345,7 +355,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                     position: "absolute", inset: 0,
                     width: "100%", height: "100%",
                     objectFit: "cover", display: "block",
-                    animation: "mbFade 0.3s ease",
+                    animation: "mbImg 0.5s cubic-bezier(0.22,1,0.36,1)",
                   }}
                 />
               ) : (
@@ -360,7 +370,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                   backdropFilter: "blur(4px)",
                   WebkitBackdropFilter: "blur(4px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  animation: "mbFade 0.2s ease",
+                  animation: "mbFade 0.15s ease",
                 }}>
                   <div style={{
                     width: termMaximized ? "100%" : "72%",
@@ -373,6 +383,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                     lineHeight: 1.6,
                     display: "flex", flexDirection: "column",
                     transition: "width 0.2s ease, height 0.2s ease, border-radius 0.2s ease",
+                    animation: "mbPaper 0.42s cubic-bezier(0.22,1,0.36,1)",
+                    transformOrigin: termOrigin,
                   }}>
                     {/* Title bar */}
                     <div style={{
@@ -382,19 +394,18 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                       display: "flex", alignItems: "center",
                       padding: `0 ${Math.round(w * 0.02)}px`, gap: 5,
                       position: "relative",
+                      flexShrink: 0,
                     }}>
-                      {/* Traffic lights */}
                       {[
-                        { bg: "#ff5f57", onClick: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
-                        { bg: "#febc2e", onClick: () => setTermMinimized(m => !m) },
-                        { bg: "#28c840", onClick: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
+                        { bg: "#ff5f57", fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
+                        { bg: "#febc2e", fn: () => setTermMinimized(m => !m) },
+                        { bg: "#28c840", fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
                       ].map((btn, i) => (
-                        <div
-                          key={i}
-                          onClick={(e) => { e.stopPropagation(); btn.onClick?.() }}
+                        <div key={i}
+                          onClick={(e) => { e.stopPropagation(); btn.fn() }}
                           style={{
                             width: Math.round(w * 0.025), height: Math.round(w * 0.025),
-                            borderRadius: "50%", background: btn.bg, cursor: btn.onClick ? "pointer" : "default",
+                            borderRadius: "50%", background: btn.bg, cursor: "pointer",
                             flexShrink: 0, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.3)",
                           }}
                         />
@@ -403,53 +414,51 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                         position: "absolute", left: "50%", transform: "translateX(-50%)",
                         fontSize: Math.round(w * 0.02), color: "rgba(255,255,255,0.3)",
                         fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif", fontWeight: 500,
-                        letterSpacing: 0.2, pointerEvents: "none",
-                      }}>
-                        terminal
-                      </span>
+                        pointerEvents: "none",
+                      }}>terminal</span>
                     </div>
 
                     {/* Output area */}
-                    {!termMinimized && <div
-                      ref={termBodyRef}
-                      style={{
-                        padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
-                        minHeight: Math.round(w * 0.18),
-                        maxHeight: termMaximized ? "100%" : Math.round(w * 0.26),
-                        flex: termMaximized ? 1 : "none",
-                        overflowY: "auto", scrollbarWidth: "none",
-                      }}
-                    >
-                      {termLines.map((line, i) => (
-                        <div key={i} style={{ color: line.color ?? "rgba(255,255,255,0.75)", paddingBottom: 1 }}>
-                          {line.text}
+                    {!termMinimized && (
+                      <div
+                        ref={termBodyRef}
+                        style={{
+                          padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
+                          minHeight: Math.round(w * 0.18),
+                          maxHeight: termMaximized ? "100%" : Math.round(w * 0.26),
+                          flex: termMaximized ? 1 : "none",
+                          overflowY: "auto", scrollbarWidth: "none",
+                        }}
+                      >
+                        {termLines.map((line, i) => (
+                          <div key={i} style={{ color: line.color ?? "rgba(255,255,255,0.75)", paddingBottom: 1 }}>
+                            {line.text}
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                          <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
+                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>~ </span>
+                          <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
+                          <input
+                            ref={inputRef}
+                            value={termInput}
+                            onChange={(e) => setTermInput(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              e.stopPropagation()
+                              if (e.key === "Enter") runCommand(termInput)
+                            }}
+                            autoFocus
+                            spellCheck={false}
+                            style={{
+                              flex: 1, background: "transparent", border: "none", outline: "none",
+                              color: "#e2e8f0", fontSize: "inherit", fontFamily: "inherit",
+                              caretColor: "#30d158",
+                            }}
+                          />
                         </div>
-                      ))}
-
-                      {/* Input row */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
-                        <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
-                        <span style={{ color: "#64d2ff", flexShrink: 0 }}>~ </span>
-                        <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
-                        <input
-                          ref={inputRef}
-                          value={termInput}
-                          onChange={(e) => setTermInput(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            e.stopPropagation()
-                            if (e.key === "Enter") runCommand(termInput)
-                          }}
-                          autoFocus
-                          spellCheck={false}
-                          style={{
-                            flex: 1, background: "transparent", border: "none", outline: "none",
-                            color: "#e2e8f0", fontSize: "inherit", fontFamily: "inherit",
-                            caretColor: "#30d158",
-                          }}
-                        />
                       </div>
-                    </div>}
+                    )}
                   </div>
                 </div>
               )}
@@ -557,7 +566,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                           display: "flex", alignItems: "center", justifyContent: "center",
                           cursor: "pointer", overflow: "visible",
                         }}
-                        onClick={(e) => { e.stopPropagation(); setTerminalOpen(o => !o) }}
+                        onClick={(e) => { e.stopPropagation(); setTermOrigin(getOrigin(e)); setTerminalOpen(o => !o) }}
                       >
                         <div style={{
                           width: slotSize, height: slotSize,
@@ -626,7 +635,21 @@ export default function MacbookPro({ src, images, description, width = 440, clas
       </div>
       <div style={s.shadow} />
 
-      <style>{`@keyframes mbFade { from { opacity:0 } to { opacity:1 } }`}</style>
+      <style>{`
+        @keyframes mbFade {
+          from { opacity: 0 } to { opacity: 1 }
+        }
+        @keyframes mbPaper {
+          0%   { transform: scale(0.08); opacity: 0;   }
+          55%  { transform: scale(1.03); opacity: 1;   }
+          100% { transform: scale(1);    opacity: 1;   }
+        }
+        @keyframes mbImg {
+          0%   { opacity: 0; transform: scale(1.08); filter: blur(6px); }
+          40%  { opacity: 1; filter: blur(0px); }
+          100% { opacity: 1; transform: scale(1);    filter: blur(0px); }
+        }
+      `}</style>
     </div>
   )
 }
