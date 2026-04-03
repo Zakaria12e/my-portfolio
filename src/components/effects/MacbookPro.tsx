@@ -447,8 +447,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                 </div>
               )}
 
-              {/* Dock */}
-              {hasDock && (
+              {/* Dock — show when multiple images OR description exists */}
+              {(hasDock || description) && (
                 <div
                   style={{
                     position: "absolute",
@@ -485,7 +485,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                       overflow: "visible",
                     }}
                   >
-                    {imgList.map((imgSrc, idx) => {
+                    {hasDock && imgList.map((imgSrc, idx) => {
                       const scale = scales[idx] ?? 1
                       const isActive = idx === activeImg
                       return (
@@ -566,15 +566,16 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                           flexShrink: 0,
                         }}>
                           <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
-                            <polyline points="4 17 10 11 4 5" stroke="#30d158" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            <line x1="12" y1="19" x2="20" y2="19" stroke="#30d158" strokeWidth="2.5" strokeLinecap="round"/>
+                            <polyline points="4 17 10 11 4 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="19" x2="20" y2="19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
                           </svg>
                         </div>
                       </div>
                     </>}
                   </div>
 
-                  {/* Active dots row — separate so they don't affect icon layout */}
+                  {/* Active dots row — only when multiple images */}
+                  {hasDock &&
                   <div
                     style={{
                       position: "absolute",
@@ -605,7 +606,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                         />
                       </div>
                     ))}
-                  </div>
+                  </div>}
                 </div>
               )}
             </div>

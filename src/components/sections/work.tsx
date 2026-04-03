@@ -186,7 +186,6 @@ export function ModernWork() {
               <div>
                 <Badge variant="secondary" className="mb-3">{project.category}</Badge>
                 <h3 className="text-2xl font-bold tracking-tight">{project.title}</h3>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{project.description}</p>
               </div>
 
               {/* Tags */}
