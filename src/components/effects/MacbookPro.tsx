@@ -49,10 +49,39 @@ export default function MacbookPro({ src, images, description, width = 440, clas
 
   useEffect(() => { setActiveImg(0) }, [images, src])
 
-  // Auto-focus input when terminal opens
+  const runCommand = useCallback((raw: string) => {
+    const cmd = raw.trim().toLowerCase()
+    const echo = { text: `➜  ~ $ ${raw}`, color: "rgba(255,255,255,0.45)" }
+    if (cmd === "desc" || cmd === "description") {
+      setTermLines(l => [...l, echo,
+        { text: description ?? "No description available.", color: "#e2e8f0" },
+      ])
+    } else if (cmd === "clear") {
+      setTermLines([])
+    } else if (cmd === "help") {
+      setTermLines(l => [...l, echo,
+        { text: "  desc    — show project description", color: "#64d2ff" },
+        { text: "  clear   — clear terminal",           color: "#64d2ff" },
+      ])
+    } else if (cmd === "") {
+      setTermLines(l => [...l, echo])
+    } else {
+      setTermLines(l => [...l, echo,
+        { text: `command not found: ${cmd}  (try: desc)`, color: "#ff453a" },
+      ])
+    }
+    setTermInput("")
+  }, [description])
+
+  // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
-    if (terminalOpen) setTimeout(() => inputRef.current?.focus(), 50)
-    else { setTermLines([]); setTermInput("") }
+    if (terminalOpen) {
+      setTermLines([{ text: "Type  desc  to see the project description.", color: "#ffd60a" }])
+      setTimeout(() => inputRef.current?.focus(), 50)
+    } else {
+      setTermLines([])
+      setTermInput("")
+    }
   }, [terminalOpen])
 
   // Auto-scroll terminal body
@@ -400,7 +429,10 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                           value={termInput}
                           onChange={(e) => setTermInput(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => { e.stopPropagation() }}
+                          onKeyDown={(e) => {
+                            e.stopPropagation()
+                            if (e.key === "Enter") runCommand(termInput)
+                          }}
                           autoFocus
                           spellCheck={false}
                           style={{
