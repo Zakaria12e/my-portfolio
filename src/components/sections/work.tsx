@@ -54,7 +54,7 @@ const projects = [
     image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775163711/31_1x_shots_so_ki7fmn.png",
     category: "Web",
     tags: ["React", "Node.js", "MongoDB", "Socket.io"],
-    liveUrl: "#",
+    liveUrl: "https://trackvio.vercel.app",
     githubUrl: "https://github.com/Zakaria12e/vehicle-tracker-sys-frontend",
   },
   {
