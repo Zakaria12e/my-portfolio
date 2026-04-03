@@ -51,7 +51,14 @@ const projects = [
     title: "Real-Time Vehicle Tracking System",
     description:
       "A real-time vehicle tracking platform offering seamless fleet monitoring, live GPS positioning, and smart alerting.",
-    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775163711/31_1x_shots_so_ki7fmn.png",
+    images: [
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775240349/524_1x_shots_so_tdvn2k.png",
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775163711/31_1x_shots_so_ki7fmn.png",
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775240868/525_1x_shots_so_g2f4ya.png",
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775241142/389_1x_shots_so_tn7nvt.png",
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775241317/822_1x_shots_so_jsypks.png",
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775240361/186_1x_shots_so_ejpl0z.png"
+    ],
     category: "Web",
     tags: ["React", "Node.js", "MongoDB", "Socket.io"],
     liveUrl: "https://trackvio.vercel.app",
@@ -62,7 +69,9 @@ const projects = [
     title: "Garamitos E-Commerce",
     description:
       "A full-stack e-commerce platform with a React storefront, REST API, JWT authentication, and MongoDB-powered product & order management.",
-    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
+    images: [
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
+    ],
     category: "Web",
     tags: ["React", "Node.js", "Express", "MongoDB", "TailwindCSS"],
     liveUrl: "https://garamitos-ecom-demo.vercel.app",
@@ -73,7 +82,9 @@ const projects = [
     title: "Dashboard UI",
     description:
       "A comprehensive admin dashboard with data visualization and user management.",
-    image: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
+    images: [
+      "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
+    ],
     category: "Design",
     tags: ["Figma", "UI/UX", "Design System"],
     liveUrl: "#",
@@ -84,7 +95,7 @@ const projects = [
     title: "Social Media Platform",
     description:
       "A social platform focused on connecting creative professionals and showcasing their work.",
-    image: "/coming-soon.jpg",
+    images: ["/coming-soon.jpg"],
     category: "Web",
     tags: ["React", "GraphQL", "Socket.io"],
     liveUrl: "#",
@@ -167,7 +178,7 @@ export function ModernWork() {
           >
             {/* MacBook */}
             <div className="flex-shrink-0 flex justify-center w-full lg:w-auto">
-              <MacbookPro src={project.image} width={macWidth} />
+              <MacbookPro images={project.images} width={macWidth} />
             </div>
 
             {/* Project info */}

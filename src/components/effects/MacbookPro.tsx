@@ -1,50 +1,98 @@
 "use client"
 
-import { useState, useEffect, CSSProperties } from "react"
+import { useState, useEffect, useRef, useCallback, CSSProperties } from "react"
 import { useTheme } from "./theme-provider"
 
 interface MacbookProProps {
   src?: string
+  images?: string[]
   width?: number
   className?: string
 }
 
-export default function MacbookPro({ src, width = 440, className = "" }: MacbookProProps) {
+export default function MacbookPro({ src, images, width = 440, className = "" }: MacbookProProps) {
   const [hovered, setHovered] = useState(false)
-  const [showNotif, setShowNotif] = useState(false)
-  const [notifBig, setNotifBig] = useState(false)
+  const [activeImg, setActiveImg] = useState(0)
+  const [scales, setScales] = useState<number[]>([])
+  const dockRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
+  const targetScales = useRef<number[]>([])
+  const currentScales = useRef<number[]>([])
   const { theme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
+  const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
+  const currentSrc = imgList[activeImg] ?? null
+  const hasDock = imgList.length > 1
+
+  useEffect(() => { setActiveImg(0) }, [images, src])
+
   useEffect(() => {
-    if (!hovered) {
-      setShowNotif(false)
-      setNotifBig(false)
-      return
-    }
-    const show    = setTimeout(() => setShowNotif(true),  300)
-    const expand  = setTimeout(() => setNotifBig(true),   500)
-    const shrink  = setTimeout(() => setNotifBig(false), 2200)
-    const hide    = setTimeout(() => setShowNotif(false), 2700)
-    return () => {
-      clearTimeout(show)
-      clearTimeout(expand)
-      clearTimeout(shrink)
-      clearTimeout(hide)
-    }
-  }, [hovered])
+    const ones = imgList.map(() => 1)
+    targetScales.current = [...ones]
+    currentScales.current = [...ones]
+    setScales(ones)
+  }, [imgList.length])
 
   const w = width
   const h = Math.round(w * 0.609)
   const baseW = Math.round(w * 1.09)
   const baseH = Math.round(w * 0.03)
 
+  const ICON_BASE  = Math.round(w * 0.052)
+  const ICON_GAP   = Math.round(w * 0.011)
+  const DOCK_PAD_X = Math.round(w * 0.015)
+  const DOCK_PAD_Y = Math.round(w * 0.009)
+  const MAX_SCALE  = 1.55          // subtle — like real macOS at normal dock size
+  const RANGE      = ICON_BASE * 2.2
+
+  const startSpring = useCallback(() => {
+    if (rafRef.current !== null) return
+    const loop = () => {
+      let done = true
+      const next = currentScales.current.map((cur, i) => {
+        const tgt = targetScales.current[i] ?? 1
+        const diff = tgt - cur
+        if (Math.abs(diff) < 0.0015) return tgt
+        done = false
+        return cur + diff * 0.24  // snappy spring
+      })
+      currentScales.current = next
+      setScales([...next])
+      rafRef.current = done ? null : requestAnimationFrame(loop)
+    }
+    rafRef.current = requestAnimationFrame(loop)
+  }, [])
+
+  const computeTargets = useCallback((mouseX: number) => {
+    if (!dockRef.current) return
+    const rect = dockRef.current.getBoundingClientRect()
+    const rel = mouseX - rect.left
+    targetScales.current = imgList.map((_, idx) => {
+      const center = DOCK_PAD_X + idx * (ICON_BASE + ICON_GAP) + ICON_BASE / 2
+      const dist = Math.abs(rel - center)
+      if (dist >= RANGE) return 1
+      // smooth cosine bell — peak at cursor, tapers to 1 at edges
+      const t = Math.cos((dist / RANGE) * (Math.PI / 2))
+      return 1 + (MAX_SCALE - 1) * t * t
+    })
+    startSpring()
+  }, [imgList, ICON_BASE, ICON_GAP, DOCK_PAD_X, RANGE, startSpring])
+
+  const resetTargets = useCallback(() => {
+    targetScales.current = imgList.map(() => 1)
+    startSpring()
+  }, [imgList, startSpring])
+
+  useEffect(() => () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+  }, [])
+
   const s: Record<string, CSSProperties> = {
     scene: {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      cursor: "pointer",
       userSelect: "none",
     },
     lid: {
@@ -71,186 +119,57 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     },
     notch: {
       position: "absolute",
-      top: 4,
-      left: "50%",
+      top: 4, left: "50%",
       transform: "translateX(-50%)",
-      width: 44,
-      height: 10,
+      width: 44, height: 10,
       background: "#000",
       borderRadius: 20,
       zIndex: 10,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 4,
-      opacity: showNotif ? 0 : 1,
-      transition: "opacity 0.2s",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
     },
-    cam: {
-      width: 4, height: 4,
-      borderRadius: "50%",
-      background: "#141414",
-      border: "1px solid #1c1c1c",
-      position: "relative",
-      flexShrink: 0,
-    },
-    micDot: {
-      width: 2, height: 2,
-      borderRadius: "50%",
-      background: "#1a1a1a",
-      flexShrink: 0,
-    },
+    cam:    { width: 4, height: 4, borderRadius: "50%", background: "#141414", border: "1px solid #1c1c1c", flexShrink: 0 },
+    micDot: { width: 2, height: 2, borderRadius: "50%", background: "#1a1a1a", flexShrink: 0 },
     screen: {
-      position: "absolute",
-      inset: 0,
+      position: "absolute", inset: 0,
       borderRadius: "6px 6px 0 0",
       overflow: "hidden",
       background: "#090909",
       zIndex: 1,
     },
     screenOff: {
-      position: "absolute",
-      inset: 0,
+      position: "absolute", inset: 0,
       background: "#090909",
       zIndex: 5,
       borderRadius: "inherit",
       opacity: hovered ? 0 : 1,
+      pointerEvents: hovered ? "none" : "auto",
       transition: "opacity 0.5s 0.05s",
     },
     screenOn: {
-      position: "absolute",
-      inset: 0,
+      position: "absolute", inset: 0,
       zIndex: 2,
       borderRadius: "inherit",
       overflow: "hidden",
       opacity: hovered ? 1 : 0,
       transition: "opacity 0.45s 0.45s",
     },
-    screenImg: {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      display: "block",
-    },
-    mbar: {
-      position: "absolute",
-      top: 0, left: 0, right: 0,
-      height: 18,
-      background: "rgba(20,20,22,0.55)",
-      backdropFilter: "blur(8px)",
-      WebkitBackdropFilter: "blur(8px)",
-      display: "flex",
-      alignItems: "center",
-      padding: "0 7px",
-      gap: 7,
-      zIndex: 6,
-    },
-    mbarText: {
-      fontSize: 7,
-      fontWeight: 500,
-      color: "rgba(255,255,255,0.85)",
-      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-    },
-    mbarDim: {
-      fontSize: 7,
-      color: "rgba(255,255,255,0.5)",
-      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-    },
-    mbarRight: {
-      marginLeft: "auto",
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-    },
-    battWrap: { display: "flex", alignItems: "center", gap: 1 },
-    battBody: {
-      width: 15, height: 7,
-      border: "1px solid rgba(255,255,255,0.3)",
-      borderRadius: 2,
-      padding: 1,
-      position: "relative",
-    },
-    battFill: {
-      height: "100%", width: "60%",
-      background: "#32d74b",
-      borderRadius: 1,
-    },
-    battNub: {
-      width: 2, height: 4,
-      background: "rgba(255,255,255,0.2)",
-      borderRadius: "0 1px 1px 0",
-    },
-    notifPill: {
-      position: "absolute",
-      top: 4,
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: notifBig ? 110 : 44,
-      height: notifBig ? 22 : 10,
-      opacity: showNotif ? 1 : 0,
-      background: "#000",
-      borderRadius: 20,
-      padding: notifBig ? "0 8px" : 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 4,
-      fontSize: 7,
-      fontWeight: 500,
-      color: "#fff",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      zIndex: 12,
-      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-      transition: "width 0.4s cubic-bezier(0.22,0.6,0.32,1), height 0.4s cubic-bezier(0.22,0.6,0.32,1), opacity 0.25s ease",
-      pointerEvents: "none",
-    },
-    notifContent: {
-      opacity: notifBig ? 1 : 0,
-      transition: "opacity 0.2s ease",
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-    },
-    notifBattShell: {
-      width: 15, height: 7,
-      border: "1px solid rgba(255,255,255,0.3)",
-      borderRadius: 2,
-      padding: 1,
-      position: "relative",
-    },
-    notifBattFill: {
-      height: "100%", width: "58%",
-      background: "#32d74b",
-      borderRadius: 1,
-    },
-    notifNub: {
-      width: 2, height: 4,
-      background: "rgba(255,255,255,0.2)",
-      borderRadius: "0 1px 1px 0",
-    },
-    green: { color: "#32d74b", fontWeight: 600 },
     hingeBump: {
-      position: "absolute",
-      top: 0,
-      left: "50%",
+      position: "absolute", top: 0, left: "50%",
       transform: "translateX(-50%)",
       width: 80, height: 5,
       background: isDark
-        ? "linear-gradient(180deg, #4a4a4e 0%, #3a3a3c 100%)"
-        : "linear-gradient(180deg, #c0c0c2 0%, #b0b0b2 100%)",
+        ? "linear-gradient(180deg,#4a4a4e 0%,#3a3a3c 100%)"
+        : "linear-gradient(180deg,#c0c0c2 0%,#b0b0b2 100%)",
       borderRadius: "0 0 6px 6px",
       border: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
       borderTop: "none",
       boxShadow: isDark
-        ? "0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)"
-        : "0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.5)",
+        ? "0 2px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)"
+        : "0 2px 4px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.5)",
       zIndex: 20,
     },
     base: {
-      width: baseW,
-      height: baseH,
+      width: baseW, height: baseH,
       background: isDark
         ? "linear-gradient(180deg,#2c2c2e 0%,#222224 55%,#1a1a1c 100%)"
         : "linear-gradient(180deg,#dcdcde 0%,#d0d0d2 55%,#c8c8ca 100%)",
@@ -265,8 +184,7 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
       position: "relative",
     },
     shadow: {
-      width: Math.round(w * 0.91),
-      height: 12,
+      width: Math.round(w * 0.91), height: 12,
       background: isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.2)",
       borderRadius: "50%",
       filter: "blur(12px)",
@@ -274,7 +192,10 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
     },
   }
 
-  const boltPath = "M2.8 0.3L0.5 3.5H2.5L1.8 6.7L4.5 3.5H2.5Z"
+  // Fixed slot size — icons scale via CSS transform, no layout reflow
+  const slotSize = ICON_BASE
+  // Reserve enough vertical room for the tallest possible scaled icon
+  const dockH = Math.round(ICON_BASE * MAX_SCALE) + DOCK_PAD_Y * 2 + 4
 
   return (
     <div
@@ -283,50 +204,170 @@ export default function MacbookPro({ src, width = 440, className = "" }: Macbook
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* LID */}
       <div style={s.lid}>
         <div style={s.bezel}>
           <div style={s.notch}>
             <div style={s.micDot} />
             <div style={s.cam} />
           </div>
+
           <div style={s.screen}>
             <div style={s.screenOff} />
             <div style={s.screenOn}>
-              {src ? (
-                <img src={src} alt="screen" style={s.screenImg} />
+
+              {/* Screenshot */}
+              {currentSrc ? (
+                <img
+                  key={activeImg}
+                  src={currentSrc}
+                  alt="screen"
+                  style={{
+                    position: "absolute", inset: 0,
+                    width: "100%", height: "100%",
+                    objectFit: "cover", display: "block",
+                    animation: "mbFade 0.3s ease",
+                  }}
+                />
               ) : (
-                <div style={{ width: "100%", height: "100%", background: "#0a0a0c" }} />
+                <div style={{ position: "absolute", inset: 0, background: "#0a0a0c" }} />
               )}
-              <div style={s.notifPill}>
-                <div style={s.notifContent}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <div style={s.notifBattShell}>
-                      <div style={s.notifBattFill} />
-                      <svg
-                        style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}
-                        width="5" height="7" viewBox="0 0 5 7" fill="none"
-                      >
-                        <path d={boltPath} fill="#32d74b" />
-                      </svg>
-                    </div>
-                    <div style={s.notifNub} />
+
+              {/* Dock */}
+              {hasDock && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 0, left: 0, right: 0,
+                    height: dockH,
+                    display: "flex",
+                    alignItems: "flex-end",
+                    justifyContent: "center",
+                    paddingBottom: 4,
+                    zIndex: 10,
+                    // allow scaled icons to overflow dock container upward
+                    overflow: "visible",
+                    pointerEvents: hovered ? "auto" : "none",
+                  }}
+                >
+                  <div
+                    ref={dockRef}
+                    onMouseMove={(e) => computeTargets(e.clientX)}
+                    onMouseLeave={resetTargets}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-end",
+                      gap: ICON_GAP,
+                      paddingLeft: DOCK_PAD_X,
+                      paddingRight: DOCK_PAD_X,
+                      paddingTop: DOCK_PAD_Y,
+                      paddingBottom: DOCK_PAD_Y,
+                      background: "rgba(210,210,220,0.15)",
+                      backdropFilter: "blur(18px)",
+                      WebkitBackdropFilter: "blur(18px)",
+                      borderRadius: Math.round(ICON_BASE * 0.48),
+                      border: "0.5px solid rgba(255,255,255,0.2)",
+                      boxShadow: "0 2px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+                      overflow: "visible",
+                    }}
+                  >
+                    {imgList.map((imgSrc, idx) => {
+                      const scale = scales[idx] ?? 1
+                      const isActive = idx === activeImg
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            // fixed slot — transform handles visual size, no reflow
+                            width: slotSize,
+                            height: slotSize,
+                            flexShrink: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            cursor: "pointer",
+                            // overflow visible so scaled icon shows above dock bar
+                            overflow: "visible",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveImg(idx)
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: slotSize,
+                              height: slotSize,
+                              // scale via transform — no layout shift
+                              transform: `scale(${scale})`,
+                              transformOrigin: "bottom center",
+                              willChange: "transform",
+                              borderRadius: Math.round(slotSize * 0.22),
+                              overflow: "hidden",
+                              boxShadow: isActive
+                                ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)"
+                                : "0 1px 5px rgba(0,0,0,0.5)",
+                              transition: "box-shadow 0.2s",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <img
+                              src={imgSrc}
+                              alt={`view ${idx + 1}`}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                              draggable={false}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                  Charging &nbsp;<span style={s.green}>63%</span>
+
+                  {/* Active dots row — separate so they don't affect icon layout */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 1,
+                      display: "flex",
+                      gap: ICON_GAP,
+                      paddingLeft: DOCK_PAD_X,
+                      paddingRight: DOCK_PAD_X,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {imgList.map((_, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          width: slotSize,
+                          display: "flex",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 2.5, height: 2.5,
+                            borderRadius: "50%",
+                            background: idx === activeImg ? "rgba(255,255,255,0.9)" : "transparent",
+                            transition: "background 0.2s",
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Base */}
       <div style={s.base}>
         <div style={s.hingeBump} />
       </div>
-
-      {/* Ground shadow */}
       <div style={s.shadow} />
+
+      <style>{`@keyframes mbFade { from { opacity:0 } to { opacity:1 } }`}</style>
     </div>
   )
 }
