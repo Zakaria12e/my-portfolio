@@ -50,7 +50,7 @@ function getDirs(cwd: string, slugs: string[]): string[] {
 
 export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
 
-  const [activeProject, setActiveProject] = useState(0)
+  const [activeProject, setActiveProject] = useState<number | null>(null)
   const [quickLookOpen, setQuickLookOpen] = useState(false)
   const [quickLookIdx, setQuickLookIdx] = useState(0)
   const [quickLookMax, setQuickLookMax] = useState(false)
@@ -84,7 +84,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   // Derive active project data
-  const proj = projects?.[activeProject]
+  const proj = activeProject !== null ? projects?.[activeProject] : undefined
   const images = proj?.images ?? imagesProp
   const description = proj?.description ?? descProp
   const githubUrl = proj?.githubUrl ?? githubProp
@@ -113,9 +113,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
-  const prevActiveProjectRef = useRef(-1)
+  const prevActiveProjectRef = useRef<number | null>(null)
   useEffect(() => {
-    const fromTerminal = prevActiveProjectRef.current !== -1 && terminalOpen
+    const fromTerminal = prevActiveProjectRef.current !== null && terminalOpen
     prevActiveProjectRef.current = activeProject
     setActiveImg(0)
     if (!fromTerminal) {
@@ -475,12 +475,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       bottom: 4,
       borderRadius: 3,
       overflow: "hidden",
-      background: "#090909",
+      background: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775347705/macbg_cid7le.jpg") center/cover no-repeat`,
       zIndex: 1,
     },
     screenOff: {
       position: "absolute", inset: 0,
-      background: "#090909",
+      background: "#000",
       zIndex: 5,
       borderRadius: "inherit",
       opacity: hovered ? 0 : 1,
@@ -614,7 +614,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   }}
                 />
               ) : (
-                <div style={{ position: "absolute", inset: 0, background: "#0a0a0c" }} />
+                <div style={{ position: "absolute", inset: 0 }} />
               )}
 
               {/* Quick Look */}
