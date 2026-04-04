@@ -260,12 +260,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (description ? 1 : 0) + (hasGithub ? 1 : 0)
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
     setScales(ones)
-  }, [dockCount, description, hasGithub])
+  }, [dockCount, showTerminalIcon, showGithubIcon])
 
   const w = width
   const h = Math.round(w * 0.609)
@@ -833,7 +833,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     height: termMaximized ? "100%" : "auto",
                     borderRadius: termMaximized ? 0 : 8,
                     overflow: "hidden",
-                    background: "rgba(18,18,20,0.97)",
+                    background: isDark ? "rgba(18,18,20,0.97)" : "rgba(255,255,255,0.97)",
                     fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
                     fontSize: Math.round(w * 0.022),
                     lineHeight: 1.6,
@@ -1444,9 +1444,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
-                          background: terminalOpen
-                            ? "linear-gradient(145deg,#1a1a2e,#16213e)"
-                            : "linear-gradient(145deg,#1c1c1e,#2c2c2e)",
+                          background: isDark
+                            ? (terminalOpen ? "linear-gradient(145deg,#1a1a2e,#16213e)" : "linear-gradient(145deg,#1c1c1e,#2c2c2e)")
+                            : (terminalOpen ? "linear-gradient(145deg,#e8f5e9,#f0f8ff)" : "#ffffff"),
                           display: "flex", alignItems: "center", justifyContent: "center",
                           boxShadow: terminalOpen
                             ? "0 0 0 1.5px #30d158, 0 2px 8px rgba(0,0,0,0.6)"
@@ -1456,8 +1456,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
                         }}>
                           <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
-                            <polyline points="4 17 10 11 4 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            <line x1="12" y1="19" x2="20" y2="19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                            <polyline points="4 17 10 11 4 5" stroke={isDark ? "white" : "#1c1c1e"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="19" x2="20" y2="19" stroke={isDark ? "white" : "#1c1c1e"} strokeWidth="2.5" strokeLinecap="round"/>
                           </svg>
                         </div>
                       </div>
