@@ -58,6 +58,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
+  const [closingSrc, setClosingSrc] = useState<string | null>(null)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [termMinimized, setTermMinimized] = useState(false)
   const [termMinimizing, setTermMinimizing] = useState(false)
@@ -380,7 +381,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
         if (item.type === "finder") { setFinderOpen(o => !o) }
-        if (item.type === "project") { setActiveProject(item.projIdx) }
+        if (item.type === "project") {
+          if (activeProject === item.projIdx) {
+            const src = currentSrc || null
+            setActiveProject(null)
+            if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
+          } else { setActiveProject(item.projIdx) }
+        }
         if (item.type === "terminal") {
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
@@ -434,38 +441,40 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     },
     cam:    { width: Math.round(w * 0.009), height: Math.round(w * 0.009), borderRadius: "50%", background: "#2a2a2a", border: `0.5px solid #333`, flexShrink: 0 },
     micDot: { width: 0, height: 0 },
-    notifPill: {
-      position: "absolute",
-      top: 0, left: "50%",
-      transform: "translateX(-50%)",
-      width: notifBig ? Math.round(w * 0.46) : Math.round(w * 0.165),
-      maxHeight: notifBig ? Math.round(h * 0.32) : Math.round(h * 0.048),
-      minHeight: Math.round(h * 0.048),
-      background: "rgba(18,18,20,0.96)",
-      backdropFilter: "blur(32px)",
-      WebkitBackdropFilter: "blur(32px)",
-      borderRadius: notifBig
-        ? `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`
-        : `0 0 ${Math.round(w * 0.012)}px ${Math.round(w * 0.012)}px`,
-      border: "0.5px solid rgba(255,255,255,0.08)",
-      borderTop: "none",
-      boxShadow: notifBig ? "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)" : "none",
-      overflow: "hidden",
-      zIndex: 12,
-      pointerEvents: "none",
-      opacity: showNotif ? 1 : 0,
-      transition: [
-        "width 0.55s cubic-bezier(0.32,0.72,0,1)",
-        "max-height 0.6s cubic-bezier(0.32,0.72,0,1) 0.04s",
-        "border-radius 0.55s cubic-bezier(0.32,0.72,0,1)",
-        "box-shadow 0.4s ease 0.15s",
-        "opacity 0.25s ease",
-      ].join(", "),
-    },
+    notifPill: (() => {
+      const fullW  = Math.round(w * 0.46)
+      const fullH  = Math.round(h * 0.21)
+      const notchW = Math.round(w * 0.165)
+      const notchH = Math.round(h * 0.048)
+      const sx = notifBig ? 1 : notchW / fullW
+      const sy = notifBig ? 1 : notchH / fullH
+      return {
+        position: "absolute" as const,
+        top: 0, left: "50%",
+        width: fullW, height: fullH,
+        background: "rgba(18,18,20,0.96)",
+        backdropFilter: "blur(32px)",
+        WebkitBackdropFilter: "blur(32px)",
+        borderRadius: `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`,
+        border: "0.5px solid rgba(255,255,255,0.08)",
+        borderTop: "none",
+        boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
+        overflow: "hidden",
+        zIndex: 12,
+        pointerEvents: "none" as const,
+        opacity: showNotif ? 1 : 0,
+        transformOrigin: "top center",
+        transform: `translateX(-50%) scaleX(${sx}) scaleY(${sy})`,
+        transition: [
+          "transform 0.52s cubic-bezier(0.32,0.72,0,1)",
+          "opacity 0.25s ease",
+        ].join(", "),
+      }
+    })(),
     notifContent: {
-      display: "flex", flexDirection: "column",
+      display: "flex", flexDirection: "column" as const,
       opacity: notifBig ? 1 : 0,
-      transition: notifBig ? "opacity 0.28s ease 0.32s" : "opacity 0.1s ease",
+      transition: notifBig ? "opacity 0.22s ease 0.28s" : "opacity 0.08s ease",
     },
     screen: {
       position: "absolute",
@@ -549,48 +558,50 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
           {/* macOS notification */}
           <div style={s.notifPill}>
-            {/* App header row */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
-              padding: `${Math.round(h * 0.022)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.008)}px`,
-              borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-            }}>
+            <div style={s.notifContent}>
+              {/* App header row */}
               <div style={{
-                width: Math.round(w * 0.028), height: Math.round(w * 0.028),
-                borderRadius: Math.round(w * 0.006), flexShrink: 0,
-                background: "linear-gradient(145deg,#34c759,#30b350)",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
+                padding: `${Math.round(h * 0.022)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.008)}px`,
+                borderBottom: "0.5px solid rgba(255,255,255,0.07)",
               }}>
-                <svg width={Math.round(w * 0.016)} height={Math.round(w * 0.016)} viewBox="0 0 24 24" fill="white">
-                  <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
-                </svg>
+                <div style={{
+                  width: Math.round(w * 0.028), height: Math.round(w * 0.028),
+                  borderRadius: Math.round(w * 0.006), flexShrink: 0,
+                  background: "linear-gradient(145deg,#34c759,#30b350)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width={Math.round(w * 0.016)} height={Math.round(w * 0.016)} viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                  </svg>
+                </div>
+                <span style={{
+                  fontSize: Math.round(w * 0.018), fontWeight: 500,
+                  color: "rgba(255,255,255,0.45)",
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                  letterSpacing: 0.1, flex: 1,
+                }}>Messages</span>
+                <span style={{
+                  fontSize: Math.round(w * 0.016), color: "rgba(255,255,255,0.3)",
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>now</span>
               </div>
-              <span style={{
-                fontSize: Math.round(w * 0.018), fontWeight: 500,
-                color: "rgba(255,255,255,0.45)",
-                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-                letterSpacing: 0.1, flex: 1,
-              }}>Messages</span>
-              <span style={{
-                fontSize: Math.round(w * 0.016), color: "rgba(255,255,255,0.3)",
-                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-              }}>now</span>
-            </div>
-            {/* Message body */}
-            <div style={{
-              padding: `${Math.round(h * 0.016)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.022)}px`,
-              display: "flex", flexDirection: "column", gap: Math.round(h * 0.006),
-            }}>
-              <span style={{
-                fontSize: Math.round(w * 0.02), fontWeight: 600,
-                color: "rgba(255,255,255,0.9)", lineHeight: 1.2,
-                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-              }}>Zakaria</span>
-              <span style={{
-                fontSize: Math.round(w * 0.019), fontWeight: 400,
-                color: "rgba(255,255,255,0.6)", lineHeight: 1.3,
-                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-              }}>Let's build something great 🤝</span>
+              {/* Message body */}
+              <div style={{
+                padding: `${Math.round(h * 0.016)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.022)}px`,
+                display: "flex", flexDirection: "column", gap: Math.round(h * 0.006),
+              }}>
+                <span style={{
+                  fontSize: Math.round(w * 0.02), fontWeight: 600,
+                  color: "rgba(255,255,255,0.9)", lineHeight: 1.2,
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>Zakaria</span>
+                <span style={{
+                  fontSize: Math.round(w * 0.019), fontWeight: 400,
+                  color: "rgba(255,255,255,0.6)", lineHeight: 1.3,
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>Let&apos;s build something great 🤝</span>
+              </div>
             </div>
           </div>
 
@@ -613,8 +624,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     cursor: imgList.length > 1 ? "zoom-in" : "default",
                   }}
                 />
-              ) : (
-                <div style={{ position: "absolute", inset: 0 }} />
+              ) : null}
+              {/* Closing animation — exit layer over wallpaper */}
+              {closingSrc && (
+                <img
+                  key={`close-${closingSrc}`}
+                  src={closingSrc}
+                  alt=""
+                  style={{
+                    position: "absolute", inset: 0,
+                    width: "100%", height: "100%",
+                    objectFit: "cover", display: "block",
+                    animation: "mbImgClose 0.38s cubic-bezier(0.4,0,0.6,1) forwards",
+                    zIndex: 4, pointerEvents: "none",
+                  }}
+                />
               )}
 
               {/* Quick Look */}
@@ -1258,7 +1282,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             display: "flex", alignItems: "center", justifyContent: "flex-end",
                             cursor: "pointer", overflow: "visible", position: "relative",
                           }}
-                          onClick={(e) => { e.stopPropagation(); setActiveProject(idx) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (activeProject === idx) {
+                              const src = currentSrc || null
+                              setActiveProject(null)
+                              if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
+                            } else {
+                              setActiveProject(idx)
+                            }
+                          }}
                         >
                           {/* label */}
                           <div style={{
@@ -1506,6 +1539,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         @keyframes mbImg {
           0%   { opacity: 0; transform: scale(1.06) translateY(8px); }
           100% { opacity: 1; transform: scale(1)    translateY(0);   }
+        }
+        @keyframes mbImgClose {
+          0%   { opacity: 1; transform: scale(1)    translateY(0); filter: blur(0px); }
+          40%  { opacity: 0.7; transform: scale(0.97) translateY(4px); filter: blur(1px); }
+          100% { opacity: 0; transform: scale(0.91) translateY(12px); filter: blur(6px); }
         }
         @keyframes mbMinimize {
           0%   { transform: scale(1)    translateY(0);    opacity: 1; }
