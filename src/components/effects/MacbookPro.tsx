@@ -183,8 +183,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
       position: "relative",
       overflow: "hidden",
       transform: hovered
-        ? "perspective(1200px) rotateX(0deg)"
-        : "perspective(1200px) rotateX(8deg)",
+    ? "perspective(1400px) rotateX(5deg) scaleY(1)"
+    : "perspective(1400px) rotateX(-65deg) scaleY(0.92)",
       transformOrigin: "bottom center",
       transition: "transform 0.8s cubic-bezier(0.25,0.6,0.3,1)",
     },
