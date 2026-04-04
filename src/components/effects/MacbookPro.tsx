@@ -1238,16 +1238,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div style={{
                         position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                         left: "50%", transform: "translateX(-50%)",
-                        background: "rgba(24,24,26,0.88)",
-                        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                        borderRadius: 6, padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.016)}px`,
-                        fontSize: Math.round(w * 0.026), fontWeight: 500,
+                        background: "rgba(28,28,30,0.92)",
+                        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                        borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                        fontSize: Math.round(w * 0.016), fontWeight: 400,
                         fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                         color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                         pointerEvents: "none", zIndex: 100,
                         opacity: hoveredSlot === "app" ? 1 : 0,
                         transition: "opacity 0.12s ease",
-                        boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+                        boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                       }}>Finder</div>
                       <div style={{
                         width: slotSize, height: slotSize,
@@ -1307,16 +1307,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           <div style={{
                             position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                             left: "50%", transform: "translateX(-50%)",
-                            background: "rgba(24,24,26,0.88)",
-                            backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                            borderRadius: 6, padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.016)}px`,
-                            fontSize: Math.round(w * 0.024), fontWeight: 500,
+                            background: "rgba(28,28,30,0.92)",
+                            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                            borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                            fontSize: Math.round(w * 0.016), fontWeight: 400,
                             fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
                             color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                             pointerEvents: "none", zIndex: 100,
                             opacity: hoveredSlot === slotKey ? 1 : 0,
                             transition: "opacity 0.12s ease",
-                            boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+                            boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                           }}>{p.title ?? `Project ${idx + 1}`}</div>
                           <div style={{
                             width: slotSize, height: slotSize,
@@ -1420,21 +1420,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{
                           position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                           left: "50%", transform: "translateX(-50%)",
-                          background: "rgba(24,24,26,0.88)",
-                          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                          borderRadius: 6, padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.016)}px`,
-                          fontSize: Math.round(w * 0.026), fontWeight: 500,
+                          background: "rgba(28,28,30,0.92)",
+                          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                          borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                          fontSize: Math.round(w * 0.016), fontWeight: 400,
                           fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                           color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                           pointerEvents: "none", zIndex: 100,
                           opacity: hoveredSlot === "terminal" ? 1 : 0,
                           transition: "opacity 0.12s ease",
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
-                          display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
+                          boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+                          display: "flex", alignItems: "center", gap: Math.round(w * 0.007),
                         }}>
                           Terminal
                           <span style={{
-                            fontSize: Math.round(w * 0.022), color: "rgba(255,255,255,0.45)",
+                            fontSize: Math.round(w * 0.014), color: "rgba(255,255,255,0.4)",
                             fontWeight: 400,
                           }}>⌘↩</span>
                         </div>
@@ -1495,16 +1495,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{
                           position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                           left: "50%", transform: "translateX(-50%)",
-                          background: "rgba(24,24,26,0.88)",
-                          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                          borderRadius: 6, padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.016)}px`,
-                          fontSize: Math.round(w * 0.026), fontWeight: 500,
+                          background: "rgba(28,28,30,0.92)",
+                          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                          borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                          fontSize: Math.round(w * 0.016), fontWeight: 400,
                           fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                           color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                           pointerEvents: "none", zIndex: 100,
                           opacity: hoveredSlot === "github" ? 1 : 0,
                           transition: "opacity 0.12s ease",
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+                          boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                         }}>GitHub</div>
                         <div style={{
                           width: slotSize, height: slotSize,
