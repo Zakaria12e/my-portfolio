@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Badge } from "@/components/ui/badge"
 import MacbookPro from "@/components/effects/MacbookPro"
 
 const projects = [
@@ -70,7 +72,23 @@ export function ModernWork() {
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       </div>
-      <div className="container flex justify-center">
+      <div className="container flex flex-col items-center gap-12">
+        <motion.div
+          className="max-w-xl text-center"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <Badge className="mb-4" variant="secondary">Projects</Badge>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_20px_rgba(200,200,200,1)]">
+            Featured Projects
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Explore my recent work and discover how I bring ideas to life through code and design.
+          </p>
+        </motion.div>
+
         <MacbookPro projects={projects} width={macWidth} />
       </div>
     </section>

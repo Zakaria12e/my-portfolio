@@ -106,9 +106,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     return `${x} ${y}`
   }
 
+  const projectSlug = (proj?.title ?? description ?? "project")
+    .toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+
   const runCommand = useCallback((raw: string) => {
     const cmd = raw.trim().toLowerCase()
-    const echo = { text: `➜  ~ $ ${raw}`, color: "rgba(255,255,255,0.45)" }
+    const echo = { text: `➜  ~/projects/${projectSlug} $ ${raw}`, color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" }
     if (cmd === "desc" || cmd === "description") {
       setTermLines(l => [...l, echo,
         { text: description ?? "No description available.", color: "#e2e8f0" },
@@ -160,12 +163,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ])
     }
     setTermInput("")
-  }, [description, tags, features, githubUrl, liveUrl])
+  }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark])
 
   // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
     if (terminalOpen) {
-      setTermLines([{ text: "Type  help  to see available commands.", color: "#ffd60a" }])
+      setTermLines([
+        { text: `cd ~/projects/${projectSlug}`, color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" },
+        { text: `Type  help  to see available commands.`, color: "#ffd60a" },
+      ])
       setTermMinimized(false)
       setTermMinimizing(false)
       setTermMaximized(false)
@@ -177,7 +183,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermMinimizing(false)
       setTermMaximized(false)
     }
-  }, [terminalOpen])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terminalOpen, projectSlug])
 
   // Auto-scroll terminal body
   useEffect(() => {
@@ -596,7 +603,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
                           <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
-                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>~ </span>
+                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>~/projects/<span style={{ color: "#a78bfa" }}>{projectSlug}</span> </span>
                           <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
                           <input
                             ref={inputRef}
