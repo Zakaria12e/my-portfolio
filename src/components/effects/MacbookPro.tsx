@@ -109,7 +109,7 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
+    const totalSlots = 1 + imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -503,13 +503,47 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                       overflow: "visible",
                     }}
                   >
+                    {/* App icon — always first */}
+                    <div
+                      ref={(el) => { iconRefs.current[0] = el }}
+                      style={{
+                        width: slotSize, height: slotSize, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        overflow: "visible",
+                      }}
+                    >
+                      <div style={{
+                        width: slotSize, height: slotSize,
+                        transform: `scale(${scales[0] ?? 1})`,
+                        transformOrigin: "bottom center",
+                        willChange: "transform",
+                        borderRadius: Math.round(slotSize * 0.22),
+                        overflow: "hidden",
+                        flexShrink: 0,
+                      }}>
+                        <img
+                          src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775311266/finder-mac-removebg-preview_tuvtfs.png"
+                          alt="app icon"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          draggable={false}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Separator between app icon and thumbnails */}
+                    {hasDock && <div style={{
+                      width: 0.5, height: slotSize * 0.7, alignSelf: "center",
+                      background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
+                      marginLeft: 1, marginRight: 1,
+                    }} />}
+
                     {hasDock && imgList.map((imgSrc, idx) => {
-                      const scale = scales[idx] ?? 1
+                      const scale = scales[idx + 1] ?? 1
                       const isActive = idx === activeImg
                       return (
                         <div
                           key={idx}
-                          ref={(el) => { iconRefs.current[idx] = el }}
+                          ref={(el) => { iconRefs.current[idx + 1] = el }}
                           style={{
                             // fixed slot — transform handles visual size, no reflow
                             width: slotSize,
@@ -564,7 +598,7 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                         marginLeft: 1, marginRight: 1,
                       }} />
                       <div
-                        ref={(el) => { iconRefs.current[imgList.length] = el }}
+                        ref={(el) => { iconRefs.current[imgList.length + 1] = el }}
                         style={{
                           width: slotSize, height: slotSize, flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
@@ -574,7 +608,7 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                       >
                         <div style={{
                           width: slotSize, height: slotSize,
-                          transform: `scale(${scales[imgList.length] ?? 1})`,
+                          transform: `scale(${scales[imgList.length + 1] ?? 1})`,
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
@@ -606,7 +640,7 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                         }} />
                       )}
                       <div
-                        ref={(el) => { iconRefs.current[imgList.length + (description ? 1 : 0)] = el }}
+                        ref={(el) => { iconRefs.current[imgList.length + 1 + (description ? 1 : 0)] = el }}
                         style={{
                           width: slotSize, height: slotSize, flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
@@ -616,7 +650,7 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                       >
                         <div style={{
                           width: slotSize, height: slotSize,
-                          transform: `scale(${scales[imgList.length + (description ? 1 : 0)] ?? 1})`,
+                          transform: `scale(${scales[imgList.length + 1 + (description ? 1 : 0)] ?? 1})`,
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
