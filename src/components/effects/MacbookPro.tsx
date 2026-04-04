@@ -25,6 +25,9 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   const [termMinimized, setTermMinimized] = useState(false)
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
+  const [finderOpen, setFinderOpen] = useState(false)
+  const [finderSel, setFinderSel] = useState<string | null>(null)
+  const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
   const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
   const [scales, setScales] = useState<number[]>([])
@@ -224,14 +227,20 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setTerminalOpen(o => !o)
+        if (termMinimized) {
+          setTermMinimized(false)
+          setTimeout(() => inputRef.current?.focus(), 50)
+        } else {
+          setTerminalOpen(o => !o)
+        }
         return
       }
       if (e.key === "Escape") {
         setTerminalOpen(false)
+        setFinderOpen(false)
         return
       }
-      if (!terminalOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      if ((!terminalOpen || termMinimized) && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
         e.preventDefault()
         const cur  = focusedDockIdxRef.current
         const next = e.key === "ArrowRight"
@@ -246,17 +255,21 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
         }
         if (item.type === "image") setActiveImg(item.imgIdx)
       }
-      if (!terminalOpen && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+      if ((!terminalOpen || termMinimized) && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
-        if (item.type === "terminal") setTerminalOpen(true)
+        if (item.type === "finder") { setFinderOpen(o => !o) }
+        if (item.type === "terminal") {
+          if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
+          else setTerminalOpen(true)
+        }
         if (item.type === "github" && githubUrl && githubUrl !== "#")
           window.open(githubUrl, "_blank", "noopener,noreferrer")
       }
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, dockItems, computeTargets, githubUrl])
+  }, [hovered, terminalOpen, termMinimized, finderOpen, dockItems, computeTargets, githubUrl])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -571,6 +584,241 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                 </div>
               )}
 
+              {/* Finder overlay */}
+              {finderOpen && (() => {
+                const fw = Math.round(w * 0.94)
+                const fh = Math.round(h * 0.82)
+                const sideW = Math.round(fw * 0.28)
+                const fs = Math.round(w * 0.021)
+                const finderBg   = isDark ? "rgba(30,30,32,0.98)"  : "rgba(236,236,238,0.98)"
+                const sidebarBg  = isDark ? "rgba(22,22,24,0.98)"  : "rgba(220,220,224,0.98)"
+                const titleBg    = isDark ? "rgba(40,40,42,0.98)"  : "rgba(230,230,232,0.98)"
+                const borderCol  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.1)"
+                const textPri    = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
+                const textSec    = isDark ? "rgba(255,255,255,0.4)"  : "rgba(0,0,0,0.38)"
+                const selBg      = isDark ? "rgba(10,100,220,0.6)"  : "rgba(10,100,220,0.18)"
+                const hoverBg    = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"
+
+                const sidebar = [
+                  { id: "favorites", label: "Favorites", type: "header" },
+                  { id: "airdrop",   label: "AirDrop",   icon: "airdrop" },
+                  { id: "recents",   label: "Recents",   icon: "recents" },
+                  { id: "desktop",   label: "Desktop",   icon: "desktop" },
+                  { id: "docs",      label: "Documents", icon: "docs" },
+                  { id: "downloads", label: "Downloads", icon: "downloads" },
+                  { id: "project",   label: "Project",   icon: "folder", active: true },
+                  { id: "locations", label: "Locations", type: "header" },
+                  { id: "macintosh", label: "Macintosh HD", icon: "hd" },
+                ]
+
+                const stackFolders = (tags ?? []).map((t, i) => ({ name: t, type: "folder", id: `tag-${i}` }))
+                const featureFiles = (features ?? []).map((f, i) => ({ name: f.slice(0, 22) + (f.length > 22 ? "…" : ""), type: "file", id: `feat-${i}` }))
+                const mainItems = [
+                  { name: "src", type: "folder", id: "src" },
+                  { name: "public", type: "folder", id: "public" },
+                  { name: "package.json", type: "file", id: "pkg" },
+                  { name: "README.md", type: "file", id: "readme" },
+                  ...stackFolders,
+                  ...featureFiles,
+                ]
+
+                const SideIcon = ({ id }: { id: string }) => {
+                  const iconStyle: CSSProperties = { width: fs + 2, height: fs + 2, flexShrink: 0 }
+                  if (id === "airdrop")   return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><path d="M4.93 4.93a10 10 0 1 1 14.14 14.14M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0" stroke="#5ac8fa" strokeWidth="1.5" strokeLinecap="round"/><circle cx="12" cy="12" r="1.5" fill="#5ac8fa"/></svg>
+                  if (id === "recents")   return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff9f0a" strokeWidth="1.5"/><path d="M12 7v5l3 3" stroke="#ff9f0a" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  if (id === "desktop")   return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#30d158" strokeWidth="1.5"/><path d="M8 21h8M12 17v4" stroke="#30d158" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  if (id === "docs")      return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#0a84ff" strokeWidth="1.5"/><polyline points="14 2 14 8 20 8" stroke="#0a84ff" strokeWidth="1.5"/></svg>
+                  if (id === "downloads") return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><path d="M12 3v13M7 11l5 5 5-5" stroke="#5e5ce6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 20h18" stroke="#5e5ce6" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  if (id === "hd")        return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke={textSec as string} strokeWidth="1.5"/><path d="M16 14a2 2 0 1 0 0-1" stroke={textSec as string} strokeWidth="1.5" strokeLinecap="round"/><path d="M2 11h20" stroke={textSec as string} strokeWidth="1.5"/></svg>
+                  // folder
+                  return <svg style={iconStyle} viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="#0a84ff" fillOpacity="0.85" stroke="#0a84ff" strokeWidth="0.5"/></svg>
+                }
+
+                const ItemIcon = ({ type, name }: { type: string; name: string }) => {
+                  const sz = Math.round(w * 0.058)
+                  if (type === "folder") return (
+                    <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="#0a84ff" fillOpacity="0.9" stroke="#0a84ff" strokeWidth="0.3"/>
+                    </svg>
+                  )
+                  const ext = name.split(".").pop()
+                  const col = ext === "json" ? "#ff9f0a" : ext === "md" ? "#0a84ff" : "#8e8e93"
+                  return (
+                    <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill={col} fillOpacity="0.15" stroke={col} strokeWidth="1.2"/>
+                      <polyline points="14 2 14 8 20 8" stroke={col} strokeWidth="1.2"/>
+                      <text x="12" y="16" textAnchor="middle" fontSize="4.5" fill={col} fontFamily="monospace" fontWeight="700">{(ext ?? "").toUpperCase().slice(0,3)}</text>
+                    </svg>
+                  )
+                }
+
+                return (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute", inset: 0, zIndex: 25,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(0,0,0,0.45)",
+                      backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+                      animation: "mbFade 0.12s ease",
+                    }}
+                  >
+                    <div style={{
+                      width: fw, height: fh,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      display: "flex", flexDirection: "column",
+                      boxShadow: "0 24px 60px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.1)",
+                      animation: "mbPaper 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                    }}>
+                      {/* Title bar */}
+                      <div style={{
+                        height: Math.round(fh * 0.075), background: titleBg,
+                        borderBottom: `0.5px solid ${borderCol}`,
+                        display: "flex", alignItems: "center",
+                        padding: `0 ${Math.round(fw * 0.018)}px`,
+                        gap: Math.round(fw * 0.008), flexShrink: 0, position: "relative",
+                      }}>
+                        {[
+                          { bg: "#ff5f57", fn: () => setFinderOpen(false) },
+                          { bg: "#febc2e", fn: () => setFinderOpen(false) },
+                          { bg: "#28c840", fn: () => {} },
+                        ].map((btn, i) => (
+                          <div key={i} onClick={(e) => { e.stopPropagation(); btn.fn() }} style={{
+                            width: Math.round(fw * 0.028), height: Math.round(fw * 0.028),
+                            borderRadius: "50%", background: btn.bg, cursor: "pointer", flexShrink: 0,
+                            boxShadow: "0 0 0 0.5px rgba(0,0,0,0.3)",
+                          }} />
+                        ))}
+                        {/* Toolbar icons */}
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: Math.round(fw * 0.025) }}>
+                          {/* Back/Forward */}
+                          <div style={{ display: "flex", gap: 2 }}>
+                            {["‹","›"].map((ch, i) => (
+                              <div key={i} style={{ fontSize: Math.round(w * 0.032), color: textSec as string, cursor: "default", lineHeight: 1, paddingBottom: 1 }}>{ch}</div>
+                            ))}
+                          </div>
+                          {/* Path breadcrumb */}
+                          <div style={{ fontSize: Math.round(w * 0.022), color: textPri as string, fontWeight: 600, letterSpacing: -0.2 }}>
+                            Project
+                          </div>
+                          {/* View icons */}
+                          <div style={{ display: "flex", gap: 3, marginLeft: "auto" }}>
+                            {[
+                              <svg key="grid" width={fs} height={fs} viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill={textSec as string}/><rect x="9" y="1" width="6" height="6" rx="1" fill={textSec as string}/><rect x="1" y="9" width="6" height="6" rx="1" fill={textSec as string}/><rect x="9" y="9" width="6" height="6" rx="1" fill={textSec as string}/></svg>,
+                              <svg key="list" width={fs} height={fs} viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx="0.75" fill={textSec as string}/><rect x="1" y="7" width="14" height="1.5" rx="0.75" fill={textSec as string}/><rect x="1" y="11" width="14" height="1.5" rx="0.75" fill={textSec as string}/></svg>,
+                            ].map((icon, i) => (
+                              <div key={i} style={{ padding: "2px 4px", borderRadius: 4, cursor: "pointer" }}>{icon}</div>
+                            ))}
+                          </div>
+                          {/* Search */}
+                          <div style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+                            borderRadius: 6, padding: `2px ${Math.round(fw * 0.02)}px`,
+                            fontSize: Math.round(w * 0.02), color: textSec as string,
+                          }}>
+                            <svg width={fs - 2} height={fs - 2} viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={textSec as string} strokeWidth="2"/><path d="M16.5 16.5L21 21" stroke={textSec as string} strokeWidth="2" strokeLinecap="round"/></svg>
+                            Search
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+                        {/* Sidebar */}
+                        <div style={{
+                          width: sideW, background: sidebarBg,
+                          borderRight: `0.5px solid ${borderCol}`,
+                          padding: `${Math.round(fh * 0.025)}px ${Math.round(sideW * 0.08)}px`,
+                          overflowY: "auto", scrollbarWidth: "none", flexShrink: 0,
+                        }}>
+                          {sidebar.map(item => {
+                            if (item.type === "header") return (
+                              <div key={item.id} style={{
+                                fontSize: Math.round(w * 0.018), fontWeight: 700,
+                                color: textSec as string, letterSpacing: 0.6,
+                                textTransform: "uppercase", padding: `${Math.round(fh * 0.022)}px 4px ${Math.round(fh * 0.008)}px`,
+                              }}>{item.label}</div>
+                            )
+                            const isSel = finderSidebarSel === item.id
+                            return (
+                              <div key={item.id}
+                                onClick={(e) => { e.stopPropagation(); setFinderSidebarSel(item.id!) }}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: Math.round(sideW * 0.06),
+                                  padding: `${Math.round(fh * 0.012)}px ${Math.round(sideW * 0.06)}px`,
+                                  borderRadius: 6, cursor: "pointer",
+                                  background: isSel ? selBg : "transparent",
+                                  transition: "background 0.12s",
+                                }}>
+                                <SideIcon id={item.icon!} />
+                                <span style={{ fontSize: fs, color: textPri as string, fontWeight: isSel ? 500 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {item.label}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Main area */}
+                        <div style={{
+                          flex: 1, background: finderBg,
+                          padding: Math.round(fw * 0.03),
+                          overflowY: "auto", scrollbarWidth: "none",
+                          display: "flex", flexWrap: "wrap",
+                          alignContent: "flex-start",
+                          gap: Math.round(fw * 0.025),
+                        }}>
+                          {mainItems.map(item => {
+                            const isSel = finderSel === item.id
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={(e) => { e.stopPropagation(); setFinderSel(item.id) }}
+                                onDoubleClick={(e) => { e.stopPropagation() }}
+                                style={{
+                                  display: "flex", flexDirection: "column", alignItems: "center",
+                                  gap: Math.round(fh * 0.012),
+                                  padding: Math.round(fw * 0.018),
+                                  borderRadius: 8, cursor: "pointer",
+                                  background: isSel ? selBg : "transparent",
+                                  transition: "background 0.1s",
+                                  width: Math.round(fw * 0.14),
+                                }}
+                                onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLDivElement).style.background = hoverBg }}
+                                onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLDivElement).style.background = "transparent" }}
+                              >
+                                <ItemIcon type={item.type} name={item.name} />
+                                <span style={{
+                                  fontSize: Math.round(w * 0.02), color: textPri as string,
+                                  textAlign: "center", lineHeight: 1.3, wordBreak: "break-word",
+                                  maxWidth: "100%", padding: isSel ? `1px ${Math.round(fw * 0.01)}px` : 0,
+                                  background: isSel ? "#0a84ff" : "transparent",
+                                  borderRadius: 3, color: isSel ? "#fff" : textPri as string,
+                                }}>{item.name}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Status bar */}
+                      <div style={{
+                        height: Math.round(fh * 0.055), background: titleBg,
+                        borderTop: `0.5px solid ${borderCol}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: Math.round(w * 0.019), color: textSec as string,
+                        flexShrink: 0,
+                      }}>
+                        {mainItems.length} items
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Dock — show when multiple images OR description OR github exists */}
               {(hasDock || description || hasGithub) && (
                 <div
@@ -614,10 +862,11 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                       ref={(el) => { iconRefs.current[0] = el }}
                       onMouseEnter={() => setHoveredSlot("app")}
                       onMouseLeave={() => setHoveredSlot(null)}
+                      onClick={(e) => { e.stopPropagation(); setFinderOpen(o => !o) }}
                       style={{
                         width: slotSize, height: slotSize, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        overflow: "visible", position: "relative",
+                        overflow: "visible", position: "relative", cursor: "pointer",
                       }}
                     >
                       {/* macOS label */}
