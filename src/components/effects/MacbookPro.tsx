@@ -3,6 +3,18 @@
 import { useState, useEffect, useRef, useCallback, useMemo, CSSProperties } from "react"
 import { useTheme } from "./theme-provider"
 
+interface ProjectItem {
+  id?: number
+  title?: string
+  category?: string
+  images?: string[]
+  description?: string
+  githubUrl?: string
+  liveUrl?: string
+  tags?: string[]
+  features?: string[]
+}
+
 interface MacbookProProps {
   src?: string
   images?: string[]
@@ -11,12 +23,14 @@ interface MacbookProProps {
   liveUrl?: string
   tags?: string[]
   features?: string[]
+  projects?: ProjectItem[]
   width?: number
   className?: string
 }
 
-export default function MacbookPro({ src, images, description, githubUrl, liveUrl, tags, features, width = 440, className = "" }: MacbookProProps) {
+export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
 
+  const [activeProject, setActiveProject] = useState(0)
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
@@ -45,9 +59,20 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   const { theme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
+  // Derive active project data
+  const proj = projects?.[activeProject]
+  const images = proj?.images ?? imagesProp
+  const description = proj?.description ?? descProp
+  const githubUrl = proj?.githubUrl ?? githubProp
+  const liveUrl = proj?.liveUrl ?? liveProp
+  const tags = proj?.tags ?? tagsProp
+  const features = proj?.features ?? featuresProp
+
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
   const currentSrc = imgList[activeImg] ?? null
-  const hasDock = imgList.length > 1
+  // In projects mode, dock icons = one per project; otherwise = one per image
+  const dockCount = projects ? projects.length : imgList.length
+  const hasDock = dockCount > 1
   const hasGithub = !!githubUrl && githubUrl !== "#"
 
   useEffect(() => {
@@ -64,6 +89,14 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
+  useEffect(() => {
+    setActiveImg(0)
+    setTerminalOpen(false)
+    setTermMinimized(false)
+    setTermMinimizing(false)
+    setFinderOpen(false)
+    setFinderSel(null)
+  }, [activeProject])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -152,12 +185,12 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
+    const totalSlots = 1 + dockCount + (description ? 1 : 0) + (hasGithub ? 1 : 0)
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
     setScales(ones)
-  }, [imgList.length, description, hasGithub])
+  }, [dockCount, description, hasGithub])
 
   const w = width
   const h = Math.round(w * 0.609)
@@ -209,12 +242,15 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
 
   // All navigable dock items in order — defined after computeTargets
   const dockItems = useMemo(() => [
-    { type: "finder"   as const, refIdx: 0 },
-    ...imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 1 })),
-    ...(description ? [{ type: "terminal" as const, refIdx: imgList.length + 1 }] : []),
-    ...(hasGithub     ? [{ type: "github"   as const, refIdx: imgList.length + 1 + (description ? 1 : 0) }] : []),
+    { type: "finder" as const, refIdx: 0 },
+    ...(projects
+      ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 1 }))
+      : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 1 }))
+    ),
+    ...(description ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
+    ...(hasGithub   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (description ? 1 : 0) }] : []),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [imgList.length, description, hasGithub])
+  ], [projects?.length, imgList.length, dockCount, description, hasGithub])
 
   // Reset focus when MacBook loses hover
   useEffect(() => {
@@ -254,11 +290,13 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
           computeTargets(rect.left + rect.width / 2)
         }
         if (item.type === "image") setActiveImg(item.imgIdx)
+        if (item.type === "project") setActiveProject(item.projIdx)
       }
       if ((!terminalOpen || termMinimized) && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
         if (item.type === "finder") { setFinderOpen(o => !o) }
+        if (item.type === "project") { setActiveProject(item.projIdx) }
         if (item.type === "terminal") {
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
@@ -545,8 +583,8 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                         ref={termBodyRef}
                         style={{
                           padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
-                          minHeight: Math.round(w * 0.18),
-                          maxHeight: termMaximized ? "100%" : Math.round(w * 0.26),
+                          minHeight: Math.round(w * 0.38),
+                          maxHeight: termMaximized ? "100%" : Math.round(w * 0.58),
                           flex: termMaximized ? 1 : "none",
                           overflowY: "auto", scrollbarWidth: "none",
                         }}
@@ -792,7 +830,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                               >
                                 <ItemIcon type={item.type} name={item.name} />
                                 <span style={{
-                                  fontSize: Math.round(w * 0.02), color: textPri as string,
+                                  fontSize: Math.round(w * 0.02),
                                   textAlign: "center", lineHeight: 1.3, wordBreak: "break-word",
                                   maxWidth: "100%", padding: isSel ? `1px ${Math.round(fw * 0.01)}px` : 0,
                                   background: isSel ? "#0a84ff" : "transparent",
@@ -909,7 +947,72 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                       marginLeft: 1, marginRight: 1,
                     }} />}
 
-                    {hasDock && imgList.map((imgSrc, idx) => {
+                    {/* Projects mode: one icon per project */}
+                    {hasDock && projects && projects.map((p, idx) => {
+                      const scale = scales[idx + 1] ?? 1
+                      const isActive = idx === activeProject
+                      const thumb = p.images?.[0]
+                      const slotKey = `proj-${idx}`
+                      return (
+                        <div
+                          key={idx}
+                          ref={(el) => { iconRefs.current[idx + 1] = el }}
+                          onMouseEnter={() => setHoveredSlot(slotKey)}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{
+                            width: slotSize, height: slotSize, flexShrink: 0,
+                            display: "flex", alignItems: "center", justifyContent: "flex-end",
+                            cursor: "pointer", overflow: "visible", position: "relative",
+                          }}
+                          onClick={(e) => { e.stopPropagation(); setActiveProject(idx) }}
+                        >
+                          {/* label */}
+                          <div style={{
+                            position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
+                            left: "50%", transform: "translateX(-50%)",
+                            background: "rgba(24,24,26,0.88)",
+                            backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                            borderRadius: 6, padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.016)}px`,
+                            fontSize: Math.round(w * 0.024), fontWeight: 500,
+                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                            color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
+                            pointerEvents: "none", zIndex: 100,
+                            opacity: hoveredSlot === slotKey ? 1 : 0,
+                            transition: "opacity 0.12s ease",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+                          }}>{p.title ?? `Project ${idx + 1}`}</div>
+                          <div style={{
+                            width: slotSize, height: slotSize,
+                            transform: `scale(${scale})`,
+                            transformOrigin: "bottom center",
+                            willChange: "transform",
+                            borderRadius: Math.round(slotSize * 0.22),
+                            overflow: "hidden",
+                            boxShadow: isActive
+                              ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)"
+                              : "0 1px 5px rgba(0,0,0,0.5)",
+                            transition: "box-shadow 0.2s",
+                            flexShrink: 0,
+                            background: "#1a1a1c",
+                          }}>
+                            {thumb
+                              ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                              : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1c1c1e,#2c2c2e)" }} />
+                            }
+                          </div>
+                          <div style={{
+                            position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                            transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                            borderRadius: "50%",
+                            background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
+                            transition: "background 0.2s", pointerEvents: "none",
+                          }} />
+                        </div>
+                      )
+                    })}
+
+                    {/* Images mode: one icon per image in current project */}
+                    {hasDock && !projects && imgList.map((imgSrc, idx) => {
                       const scale = scales[idx + 1] ?? 1
                       const isActive = idx === activeImg
                       return (
@@ -917,56 +1020,33 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                           key={idx}
                           ref={(el) => { iconRefs.current[idx + 1] = el }}
                           style={{
-                            width: slotSize,
-                            height: slotSize,
-                            flexShrink: 0,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "flex-end",
-                            cursor: "pointer",
-                            overflow: "visible",
-                            position: "relative",
+                            width: slotSize, height: slotSize, flexShrink: 0,
+                            display: "flex", flexDirection: "column",
+                            alignItems: "center", justifyContent: "flex-end",
+                            cursor: "pointer", overflow: "visible", position: "relative",
                           }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveImg(idx)
-                          }}
+                          onClick={(e) => { e.stopPropagation(); setActiveImg(idx) }}
                         >
-                          <div
-                            style={{
-                              width: slotSize,
-                              height: slotSize,
-                              transform: `scale(${scale})`,
-                              transformOrigin: "bottom center",
-                              willChange: "transform",
-                              borderRadius: Math.round(slotSize * 0.22),
-                              overflow: "hidden",
-                              boxShadow: isActive
-                                ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)"
-                                : "0 1px 5px rgba(0,0,0,0.5)",
-                              transition: "box-shadow 0.2s",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <img
-                              src={imgSrc}
-                              alt={`view ${idx + 1}`}
-                              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                              draggable={false}
-                            />
-                          </div>
-                          {/* Dot — lives inside its own slot, always perfectly centered */}
                           <div style={{
-                            position: "absolute",
-                            bottom: -(DOCK_PAD_Y + 1),
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            width: 2.5, height: 2.5,
+                            width: slotSize, height: slotSize,
+                            transform: `scale(${scale})`,
+                            transformOrigin: "bottom center",
+                            willChange: "transform",
+                            borderRadius: Math.round(slotSize * 0.22),
+                            overflow: "hidden",
+                            boxShadow: isActive
+                              ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)"
+                              : "0 1px 5px rgba(0,0,0,0.5)",
+                            transition: "box-shadow 0.2s", flexShrink: 0,
+                          }}>
+                            <img src={imgSrc} alt={`view ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                          </div>
+                          <div style={{
+                            position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                            transform: "translateX(-50%)", width: 2.5, height: 2.5,
                             borderRadius: "50%",
                             background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
-                            transition: "background 0.2s",
-                            pointerEvents: "none",
+                            transition: "background 0.2s", pointerEvents: "none",
                           }} />
                         </div>
                       )
@@ -980,7 +1060,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                         marginLeft: 1, marginRight: 1,
                       }} />
                       <div
-                        ref={(el) => { iconRefs.current[imgList.length + 1] = el }}
+                        ref={(el) => { iconRefs.current[dockCount + 1] = el }}
                         onMouseEnter={() => setHoveredSlot("terminal")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -1023,7 +1103,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                         </div>
                         <div style={{
                           width: slotSize, height: slotSize,
-                          transform: `scale(${scales[imgList.length + 1] ?? 1})`,
+                          transform: `scale(${scales[dockCount + 1] ?? 1})`,
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
@@ -1056,7 +1136,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                         }} />
                       )}
                       <div
-                        ref={(el) => { iconRefs.current[imgList.length + 1 + (description ? 1 : 0)] = el }}
+                        ref={(el) => { iconRefs.current[dockCount + 1 + (description ? 1 : 0)] = el }}
                         onMouseEnter={() => setHoveredSlot("github")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -1083,7 +1163,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                         }}>GitHub</div>
                         <div style={{
                           width: slotSize, height: slotSize,
-                          transform: `scale(${scales[imgList.length + 1 + (description ? 1 : 0)] ?? 1})`,
+                          transform: `scale(${scales[dockCount + 1 + (description ? 1 : 0)] ?? 1})`,
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
