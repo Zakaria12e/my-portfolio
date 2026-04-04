@@ -251,8 +251,8 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
           window.open(githubUrl, "_blank", "noopener,noreferrer")
       }
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
+    window.addEventListener("keydown", onKey, { capture: true })
+    return () => window.removeEventListener("keydown", onKey, { capture: true })
   }, [hovered, terminalOpen, dockItems, computeTargets, githubUrl])
 
   useEffect(() => () => {
