@@ -7,11 +7,12 @@ interface MacbookProProps {
   src?: string
   images?: string[]
   description?: string
+  githubUrl?: string
   width?: number
   className?: string
 }
 
-export default function MacbookPro({ src, images, description, width = 440, className = "" }: MacbookProProps) {
+export default function MacbookPro({ src, images, description, githubUrl, width = 440, className = "" }: MacbookProProps) {
 
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
@@ -28,6 +29,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   const dockRef     = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
+  const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
@@ -37,6 +39,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
   const currentSrc = imgList[activeImg] ?? null
   const hasDock = imgList.length > 1
+  const hasGithub = !!githubUrl && githubUrl !== "#"
 
   useEffect(() => {
     if (!hovered) {
@@ -106,11 +109,12 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   }, [termLines])
 
   useEffect(() => {
-    const ones = imgList.map(() => 1)
+    const totalSlots = imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
+    const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
     setScales(ones)
-  }, [imgList.length])
+  }, [imgList.length, description, hasGithub])
 
   const w = width
   const h = Math.round(w * 0.609)
@@ -143,24 +147,22 @@ export default function MacbookPro({ src, images, description, width = 440, clas
   }, [])
 
   const computeTargets = useCallback((mouseX: number) => {
-    if (!dockRef.current) return
-    const rect = dockRef.current.getBoundingClientRect()
-    const rel = mouseX - rect.left
-    targetScales.current = imgList.map((_, idx) => {
-      const center = DOCK_PAD_X + idx * (ICON_BASE + ICON_GAP) + ICON_BASE / 2
-      const dist = Math.abs(rel - center)
+    targetScales.current = iconRefs.current.map((el) => {
+      if (!el) return 1
+      const rect = el.getBoundingClientRect()
+      const center = rect.left + rect.width / 2
+      const dist = Math.abs(mouseX - center)
       if (dist >= RANGE) return 1
-      // smooth cosine bell — peak at cursor, tapers to 1 at edges
       const t = Math.cos((dist / RANGE) * (Math.PI / 2))
       return 1 + (MAX_SCALE - 1) * t * t
     })
     startSpring()
-  }, [imgList, ICON_BASE, ICON_GAP, DOCK_PAD_X, RANGE, startSpring])
+  }, [RANGE, startSpring])
 
   const resetTargets = useCallback(() => {
-    targetScales.current = imgList.map(() => 1)
+    targetScales.current = iconRefs.current.map(() => 1)
     startSpring()
-  }, [imgList, startSpring])
+  }, [startSpring])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -463,8 +465,8 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                 </div>
               )}
 
-              {/* Dock — show when multiple images OR description exists */}
-              {(hasDock || description) && (
+              {/* Dock — show when multiple images OR description OR github exists */}
+              {(hasDock || description || hasGithub) && (
                 <div
                   style={{
                     position: "absolute",
@@ -507,6 +509,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                       return (
                         <div
                           key={idx}
+                          ref={(el) => { iconRefs.current[idx] = el }}
                           style={{
                             // fixed slot — transform handles visual size, no reflow
                             width: slotSize,
@@ -561,6 +564,7 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                         marginLeft: 1, marginRight: 1,
                       }} />
                       <div
+                        ref={(el) => { iconRefs.current[imgList.length] = el }}
                         style={{
                           width: slotSize, height: slotSize, flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
@@ -570,6 +574,9 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                       >
                         <div style={{
                           width: slotSize, height: slotSize,
+                          transform: `scale(${scales[imgList.length] ?? 1})`,
+                          transformOrigin: "bottom center",
+                          willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
                           background: terminalOpen
                             ? "linear-gradient(145deg,#1a1a2e,#16213e)"
@@ -584,6 +591,42 @@ export default function MacbookPro({ src, images, description, width = 440, clas
                           <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
                             <polyline points="4 17 10 11 4 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                             <line x1="12" y1="19" x2="20" y2="19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </>}
+
+                    {/* GitHub icon */}
+                    {hasGithub && <>
+                      {!description && (
+                        <div style={{
+                          width: 0.5, height: slotSize * 0.7, alignSelf: "center",
+                          background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
+                          marginLeft: 1, marginRight: 1,
+                        }} />
+                      )}
+                      <div
+                        ref={(el) => { iconRefs.current[imgList.length + (description ? 1 : 0)] = el }}
+                        style={{
+                          width: slotSize, height: slotSize, flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", overflow: "visible",
+                        }}
+                        onClick={(e) => { e.stopPropagation(); window.open(githubUrl, "_blank", "noopener,noreferrer") }}
+                      >
+                        <div style={{
+                          width: slotSize, height: slotSize,
+                          transform: `scale(${scales[imgList.length + (description ? 1 : 0)] ?? 1})`,
+                          transformOrigin: "bottom center",
+                          willChange: "transform",
+                          borderRadius: Math.round(slotSize * 0.22),
+                          background: "linear-gradient(145deg,#24292e,#1a1f24)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          boxShadow: "0 1px 5px rgba(0,0,0,0.6)",
+                          flexShrink: 0,
+                        }}>
+                          <svg width={slotSize * 0.56} height={slotSize * 0.56} viewBox="0 0 24 24" fill="white">
+                            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
                           </svg>
                         </div>
                       </div>

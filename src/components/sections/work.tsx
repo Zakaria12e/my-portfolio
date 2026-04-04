@@ -178,7 +178,7 @@ export function ModernWork() {
           >
             {/* MacBook */}
             <div className="flex-shrink-0 flex justify-center w-full lg:w-auto">
-              <MacbookPro images={project.images} description={project.description} width={macWidth} />
+              <MacbookPro images={project.images} description={project.description} githubUrl={project.githubUrl} width={macWidth} />
             </div>
 
             {/* Project info */}
