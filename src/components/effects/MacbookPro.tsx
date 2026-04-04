@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, CSSProperties } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, CSSProperties } from "react"
 import { useTheme } from "./theme-provider"
 
 interface MacbookProProps {
@@ -34,6 +34,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   const inputRef    = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
+  const focusedDockIdxRef = useRef(-1)
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
@@ -144,6 +145,19 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
     if (termBodyRef.current) termBodyRef.current.scrollTop = termBodyRef.current.scrollHeight
   }, [termLines])
 
+  // All navigable dock items in order
+  const dockItems = useMemo(() => [
+    { type: "finder"   as const, refIdx: 0 },
+    ...imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 1 })),
+    ...(description ? [{ type: "terminal" as const, refIdx: imgList.length + 1 }] : []),
+    ...(hasGithub     ? [{ type: "github"   as const, refIdx: imgList.length + 1 + (description ? 1 : 0) }] : []),
+  ], [imgList.length, description, hasGithub])
+
+  // Reset focus when MacBook loses hover
+  useEffect(() => {
+    if (!hovered) focusedDockIdxRef.current = -1
+  }, [hovered])
+
   // Keyboard shortcuts — only active while MacBook is hovered
   useEffect(() => {
     if (!hovered) return
@@ -159,20 +173,37 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
         setTerminalOpen(false)
         return
       }
-      // Arrow keys → switch images (only when terminal is closed)
-      if (!terminalOpen) {
-        if (e.key === "ArrowRight") {
-          e.preventDefault()
-          setActiveImg(i => (i + 1) % imgList.length)
-        } else if (e.key === "ArrowLeft") {
-          e.preventDefault()
-          setActiveImg(i => (i - 1 + imgList.length) % imgList.length)
+      // Arrow keys → navigate all dock items
+      if (!terminalOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+        e.preventDefault()
+        const cur  = focusedDockIdxRef.current
+        const next = e.key === "ArrowRight"
+          ? (cur + 1) % dockItems.length
+          : (cur - 1 + dockItems.length) % dockItems.length
+        focusedDockIdxRef.current = next
+
+        const item = dockItems[next]
+        // Magnify the focused icon
+        const el = iconRefs.current[item.refIdx]
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          computeTargets(rect.left + rect.width / 2)
         }
+        // Activate images immediately; terminal/github/finder need Enter
+        if (item.type === "image") setActiveImg(item.imgIdx)
+      }
+      // Enter → activate focused dock item
+      if (!terminalOpen && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+        const item = dockItems[focusedDockIdxRef.current]
+        if (!item) return
+        if (item.type === "terminal") setTerminalOpen(true)
+        if (item.type === "github" && githubUrl && githubUrl !== "#")
+          window.open(githubUrl, "_blank", "noopener,noreferrer")
       }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [hovered, terminalOpen, imgList.length])
+  }, [hovered, terminalOpen, dockItems, computeTargets, githubUrl])
 
   useEffect(() => {
     const totalSlots = 1 + imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
