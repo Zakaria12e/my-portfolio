@@ -28,6 +28,26 @@ interface MacbookProProps {
   className?: string
 }
 
+const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd"]
+
+function resolvePath(cwd: string, target: string): string {
+  if (!target || target === "~") return "~"
+  if (target === "..") {
+    if (cwd === "~") return "~"
+    const last = cwd.lastIndexOf("/")
+    return last <= 0 ? "~" : cwd.slice(0, last)
+  }
+  if (target.startsWith("~/")) return target
+  return cwd === "~" ? `~/${target}` : `${cwd}/${target}`
+}
+
+function getDirs(cwd: string, slugs: string[]): string[] {
+  if (cwd === "~") return ["projects"]
+  if (cwd === "~/projects") return [...slugs, ".."]
+  if (/^~\/projects\/[^/]+$/.test(cwd)) return ["src", "public", ".."]
+  return [".."]
+}
+
 export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
 
   const [activeProject, setActiveProject] = useState(0)
@@ -43,6 +63,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
+  const [termCwd, setTermCwd] = useState("~")
   const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
@@ -89,11 +110,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
+  const prevActiveProjectRef = useRef(-1)
   useEffect(() => {
+    const fromTerminal = prevActiveProjectRef.current !== -1 && terminalOpen
+    prevActiveProjectRef.current = activeProject
     setActiveImg(0)
-    setTerminalOpen(false)
-    setTermMinimized(false)
-    setTermMinimizing(false)
+    if (!fromTerminal) {
+      setTerminalOpen(false)
+      setTermMinimized(false)
+      setTermMinimizing(false)
+    }
     setFinderOpen(false)
     setFinderSel(null)
   }, [activeProject])
@@ -109,10 +135,41 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const projectSlug = (proj?.title ?? description ?? "project")
     .toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 
-  const runCommand = useCallback((raw: string) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allProjectSlugs = useMemo(() =>
+    (projects ?? []).map(p =>
+      (p.title ?? "project").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+    ), [projects?.length])
+
+  const runCommand = useCallback((raw: string, cwd: string) => {
     const cmd = raw.trim().toLowerCase()
-    const echo = { text: `➜  ~/projects/${projectSlug} $ ${raw}`, color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" }
-    if (cmd === "desc" || cmd === "description") {
+    const dimColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"
+    const cwdDisplay = cwd.replace("~", "~")
+    const echo = { text: `➜  ${cwdDisplay} $ ${raw}`, color: dimColor }
+
+    if (cmd.startsWith("cd")) {
+      const target = raw.trim().slice(2).trim()
+      const newCwd = resolvePath(cwd, target || "~")
+      const valid = [
+        "~", "~/projects",
+        ...allProjectSlugs.map(s => `~/projects/${s}`),
+        ...allProjectSlugs.flatMap(s => [`~/projects/${s}/src`, `~/projects/${s}/public`]),
+      ]
+      if (valid.includes(newCwd)) {
+        setTermCwd(newCwd)
+        // auto-switch project when cd-ing into a project dir
+        const m = newCwd.match(/^~\/projects\/([^/]+)/)
+        if (m) {
+          const idx = allProjectSlugs.indexOf(m[1])
+          if (idx >= 0) setActiveProject(idx)
+        }
+        setTermLines(l => [...l, echo])
+      } else {
+        setTermLines(l => [...l, echo,
+          { text: `  cd: no such file or directory: ${target || "~"}`, color: "#ff453a" },
+        ])
+      }
+    } else if (cmd === "desc" || cmd === "description") {
       setTermLines(l => [...l, echo,
         { text: description ?? "No description available.", color: "#e2e8f0" },
       ])
@@ -153,7 +210,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         { text: "  features  — key features",          color: "#64d2ff" },
         { text: "  github    — open GitHub repo",      color: "#64d2ff" },
         { text: "  live      — open live demo",        color: "#64d2ff" },
-        { text: "  clear/cls — clear terminal",         color: "#64d2ff" },
+        { text: "  cd <dir>  — navigate directories",  color: "#64d2ff" },
+        { text: "  clear/cls — clear terminal",        color: "#64d2ff" },
       ])
     } else if (cmd === "") {
       setTermLines(l => [...l, echo])
@@ -163,14 +221,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ])
     }
     setTermInput("")
-  }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark])
+  }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark, allProjectSlugs, setActiveProject])
 
   // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
     if (terminalOpen) {
+      const cwd = `~/projects/${projectSlug}`
+      setTermCwd(cwd)
       setTermLines([
-        { text: `cd ~/projects/${projectSlug}`, color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" },
-        { text: `Type  help  to see available commands.`, color: "#ffd60a" },
+        { text: "Type  help  to see available commands.", color: "#ffd60a" },
+        { text: "Tip   ⇥ Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
       ])
       setTermMinimized(false)
       setTermMinimizing(false)
@@ -179,6 +239,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else {
       setTermLines([])
       setTermInput("")
+      setTermCwd("~")
       setTermMinimized(false)
       setTermMinimizing(false)
       setTermMaximized(false)
@@ -603,7 +664,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
                           <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
-                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>~/projects/<span style={{ color: "#a78bfa" }}>{projectSlug}</span> </span>
+                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>
+                            {termCwd.split("/").map((seg, i, arr) => (
+                              <span key={i}>
+                                {i > 0 && <span style={{ opacity: 0.4 }}>/</span>}
+                                <span style={{ color: i === arr.length - 1 ? "#a78bfa" : "#64d2ff" }}>{seg}</span>
+                              </span>
+                            ))}{" "}
+                          </span>
                           <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
                           <input
                             ref={inputRef}
@@ -612,7 +680,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => {
                               e.stopPropagation()
-                              if (e.key === "Enter") runCommand(termInput)
+                              if (e.key === "Enter") { runCommand(termInput, termCwd); return }
+                              if (e.key === "Tab") {
+                                e.preventDefault()
+                                const val = termInput
+                                if (val.startsWith("cd ")) {
+                                  const partial = val.slice(3)
+                                  const dirs = getDirs(termCwd, allProjectSlugs)
+                                  const match = dirs.find(d => d.startsWith(partial) && d !== partial)
+                                  if (match) setTermInput(`cd ${match}`)
+                                } else {
+                                  const match = COMMANDS.find(c => c.startsWith(val) && c !== val)
+                                  if (match) setTermInput(match)
+                                }
+                              }
                             }}
                             autoFocus
                             spellCheck={false}
