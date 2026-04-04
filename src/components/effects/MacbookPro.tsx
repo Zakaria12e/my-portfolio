@@ -13,6 +13,8 @@ interface ProjectItem {
   liveUrl?: string
   tags?: string[]
   features?: string[]
+  icon?: string
+  iconDark?: string
 }
 
 interface MacbookProProps {
@@ -491,7 +493,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       bottom: 4,
       borderRadius: 3,
       overflow: "hidden",
-      background: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775347705/macbg_cid7le.jpg") center/cover no-repeat`,
+      background: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg") center/cover no-repeat`,
       zIndex: 1,
     },
     screenOff: {
@@ -1276,7 +1278,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {hasDock && projects && projects.map((p, idx) => {
                       const scale = scales[idx + 1] ?? 1
                       const isActive = idx === activeProject
-                      const thumb = p.images?.[0]
+                      const iconSrc = isDark ? (p.iconDark ?? p.icon) : (p.icon ?? p.iconDark)
+                      const thumb = iconSrc ?? p.images?.[0]
                       const slotKey = `proj-${idx}`
                       return (
                         <div
@@ -1327,10 +1330,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               : "0 1px 5px rgba(0,0,0,0.5)",
                             transition: "box-shadow 0.2s",
                             flexShrink: 0,
-                            background: "#1a1a1c",
+                            background: isDark ? "#1a1a1c" : "#ffffff",
                           }}>
                             {thumb
-                              ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                              ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: iconSrc ? "contain" : "cover", padding: iconSrc ? "14%" : 0, display: "block", boxSizing: "border-box" }} draggable={false} />
                               : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1c1c1e,#2c2c2e)" }} />
                             }
                           </div>

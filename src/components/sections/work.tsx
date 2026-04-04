@@ -30,6 +30,8 @@ const projects = [
     tags: ["React", "Node.js", "MongoDB", "Socket.io"],
     liveUrl: "https://trackvio.vercel.app",
     githubUrl: "https://github.com/Zakaria12e/vehicle-tracker-sys-frontend",
+    icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775349271/car-gps-black_xijmfk.png",
+    iconDark: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775349259/car-gps-white_ivv2us.png",
   },
   {
     id: 2,
