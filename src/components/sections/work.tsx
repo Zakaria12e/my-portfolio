@@ -51,6 +51,13 @@ const projects = [
     title: "Real-Time Vehicle Tracking System",
     description:
       "A real-time vehicle tracking platform offering seamless fleet monitoring, live GPS positioning, and smart alerting.",
+    features: [
+      "Live GPS tracking with Socket.io",
+      "Fleet dashboard with real-time updates",
+      "Smart alerts & geofencing",
+      "Trip history & analytics",
+      "Multi-user role management",
+    ],
     images: [
       "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775240349/524_1x_shots_so_tdvn2k.png",
       "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775163711/31_1x_shots_so_ki7fmn.png",
@@ -69,6 +76,13 @@ const projects = [
     title: "Garamitos E-Commerce",
     description:
       "A full-stack e-commerce platform with a React storefront, REST API, JWT authentication, and MongoDB-powered product & order management.",
+    features: [
+      "Product catalog with search & filters",
+      "JWT authentication & protected routes",
+      "Shopping cart & checkout flow",
+      "Order management dashboard",
+      "Stripe payment integration",
+    ],
     images: [
       "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
     ],
@@ -82,6 +96,12 @@ const projects = [
     title: "Dashboard UI",
     description:
       "A comprehensive admin dashboard with data visualization and user management.",
+    features: [
+      "Data visualization with charts",
+      "User management & roles",
+      "Responsive design system",
+      "Dark / light mode",
+    ],
     images: [
       "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775142859/326_1x_shots_so_fwewwe.png",
     ],
@@ -95,6 +115,12 @@ const projects = [
     title: "Social Media Platform",
     description:
       "A social platform focused on connecting creative professionals and showcasing their work.",
+    features: [
+      "Real-time messaging with Socket.io",
+      "GraphQL API with subscriptions",
+      "Portfolio showcase profiles",
+      "Follow & discovery feed",
+    ],
     images: ["/coming-soon.jpg"],
     category: "Web",
     tags: ["React", "GraphQL", "Socket.io"],
@@ -178,7 +204,15 @@ export function ModernWork() {
           >
             {/* MacBook */}
             <div className="flex-shrink-0 flex justify-center w-full lg:w-auto">
-              <MacbookPro images={project.images} description={project.description} githubUrl={project.githubUrl} width={macWidth} />
+              <MacbookPro
+                images={project.images}
+                description={project.description}
+                githubUrl={project.githubUrl}
+                liveUrl={project.liveUrl}
+                tags={project.tags}
+                features={project.features}
+                width={macWidth}
+              />
             </div>
 
             {/* Project info */}

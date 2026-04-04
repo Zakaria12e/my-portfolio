@@ -8,11 +8,14 @@ interface MacbookProProps {
   images?: string[]
   description?: string
   githubUrl?: string
+  liveUrl?: string
+  tags?: string[]
+  features?: string[]
   width?: number
   className?: string
 }
 
-export default function MacbookPro({ src, images, description, githubUrl, width = 440, className = "" }: MacbookProProps) {
+export default function MacbookPro({ src, images, description, githubUrl, liveUrl, tags, features, width = 440, className = "" }: MacbookProProps) {
 
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
@@ -71,27 +74,59 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
       setTermLines(l => [...l, echo,
         { text: description ?? "No description available.", color: "#e2e8f0" },
       ])
-    } else if (cmd === "clear") {
+    } else if (cmd === "stack") {
+      setTermLines(l => [...l, echo,
+        ...(tags && tags.length > 0
+          ? tags.map(t => ({ text: `  · ${t}`, color: "#64d2ff" }))
+          : [{ text: "  No stack info available.", color: "#e2e8f0" }]
+        ),
+      ])
+    } else if (cmd === "features") {
+      setTermLines(l => [...l, echo,
+        ...(features && features.length > 0
+          ? features.map(f => ({ text: `  ✦ ${f}`, color: "#e2e8f0" }))
+          : [{ text: "  No features listed.", color: "#e2e8f0" }]
+        ),
+      ])
+    } else if (cmd === "github") {
+      if (githubUrl && githubUrl !== "#") {
+        setTermLines(l => [...l, echo, { text: `  Opening GitHub…`, color: "#30d158" }])
+        window.open(githubUrl, "_blank", "noopener,noreferrer")
+      } else {
+        setTermLines(l => [...l, echo, { text: "  No GitHub repo available.", color: "#ff453a" }])
+      }
+    } else if (cmd === "live") {
+      if (liveUrl && liveUrl !== "#") {
+        setTermLines(l => [...l, echo, { text: `  Opening live demo…`, color: "#30d158" }])
+        window.open(liveUrl, "_blank", "noopener,noreferrer")
+      } else {
+        setTermLines(l => [...l, echo, { text: "  No live demo available.", color: "#ff453a" }])
+      }
+    } else if (cmd === "clear" || cmd === "cls") {
       setTermLines([])
     } else if (cmd === "help") {
       setTermLines(l => [...l, echo,
-        { text: "  desc    — show project description", color: "#64d2ff" },
-        { text: "  clear   — clear terminal",           color: "#64d2ff" },
+        { text: "  desc      — project description",  color: "#64d2ff" },
+        { text: "  stack     — tech stack",            color: "#64d2ff" },
+        { text: "  features  — key features",          color: "#64d2ff" },
+        { text: "  github    — open GitHub repo",      color: "#64d2ff" },
+        { text: "  live      — open live demo",        color: "#64d2ff" },
+        { text: "  clear/cls — clear terminal",         color: "#64d2ff" },
       ])
     } else if (cmd === "") {
       setTermLines(l => [...l, echo])
     } else {
       setTermLines(l => [...l, echo,
-        { text: `command not found: ${cmd}  (try: desc)`, color: "#ff453a" },
+        { text: `command not found: ${cmd}  (try: help)`, color: "#ff453a" },
       ])
     }
     setTermInput("")
-  }, [description])
+  }, [description, tags, features, githubUrl, liveUrl])
 
   // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
     if (terminalOpen) {
-      setTermLines([{ text: "Type  desc  to see the project description.", color: "#ffd60a" }])
+      setTermLines([{ text: "Type  help  to see available commands.", color: "#ffd60a" }])
       setTermMinimized(false)
       setTermMaximized(false)
       setTimeout(() => inputRef.current?.focus(), 50)
