@@ -116,10 +116,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
-  const prevActiveProjectRef = useRef<number | null>(null)
   useEffect(() => {
-    const fromTerminal = prevActiveProjectRef.current !== null && terminalOpen
-    prevActiveProjectRef.current = activeProject
+    const fromTerminal = terminalOpen
     setActiveImg(0)
     if (!fromTerminal) {
       setTerminalOpen(false)
@@ -237,6 +235,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
         { text: "Tip   ⇥ Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
+        ...(!proj ? [{ text: "Tip   cd projects  to browse projects.", color: "#0a84ff" }] : []),
       ])
       setTermMinimized(false)
       setTermMinimizing(false)
