@@ -436,27 +436,36 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     micDot: { width: 0, height: 0 },
     notifPill: {
       position: "absolute",
-      top: Math.round(h * 0.055), left: "50%",
+      top: 0, left: "50%",
       transform: "translateX(-50%)",
-      width: notifBig ? Math.round(w * 0.44) : 0,
-      height: notifBig ? Math.round(h * 0.072) : 0,
-      opacity: showNotif ? 1 : 0,
-      background: "#000",
-      borderRadius: 20,
-      padding: notifBig ? `0 ${Math.round(w * 0.018)}px` : 0,
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-      fontSize: Math.round(w * 0.016), fontWeight: 500, color: "#fff",
-      whiteSpace: "nowrap", overflow: "hidden",
+      width: notifBig ? Math.round(w * 0.46) : Math.round(w * 0.165),
+      maxHeight: notifBig ? Math.round(h * 0.32) : Math.round(h * 0.048),
+      minHeight: Math.round(h * 0.048),
+      background: "rgba(18,18,20,0.96)",
+      backdropFilter: "blur(32px)",
+      WebkitBackdropFilter: "blur(32px)",
+      borderRadius: notifBig
+        ? `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`
+        : `0 0 ${Math.round(w * 0.012)}px ${Math.round(w * 0.012)}px`,
+      border: "0.5px solid rgba(255,255,255,0.08)",
+      borderTop: "none",
+      boxShadow: notifBig ? "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)" : "none",
+      overflow: "hidden",
       zIndex: 12,
-      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-      transition: "width 0.4s cubic-bezier(0.22,0.6,0.32,1), height 0.4s cubic-bezier(0.22,0.6,0.32,1), opacity 0.25s ease",
       pointerEvents: "none",
+      opacity: showNotif ? 1 : 0,
+      transition: [
+        "width 0.55s cubic-bezier(0.32,0.72,0,1)",
+        "max-height 0.6s cubic-bezier(0.32,0.72,0,1) 0.04s",
+        "border-radius 0.55s cubic-bezier(0.32,0.72,0,1)",
+        "box-shadow 0.4s ease 0.15s",
+        "opacity 0.25s ease",
+      ].join(", "),
     },
     notifContent: {
+      display: "flex", flexDirection: "column",
       opacity: notifBig ? 1 : 0,
-      transition: "opacity 0.2s ease",
-      display: "flex", alignItems: "center", gap: 4,
+      transition: notifBig ? "opacity 0.28s ease 0.32s" : "opacity 0.1s ease",
     },
     screen: {
       position: "absolute",
@@ -538,29 +547,50 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.cam} />
           </div>
 
-          {/* Dynamic Island — iMessage from Zakaria */}
+          {/* macOS notification */}
           <div style={s.notifPill}>
-            <div style={s.notifContent}>
-              {/* Messages app icon */}
+            {/* App header row */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
+              padding: `${Math.round(h * 0.022)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.008)}px`,
+              borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+            }}>
               <div style={{
-                width: Math.round(w * 0.038), height: Math.round(w * 0.038), borderRadius: Math.round(w * 0.008), flexShrink: 0,
-                background: "linear-gradient(145deg, #34c759, #30b350)",
+                width: Math.round(w * 0.028), height: Math.round(w * 0.028),
+                borderRadius: Math.round(w * 0.006), flexShrink: 0,
+                background: "linear-gradient(145deg,#34c759,#30b350)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
               }}>
-                <svg width={Math.round(w * 0.022)} height={Math.round(w * 0.022)} viewBox="0 0 24 24" fill="white">
+                <svg width={Math.round(w * 0.016)} height={Math.round(w * 0.016)} viewBox="0 0 24 24" fill="white">
                   <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
                 </svg>
               </div>
-              {/* Text */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: Math.round(w * 0.015), fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: 0.3, lineHeight: 1 }}>
-                  Zakaria
-                </span>
-                <span style={{ fontSize: Math.round(w * 0.017), fontWeight: 500, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>
-                  Let's build something for u 🤝
-                </span>
-              </div>
+              <span style={{
+                fontSize: Math.round(w * 0.018), fontWeight: 500,
+                color: "rgba(255,255,255,0.45)",
+                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                letterSpacing: 0.1, flex: 1,
+              }}>Messages</span>
+              <span style={{
+                fontSize: Math.round(w * 0.016), color: "rgba(255,255,255,0.3)",
+                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+              }}>now</span>
+            </div>
+            {/* Message body */}
+            <div style={{
+              padding: `${Math.round(h * 0.016)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.022)}px`,
+              display: "flex", flexDirection: "column", gap: Math.round(h * 0.006),
+            }}>
+              <span style={{
+                fontSize: Math.round(w * 0.02), fontWeight: 600,
+                color: "rgba(255,255,255,0.9)", lineHeight: 1.2,
+                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+              }}>Zakaria</span>
+              <span style={{
+                fontSize: Math.round(w * 0.019), fontWeight: 400,
+                color: "rgba(255,255,255,0.6)", lineHeight: 1.3,
+                fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+              }}>Let's build something great 🤝</span>
             </div>
           </div>
 
