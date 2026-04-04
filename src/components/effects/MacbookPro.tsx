@@ -545,7 +545,6 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                           key={idx}
                           ref={(el) => { iconRefs.current[idx + 1] = el }}
                           style={{
-                            // fixed slot — transform handles visual size, no reflow
                             width: slotSize,
                             height: slotSize,
                             flexShrink: 0,
@@ -554,8 +553,8 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                             alignItems: "center",
                             justifyContent: "flex-end",
                             cursor: "pointer",
-                            // overflow visible so scaled icon shows above dock bar
                             overflow: "visible",
+                            position: "relative",
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
@@ -566,7 +565,6 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                             style={{
                               width: slotSize,
                               height: slotSize,
-                              // scale via transform — no layout shift
                               transform: `scale(${scale})`,
                               transformOrigin: "bottom center",
                               willChange: "transform",
@@ -586,6 +584,18 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                               draggable={false}
                             />
                           </div>
+                          {/* Dot — lives inside its own slot, always perfectly centered */}
+                          <div style={{
+                            position: "absolute",
+                            bottom: -(DOCK_PAD_Y + 1),
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 2.5, height: 2.5,
+                            borderRadius: "50%",
+                            background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
+                            transition: "background 0.2s",
+                            pointerEvents: "none",
+                          }} />
                         </div>
                       )
                     })}
@@ -667,39 +677,6 @@ export default function MacbookPro({ src, images, description, githubUrl, width 
                     </>}
                   </div>
 
-                  {/* Active dots row — only when multiple images */}
-                  {hasDock &&
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 1,
-                      display: "flex",
-                      gap: ICON_GAP,
-                      paddingLeft: DOCK_PAD_X,
-                      paddingRight: DOCK_PAD_X,
-                      pointerEvents: "none",
-                    }}
-                  >
-                    {imgList.map((_, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          width: slotSize,
-                          display: "flex",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 2.5, height: 2.5,
-                            borderRadius: "50%",
-                            background: idx === activeImg ? "rgba(255,255,255,0.9)" : "transparent",
-                            transition: "background 0.2s",
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>}
                 </div>
               )}
             </div>
