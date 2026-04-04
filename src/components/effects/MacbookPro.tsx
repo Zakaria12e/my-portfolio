@@ -422,36 +422,35 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     bezel: {
       position: "absolute",
       top: 5, left: 5, right: 5, bottom: 5,
-      background: isDark ? "#0a0a0c" : "#1a1a1c",
+      background: "#050507",
       borderRadius: "6px 6px 0 0",
       overflow: "hidden",
     },
     notch: {
       position: "absolute",
-      top: 4, left: "50%",
+      top: 0, left: "50%",
       transform: "translateX(-50%)",
-      width: 44, height: 10,
+      width: Math.round(w * 0.165),
+      height: Math.round(h * 0.048),
       background: "#000",
-      borderRadius: 20,
+      borderRadius: `0 0 ${Math.round(w * 0.012)}px ${Math.round(w * 0.012)}px`,
       zIndex: 10,
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-      opacity: showNotif ? 0 : 1,
-      transition: "opacity 0.2s",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
     },
-    cam:    { width: 4, height: 4, borderRadius: "50%", background: "#141414", border: "1px solid #1c1c1c", flexShrink: 0 },
-    micDot: { width: 2, height: 2, borderRadius: "50%", background: "#1a1a1a", flexShrink: 0 },
+    cam:    { width: Math.round(w * 0.009), height: Math.round(w * 0.009), borderRadius: "50%", background: "#2a2a2a", border: `0.5px solid #333`, flexShrink: 0 },
+    micDot: { width: 0, height: 0 },
     notifPill: {
       position: "absolute",
-      top: 4, left: "50%",
+      top: Math.round(h * 0.055), left: "50%",
       transform: "translateX(-50%)",
-      width: notifBig ? 172 : 44,
-      height: notifBig ? 28 : 10,
+      width: notifBig ? Math.round(w * 0.44) : 0,
+      height: notifBig ? Math.round(h * 0.072) : 0,
       opacity: showNotif ? 1 : 0,
       background: "#000",
       borderRadius: 20,
-      padding: notifBig ? "0 8px" : 0,
+      padding: notifBig ? `0 ${Math.round(w * 0.018)}px` : 0,
       display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-      fontSize: 7, fontWeight: 500, color: "#fff",
+      fontSize: Math.round(w * 0.016), fontWeight: 500, color: "#fff",
       whiteSpace: "nowrap", overflow: "hidden",
       zIndex: 12,
       boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
@@ -465,8 +464,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       display: "flex", alignItems: "center", gap: 4,
     },
     screen: {
-      position: "absolute", inset: 0,
-      borderRadius: "6px 6px 0 0",
+      position: "absolute",
+      top: 4,
+      left: 5,
+      right: 5,
+      bottom: 4,
+      borderRadius: 3,
       overflow: "hidden",
       background: "#090909",
       zIndex: 1,
@@ -542,7 +545,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       <div style={s.lid}>
         <div style={s.bezel}>
           <div style={s.notch}>
-            <div style={s.micDot} />
             <div style={s.cam} />
           </div>
 
@@ -551,21 +553,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.notifContent}>
               {/* Messages app icon */}
               <div style={{
-                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                width: Math.round(w * 0.038), height: Math.round(w * 0.038), borderRadius: Math.round(w * 0.008), flexShrink: 0,
                 background: "linear-gradient(145deg, #34c759, #30b350)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
               }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                <svg width={Math.round(w * 0.022)} height={Math.round(w * 0.022)} viewBox="0 0 24 24" fill="white">
                   <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
                 </svg>
               </div>
               {/* Text */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 6.5, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: 0.3, lineHeight: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: Math.round(w * 0.015), fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: 0.3, lineHeight: 1 }}>
                   Zakaria
                 </span>
-                <span style={{ fontSize: 7, fontWeight: 500, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: Math.round(w * 0.017), fontWeight: 500, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>
                   Let's build something for u 🤝
                 </span>
               </div>
