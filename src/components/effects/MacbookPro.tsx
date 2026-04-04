@@ -23,6 +23,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
   const [activeImg, setActiveImg] = useState(0)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [termMinimized, setTermMinimized] = useState(false)
+  const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
   const [termInput, setTermInput] = useState("")
   const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
@@ -130,12 +131,14 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
     if (terminalOpen) {
       setTermLines([{ text: "Type  help  to see available commands.", color: "#ffd60a" }])
       setTermMinimized(false)
+      setTermMinimizing(false)
       setTermMaximized(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     } else {
       setTermLines([])
       setTermInput("")
       setTermMinimized(false)
+      setTermMinimizing(false)
       setTermMaximized(false)
     }
   }, [terminalOpen])
@@ -456,14 +459,16 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
               )}
 
               {/* Terminal overlay */}
-              {terminalOpen && (
+              {terminalOpen && !termMinimized && (
                 <div style={{
                   position: "absolute", inset: 0, zIndex: 20,
-                  background: "rgba(0,0,0,0.82)",
+                  background: termMinimizing ? "rgba(0,0,0,0)" : "rgba(0,0,0,0.82)",
                   backdropFilter: "blur(4px)",
                   WebkitBackdropFilter: "blur(4px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  animation: "mbFade 0.15s ease",
+                  animation: termMinimizing ? undefined : "mbFade 0.15s ease",
+                  transition: "background 0.36s ease",
+                  pointerEvents: termMinimizing ? "none" : "auto",
                 }}>
                   <div style={{
                     width: termMaximized ? "100%" : "72%",
@@ -476,7 +481,9 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                     lineHeight: 1.6,
                     display: "flex", flexDirection: "column",
                     transition: "width 0.2s ease, height 0.2s ease, border-radius 0.2s ease",
-                    animation: "mbPaper 0.42s cubic-bezier(0.22,1,0.36,1)",
+                    animation: termMinimizing
+                      ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                      : "mbPaper 0.42s cubic-bezier(0.22,1,0.36,1)",
                     transformOrigin: termOrigin,
                   }}>
                     {/* Title bar */}
@@ -491,7 +498,15 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                     }}>
                       {[
                         { bg: "#ff5f57", fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
-                        { bg: "#febc2e", fn: () => setTermMinimized(m => !m) },
+                        { bg: "#febc2e", fn: () => {
+                          if (termMinimized) {
+                            setTermMinimized(false)
+                            setTimeout(() => inputRef.current?.focus(), 50)
+                          } else {
+                            setTermMinimizing(true)
+                            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 360)
+                          }
+                        }},
                         { bg: "#28c840", fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
                       ].map((btn, i) => (
                         <div key={i}
@@ -724,7 +739,16 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                           display: "flex", alignItems: "center", justifyContent: "center",
                           cursor: "pointer", overflow: "visible", position: "relative",
                         }}
-                        onClick={(e) => { e.stopPropagation(); setTermOrigin(getOrigin(e)); setTerminalOpen(o => !o) }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (termMinimized) {
+                            setTermMinimized(false)
+                            setTimeout(() => inputRef.current?.focus(), 50)
+                          } else {
+                            setTermOrigin(getOrigin(e))
+                            setTerminalOpen(o => !o)
+                          }
+                        }}
                       >
                         {/* macOS label */}
                         <div style={{
@@ -763,6 +787,7 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
                             : "0 1px 5px rgba(0,0,0,0.6)",
                           transition: "box-shadow 0.2s, background 0.2s",
                           flexShrink: 0,
+                          animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
                         }}>
                           <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
                             <polyline points="4 17 10 11 4 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -850,6 +875,15 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
         @keyframes mbImg {
           0%   { opacity: 0; transform: scale(1.06) translateY(8px); }
           100% { opacity: 1; transform: scale(1)    translateY(0);   }
+        }
+        @keyframes mbMinimize {
+          0%   { transform: scale(1)    translateY(0);    opacity: 1; }
+          60%  { transform: scale(0.55) translateY(30px); opacity: 0.8; }
+          100% { transform: scale(0.05) translateY(80px); opacity: 0; }
+        }
+        @keyframes mbDockBounce {
+          0%,100% { transform: scale(1) translateY(0); }
+          40%     { transform: scale(1) translateY(-6px); }
         }
       `}</style>
     </div>
