@@ -53,6 +53,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [activeProject, setActiveProject] = useState(0)
   const [quickLookOpen, setQuickLookOpen] = useState(false)
   const [quickLookIdx, setQuickLookIdx] = useState(0)
+  const [quickLookMax, setQuickLookMax] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
@@ -345,6 +346,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         setTerminalOpen(false)
         setFinderOpen(false)
         setQuickLookOpen(false)
+        setQuickLookMax(false)
         return
       }
       if (quickLookOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
@@ -628,7 +630,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         position: "relative",
                       }}
                     >
-                      <div style={{ width: Math.round(w * 0.08), flexShrink: 0 }} />
+                      {/* Traffic lights */}
+                      <div style={{ display: "flex", gap: Math.round(w * 0.007), flexShrink: 0 }}>
+                        {[
+                          { c: "#ff5f57", fn: () => { setQuickLookOpen(false); setQuickLookMax(false) } },
+                          { c: "#febc2e", fn: () => { setQuickLookOpen(false); setQuickLookMax(false) } },
+                          { c: "#28c840", fn: () => setQuickLookMax(m => !m) },
+                        ].map((btn, i) => (
+                          <div key={i} onClick={(e) => { e.stopPropagation(); btn.fn() }} style={{
+                            width: Math.round(w * 0.024), height: Math.round(w * 0.024),
+                            borderRadius: "50%", background: btn.c, cursor: "pointer",
+                            boxShadow: "0 0 0 0.5px rgba(0,0,0,0.4)",
+                          }} />
+                        ))}
+                      </div>
                       {/* Title + counter */}
                       <div style={{
                         position: "absolute", left: "50%", transform: "translateX(-50%)",
@@ -645,17 +660,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
                         }}>{quickLookIdx + 1} of {imgList.length}</span>
                       </div>
-                      {/* Hint */}
-                      <div style={{
-                        marginLeft: "auto", fontSize: Math.round(w * 0.017),
-                        color: "rgba(255,255,255,0.25)",
-                        fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-                        display: "flex", alignItems: "center", gap: 4,
-                      }}>
-                        <kbd style={{ padding: "1px 4px", borderRadius: 3, background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.12)" }}>←</kbd>
-                        <kbd style={{ padding: "1px 4px", borderRadius: 3, background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.12)" }}>→</kbd>
-                        <span>navigate</span>
-                      </div>
+                      <div style={{ width: Math.round(w * 0.08), flexShrink: 0 }} />
                     </div>
 
                     {/* Main viewer */}
@@ -717,7 +722,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
 
                     {/* Filmstrip */}
-                    <div
+                    {!quickLookMax && <div
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         height: filmH, flexShrink: 0,
@@ -751,7 +756,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         )
                       })}
-                    </div>
+                    </div>}
                   </div>
                 )
               })()}
