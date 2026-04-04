@@ -413,11 +413,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       borderBottom: "none",
       position: "relative",
       overflow: "hidden",
-      transform: hovered
-    ? "perspective(1400px) rotateX(5deg) scaleY(1)"
-    : "perspective(1400px) rotateX(-65deg) scaleY(0.92)",
-      transformOrigin: "bottom center",
-      transition: "transform 0.8s cubic-bezier(0.25,0.6,0.3,1)",
     },
     bezel: {
       position: "absolute",
@@ -481,7 +476,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       borderRadius: "inherit",
       opacity: hovered ? 0 : 1,
       pointerEvents: hovered ? "none" : "auto",
-      transition: "opacity 0.5s 0.05s",
+      transition: "opacity 0.6s ease",
     },
     screenOn: {
       position: "absolute", inset: 0,
@@ -489,7 +484,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       borderRadius: "inherit",
       overflow: "hidden",
       opacity: hovered ? 1 : 0,
-      transition: "opacity 0.45s 0.45s",
+      transition: "opacity 0.6s ease",
     },
     hingeBump: {
       position: "absolute", top: 0, left: "50%",
@@ -514,11 +509,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       borderRadius: "0 0 8px 8px",
       border: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
       borderTop: isDark ? "1.5px solid #3a3a3c" : "1.5px solid #e8e8ea",
-      transform: hovered
-        ? "perspective(1200px) rotateX(-2deg)"
-        : "perspective(1200px) rotateX(-4deg)",
-      transformOrigin: "top center",
-      transition: "transform 0.8s cubic-bezier(0.25,0.6,0.3,1)",
       position: "relative",
     },
     shadow: {
