@@ -7,7 +7,9 @@
       "WebFetch(domain:github.com)",
       "Bash(npm install:*)",
       "Bash(mkdir -p /c/Users/elbid/Documents/my-portfolio/public/sounds)",
-      "Bash(curl -L \"https://ui.aceternity.com/sounds/sound.ogg\" -o /c/Users/elbid/Documents/my-portfolio/public/sounds/sound.ogg)"
+      "Bash(curl -L \"https://ui.aceternity.com/sounds/sound.ogg\" -o /c/Users/elbid/Documents/my-portfolio/public/sounds/sound.ogg)",
+      "Bash(npx vite:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
