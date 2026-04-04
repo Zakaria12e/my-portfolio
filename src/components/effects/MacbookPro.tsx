@@ -143,6 +143,36 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
     if (termBodyRef.current) termBodyRef.current.scrollTop = termBodyRef.current.scrollHeight
   }, [termLines])
 
+  // Keyboard shortcuts — only active while MacBook is hovered
+  useEffect(() => {
+    if (!hovered) return
+    const onKey = (e: KeyboardEvent) => {
+      // ⌘ + Enter → toggle terminal
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setTerminalOpen(o => !o)
+        return
+      }
+      // Esc → close terminal
+      if (e.key === "Escape") {
+        setTerminalOpen(false)
+        return
+      }
+      // Arrow keys → switch images (only when terminal is closed)
+      if (!terminalOpen) {
+        if (e.key === "ArrowRight") {
+          e.preventDefault()
+          setActiveImg(i => (i + 1) % imgList.length)
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          setActiveImg(i => (i - 1 + imgList.length) % imgList.length)
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [hovered, terminalOpen, imgList.length])
+
   useEffect(() => {
     const totalSlots = 1 + imgList.length + (description ? 1 : 0) + (hasGithub ? 1 : 0)
     const ones = Array(totalSlots).fill(1)
@@ -398,6 +428,46 @@ export default function MacbookPro({ src, images, description, githubUrl, liveUr
               ) : (
                 <div style={{ position: "absolute", inset: 0, background: "#0a0a0c" }} />
               )}
+
+              {/* Keyboard shortcut hint — fades in on hover, hidden when terminal open */}
+              <div style={{
+                position: "absolute", bottom: dockH + 4, left: 0, right: 0,
+                display: "flex", justifyContent: "center",
+                zIndex: 9, pointerEvents: "none",
+                opacity: hovered && !terminalOpen ? 1 : 0,
+                transition: "opacity 0.3s ease",
+              }}>
+                <div style={{
+                  display: "flex", gap: Math.round(w * 0.022),
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  borderRadius: 6,
+                  padding: `${Math.round(w * 0.007)}px ${Math.round(w * 0.018)}px`,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                  fontSize: Math.round(w * 0.023),
+                  color: "rgba(255,255,255,0.5)",
+                  whiteSpace: "nowrap",
+                }}>
+                  {[
+                    { key: "⌘↩", label: "terminal" },
+                    { key: "←→", label: "browse" },
+                    { key: "esc", label: "close" },
+                  ].map(({ key, label }) => (
+                    <span key={key} style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.007) }}>
+                      <kbd style={{
+                        background: "rgba(255,255,255,0.12)",
+                        borderRadius: 3,
+                        padding: `1px ${Math.round(w * 0.008)}px`,
+                        fontFamily: "inherit",
+                        fontSize: "inherit",
+                        color: "rgba(255,255,255,0.75)",
+                      }}>{key}</kbd>
+                      <span>{label}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
 
               {/* Terminal overlay */}
               {terminalOpen && (
