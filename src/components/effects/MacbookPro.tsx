@@ -99,6 +99,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const dockCount = projects ? projects.length : imgList.length
   const hasDock = dockCount > 1
   const hasGithub = !!githubUrl && githubUrl !== "#"
+  const showTerminalIcon = !!(description || projects)
+  const showGithubIcon   = !!(hasGithub || projects)
 
   useEffect(() => {
     if (!hovered) {
@@ -230,7 +232,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
     if (terminalOpen) {
-      const cwd = `~/projects/${projectSlug}`
+      const cwd = proj ? `~/projects/${projectSlug}` : "~"
       setTermCwd(cwd)
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
@@ -319,10 +321,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 1 }))
       : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 1 }))
     ),
-    ...(description ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
-    ...(hasGithub   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (description ? 1 : 0) }] : []),
+    ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
+    ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [projects?.length, imgList.length, dockCount, description, hasGithub])
+  ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
   // Reset focus when MacBook loses hover
   useEffect(() => {
@@ -392,8 +394,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
         }
-        if (item.type === "github" && githubUrl && githubUrl !== "#")
-          window.open(githubUrl, "_blank", "noopener,noreferrer")
+        if (item.type === "github") {
+          if (projects && activeProject === null) {
+            setTermOrigin("50% 80%"); setTerminalOpen(true)
+            setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
+          } else if (githubUrl && githubUrl !== "#") {
+            window.open(githubUrl, "_blank", "noopener,noreferrer")
+          }
+        }
       }
     }
     window.addEventListener("keydown", onKey, { capture: true })
@@ -1176,7 +1184,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               })()}
 
               {/* Dock — show when multiple images OR description OR github exists */}
-              {(hasDock || description || hasGithub) && (
+              {(hasDock || showTerminalIcon || showGithubIcon) && (
                 <div
                   style={{
                     position: "absolute",
@@ -1380,7 +1388,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })}
 
                     {/* Dock separator + terminal icon */}
-                    {description && <>
+                    {showTerminalIcon && <>
                       <div style={{
                         width: 0.5, height: slotSize * 0.7, alignSelf: "center",
                         background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
@@ -1454,8 +1462,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </>}
 
                     {/* GitHub icon */}
-                    {hasGithub && <>
-                      {!description && (
+                    {showGithubIcon && <>
+                      {!showTerminalIcon && (
                         <div style={{
                           width: 0.5, height: slotSize * 0.7, alignSelf: "center",
                           background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
@@ -1463,7 +1471,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }} />
                       )}
                       <div
-                        ref={(el) => { iconRefs.current[dockCount + 1 + (description ? 1 : 0)] = el }}
+                        ref={(el) => { iconRefs.current[dockCount + 1 + (showTerminalIcon ? 1 : 0)] = el }}
                         onMouseEnter={() => setHoveredSlot("github")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -1471,7 +1479,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           display: "flex", alignItems: "center", justifyContent: "center",
                           cursor: "pointer", overflow: "visible", position: "relative",
                         }}
-                        onClick={(e) => { e.stopPropagation(); window.open(githubUrl, "_blank", "noopener,noreferrer") }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (projects && activeProject === null) {
+                            setTermOrigin(getOrigin(e)); setTerminalOpen(true)
+                            setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
+                          } else if (githubUrl && githubUrl !== "#") {
+                            window.open(githubUrl, "_blank", "noopener,noreferrer")
+                          }
+                        }}
                       >
                         {/* macOS label */}
                         <div style={{
@@ -1490,7 +1506,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}>GitHub</div>
                         <div style={{
                           width: slotSize, height: slotSize,
-                          transform: `scale(${scales[dockCount + 1 + (description ? 1 : 0)] ?? 1})`,
+                          transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`,
                           transformOrigin: "bottom center",
                           willChange: "transform",
                           borderRadius: Math.round(slotSize * 0.22),
