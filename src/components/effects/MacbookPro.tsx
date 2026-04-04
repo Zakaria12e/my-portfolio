@@ -51,6 +51,8 @@ function getDirs(cwd: string, slugs: string[]): string[] {
 export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
 
   const [activeProject, setActiveProject] = useState(0)
+  const [quickLookOpen, setQuickLookOpen] = useState(false)
+  const [quickLookIdx, setQuickLookIdx] = useState(0)
   const [hovered, setHovered] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
@@ -342,9 +344,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (e.key === "Escape") {
         setTerminalOpen(false)
         setFinderOpen(false)
+        setQuickLookOpen(false)
         return
       }
-      if ((!terminalOpen || termMinimized) && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      if (quickLookOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+        e.preventDefault()
+        setQuickLookIdx(i => {
+          const next = e.key === "ArrowRight"
+            ? Math.min(i + 1, imgList.length - 1)
+            : Math.max(i - 1, 0)
+          setActiveImg(next)
+          return next
+        })
+        return
+      }
+      if ((!terminalOpen || termMinimized) && !quickLookOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
         e.preventDefault()
         const cur  = focusedDockIdxRef.current
         const next = e.key === "ArrowRight"
@@ -375,7 +389,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, finderOpen, dockItems, computeTargets, githubUrl])
+  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -566,16 +580,181 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   key={activeImg}
                   src={currentSrc}
                   alt="screen"
+                  onClick={imgList.length > 1 ? (e) => { e.stopPropagation(); setQuickLookIdx(activeImg); setQuickLookOpen(true) } : undefined}
                   style={{
                     position: "absolute", inset: 0,
                     width: "100%", height: "100%",
                     objectFit: "cover", display: "block",
                     animation: "mbImg 1.4s cubic-bezier(0.16,1,0.3,1)",
+                    cursor: imgList.length > 1 ? "zoom-in" : "default",
                   }}
                 />
               ) : (
                 <div style={{ position: "absolute", inset: 0, background: "#0a0a0c" }} />
               )}
+
+              {/* Quick Look */}
+              {quickLookOpen && imgList.length > 1 && (() => {
+                const filmH  = Math.round(h * 0.18)
+                const barH   = Math.round(h * 0.11)
+                const thumbW = Math.round(filmH * 0.72)
+                const thumbH = Math.round(thumbW * 0.63)
+                const btnSz  = Math.round(w * 0.048)
+                const nav = (dir: 1 | -1) => {
+                  const next = Math.max(0, Math.min(imgList.length - 1, quickLookIdx + dir))
+                  setQuickLookIdx(next)
+                  setActiveImg(next)
+                }
+                return (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); setQuickLookOpen(false) }}
+                    style={{
+                      position: "absolute", inset: 0, zIndex: 30,
+                      background: "rgba(10,10,12,0.93)",
+                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                      display: "flex", flexDirection: "column",
+                      animation: "qlIn 0.2s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        height: barH, flexShrink: 0,
+                        display: "flex", alignItems: "center",
+                        padding: `0 ${Math.round(w * 0.028)}px`,
+                        background: "rgba(255,255,255,0.03)",
+                        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{ width: Math.round(w * 0.08), flexShrink: 0 }} />
+                      {/* Title + counter */}
+                      <div style={{
+                        position: "absolute", left: "50%", transform: "translateX(-50%)",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                        pointerEvents: "none",
+                      }}>
+                        <span style={{
+                          fontSize: Math.round(w * 0.024), fontWeight: 600,
+                          color: "rgba(255,255,255,0.9)", letterSpacing: -0.3,
+                          fontFamily: "-apple-system,'SF Pro Display',BlinkMacSystemFont,sans-serif",
+                        }}>{proj?.title ?? "Quick Look"}</span>
+                        <span style={{
+                          fontSize: Math.round(w * 0.018), color: "rgba(255,255,255,0.35)",
+                          fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                        }}>{quickLookIdx + 1} of {imgList.length}</span>
+                      </div>
+                      {/* Hint */}
+                      <div style={{
+                        marginLeft: "auto", fontSize: Math.round(w * 0.017),
+                        color: "rgba(255,255,255,0.25)",
+                        fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}>
+                        <kbd style={{ padding: "1px 4px", borderRadius: 3, background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.12)" }}>←</kbd>
+                        <kbd style={{ padding: "1px 4px", borderRadius: 3, background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.12)" }}>→</kbd>
+                        <span>navigate</span>
+                      </div>
+                    </div>
+
+                    {/* Main viewer */}
+                    <div
+                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", padding: `${Math.round(h * 0.02)}px` }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <img
+                        key={quickLookIdx}
+                        src={imgList[quickLookIdx]}
+                        alt={`screenshot ${quickLookIdx + 1}`}
+                        style={{
+                          maxWidth: "100%", maxHeight: "100%",
+                          objectFit: "contain", borderRadius: 5,
+                          boxShadow: "0 4px 32px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.06)",
+                          animation: "qlSlide 0.22s cubic-bezier(0.22,1,0.36,1)",
+                        }}
+                      />
+                      {/* Prev */}
+                      <div
+                        onClick={(e) => { e.stopPropagation(); nav(-1) }}
+                        style={{
+                          position: "absolute", left: Math.round(w * 0.022),
+                          width: btnSz, height: btnSz, borderRadius: "50%",
+                          background: quickLookIdx === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.10)",
+                          backdropFilter: "blur(10px)",
+                          border: "0.5px solid rgba(255,255,255,0.12)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: quickLookIdx === 0 ? "default" : "pointer",
+                          opacity: quickLookIdx === 0 ? 0.3 : 1,
+                          transition: "opacity 0.15s",
+                          pointerEvents: quickLookIdx === 0 ? "none" : "auto",
+                        }}
+                      >
+                        <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
+                          <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      {/* Next */}
+                      <div
+                        onClick={(e) => { e.stopPropagation(); nav(1) }}
+                        style={{
+                          position: "absolute", right: Math.round(w * 0.022),
+                          width: btnSz, height: btnSz, borderRadius: "50%",
+                          background: quickLookIdx === imgList.length - 1 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.10)",
+                          backdropFilter: "blur(10px)",
+                          border: "0.5px solid rgba(255,255,255,0.12)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: quickLookIdx === imgList.length - 1 ? "default" : "pointer",
+                          opacity: quickLookIdx === imgList.length - 1 ? 0.3 : 1,
+                          transition: "opacity 0.15s",
+                          pointerEvents: quickLookIdx === imgList.length - 1 ? "none" : "auto",
+                        }}
+                      >
+                        <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
+                          <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Filmstrip */}
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        height: filmH, flexShrink: 0,
+                        display: "flex", alignItems: "center",
+                        gap: Math.round(w * 0.014),
+                        padding: `${Math.round(h * 0.018)}px ${Math.round(w * 0.03)}px`,
+                        overflowX: "auto", scrollbarWidth: "none",
+                        background: "rgba(255,255,255,0.02)",
+                        borderTop: "0.5px solid rgba(255,255,255,0.06)",
+                        justifyContent: imgList.length <= 6 ? "center" : "flex-start",
+                      }}
+                    >
+                      {imgList.map((src, i) => {
+                        const active = i === quickLookIdx
+                        return (
+                          <div
+                            key={i}
+                            onClick={(e) => { e.stopPropagation(); setQuickLookIdx(i); setActiveImg(i) }}
+                            style={{
+                              width: thumbW, height: thumbH, borderRadius: 5,
+                              overflow: "hidden", flexShrink: 0, cursor: "pointer",
+                              outline: active ? `2px solid rgba(255,255,255,0.85)` : "2px solid transparent",
+                              outlineOffset: 2,
+                              opacity: active ? 1 : 0.42,
+                              transform: active ? "scale(1.06)" : "scale(1)",
+                              transition: "opacity 0.18s, transform 0.18s, outline-color 0.18s",
+                              boxShadow: active ? "0 4px 16px rgba(0,0,0,0.6)" : "none",
+                            }}
+                          >
+                            <img src={src} alt={`thumb ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Terminal overlay */}
               {terminalOpen && !termMinimized && (
@@ -1283,6 +1462,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       <style>{`
         @keyframes mbFade {
           from { opacity: 0 } to { opacity: 1 }
+        }
+        @keyframes qlIn {
+          from { opacity: 0; transform: scale(0.97); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes qlSlide {
+          from { opacity: 0; transform: scale(0.96) translateY(4px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0); }
         }
         @keyframes mbPaper {
           0%   { transform: scale(0.08); opacity: 0;   }
