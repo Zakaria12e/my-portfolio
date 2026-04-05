@@ -1,4 +1,14 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playwrite+IE:wght@100..400&display=swap');
+
+@font-face {
+  font-family: "SF Pro";
+  font-weight: 100 900;
+  src: local("SF Pro Display"), local("SFProDisplay-Regular"),
+       local("SF Pro Text"), local("SFProText-Regular"),
+       local(".AppleSystemUIFont"), local(".SFNS-Regular"),
+       local("Helvetica Neue");
+}
 @import "tw-animate-css";
 @tailwind base;
 @tailwind components;

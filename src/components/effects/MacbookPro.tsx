@@ -57,6 +57,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [quickLookIdx, setQuickLookIdx] = useState(0)
   const [quickLookMax, setQuickLookMax] = useState(false)
   const [hovered, setHovered] = useState(false)
+  const [clock, setClock] = useState("")
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
@@ -118,6 +119,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [hovered])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
+  useEffect(() => {
+    const fmt = () => {
+      const now = new Date()
+      const d = now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
+      const t = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      setClock(`${d}  ${t}`)
+    }
+    fmt()
+    const id = setInterval(fmt, 1000)
+    return () => clearInterval(id)
+  }, [])
   useEffect(() => {
     const fromTerminal = terminalOpen
     setActiveImg(0)
@@ -618,6 +630,37 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.screenOff} />
             <div style={s.screenOn}>
 
+              {/* macOS menu bar */}
+              {hovered && (() => {
+                const mbH = Math.round(h * 0.036)
+                const fs  = Math.round(w * 0.0155)
+                return (
+                  <div style={{
+                    position: "absolute", top: 0, left: 0, right: 0,
+                    height: mbH,
+                    background: "rgba(12,12,14,0.72)",
+                    display: "flex", alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: `0 ${Math.round(w * 0.015)}px`,
+                    zIndex: 15, pointerEvents: "none",
+                    fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
+                    fontSize: fs,
+                  }}>
+                    {/* Left: logo + app name */}
+                    <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
+                      <img
+                        src="/moon-purple.png"
+                        alt="logo"
+                        style={{ height: Math.round(mbH * 0.62), width: "auto", display: "block" }}
+                      />
+                      <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.88)", fontSize: Math.round(w * 0.013), fontFamily: "'Playwrite IE', cursive", letterSpacing: "0.02em" }}>{proj?.title ?? "Zakaria"}</span>
+                    </div>
+                    {/* Right: clock */}
+                    <span style={{ color: "rgba(255,255,255,0.82)", fontWeight: 400, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
+                  </div>
+                )
+              })()}
+
               {/* Screenshot */}
               {currentSrc ? (
                 <img
@@ -1035,7 +1078,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       boxShadow: "0 24px 60px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.1)",
                       animation: "mbPaper 0.32s cubic-bezier(0.22,1,0.36,1)",
-                      fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                      fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                     }}>
                       {/* Title bar */}
                       <div style={{
@@ -1311,7 +1354,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
                             borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
                             fontSize: Math.round(w * 0.016), fontWeight: 400,
-                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                            fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                             color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                             pointerEvents: "none", zIndex: 100,
                             opacity: hoveredSlot === slotKey ? 1 : 0,
