@@ -116,7 +116,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   // Keep openWindowsRef in sync for use in callbacks without stale closures
@@ -814,7 +814,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const baseWinLeft= Math.round((screenW - baseWinW) / 2)
                 const titleH = 22
                 const toolH  = 28
-                const iconSz = Math.round(toolH * 0.52)
                 const slugMap: Record<string,string> = {
                   react:"react/react-original", typescript:"typescript/typescript-original",
                   ts:"typescript/typescript-original", javascript:"javascript/javascript-original",
@@ -1101,15 +1100,24 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tlGap = Math.round(22 * 0.45)
                 const tlLeft = Math.round(22 * 0.64)
                 const sideItems = [
-                  { id: "about",      label: "About",        icon: "👤" },
-                  { id: "appearance", label: "Appearance",   icon: "🎨" },
-                  { id: "contact",    label: "Contact",      icon: "✉️" },
+                  { id: "developer", label: "Developer",  svgPath: "M8 4L4 8l4 4M16 4l4 4-4 4M11 3l-2 10" },
+                  { id: "skills",    label: "Skills",     svgPath: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" },
+                  { id: "appearance",label: "Appearance", svgPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" },
+                  { id: "contact",   label: "Contact",    svgPath: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" },
+                  { id: "system",    label: "System",     svgPath: "M12 2a10 10 0 100 20A10 10 0 0012 2zm0 4v4l3 3" },
                 ]
-                const winBg  = isDark ? "#1c1c1e" : "#f4f4f6"
-                const sideBg = isDark ? "#2c2c2e" : "#e8e8ea"
+                const winBg      = isDark ? "#1c1c1e" : "#f4f4f6"
+                const sideBg     = isDark ? "#252528" : "#e5e5e7"
+                const contentBg  = isDark ? "#1c1c1e" : "#f4f4f6"
+                const cardBg     = isDark ? "rgba(255,255,255,0.055)" : "rgba(0,0,0,0.042)"
+                const cardBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"
                 const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
-                const textSec = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"
-                const divClr = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
+                const textSec     = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.38)"
+                const textMed     = isDark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.55)"
+                const divClr      = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"
+                const accentBlue  = "#0a84ff"
+                const ff          = "-apple-system,'SF Pro Text',sans-serif"
+                const fs = (n: number) => Math.round(sw * n)
                 return (
                   <div
                     onClick={e => { e.stopPropagation(); bringToFront("settings"); setFocusedWinId(null) }}
@@ -1161,93 +1169,265 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                        <span style={{ fontSize: Math.round(w * 0.026), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>System Settings</span>
+                        <span style={{ fontSize: Math.round(w * 0.026), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: ff }}>System Settings</span>
                       </div>
                     </div>
 
                     {/* Body: sidebar + content */}
                     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
                       {/* Sidebar */}
-                      <div style={{ width: sideW, flexShrink: 0, background: sideBg, borderRight: `0.5px solid ${divClr}`, display: "flex", flexDirection: "column", padding: `${Math.round(sh * 0.04)}px 0`, gap: 2, overflowY: "auto" }}>
-                        {sideItems.map(item => (
-                          <div key={item.id}
-                            onClick={() => setSettingsSel(item.id)}
-                            style={{
-                              display: "flex", alignItems: "center", gap: Math.round(sideW * 0.1),
-                              padding: `${Math.round(sh * 0.022)}px ${Math.round(sideW * 0.1)}px`,
-                              borderRadius: 7, margin: `0 ${Math.round(sideW * 0.06)}px`,
-                              background: settingsSel === item.id ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)") : "transparent",
-                              cursor: "pointer", transition: "background 0.12s",
-                            }}
-                          >
-                            <span style={{ fontSize: Math.round(sw * 0.036) }}>{item.icon}</span>
-                            <span style={{ fontSize: Math.round(sw * 0.028), fontWeight: 400, color: textPrimary, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{item.label}</span>
+                      <div style={{ width: sideW, flexShrink: 0, background: sideBg, borderRight: `0.5px solid ${divClr}`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+                        {/* Profile mini card */}
+                        <div style={{ padding: `${Math.round(sh * 0.04)}px ${Math.round(sideW * 0.1)}px ${Math.round(sh * 0.03)}px`, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sideW * 0.09), flexShrink: 0 }}>
+                          <div style={{ width: Math.round(sideW * 0.22), height: Math.round(sideW * 0.22), borderRadius: "50%", background: "linear-gradient(135deg,#5856D6 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(88,86,214,0.45)" }}>
+                            <span style={{ fontSize: Math.round(sideW * 0.12), color: "white", fontWeight: 700, fontFamily: ff }}>Z</span>
                           </div>
-                        ))}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: fs(0.034), fontWeight: 600, color: textPrimary, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Zakaria</div>
+                            <div style={{ fontSize: fs(0.024), color: textSec, fontFamily: ff, marginTop: 1, whiteSpace: "nowrap" }}>Full-Stack Dev</div>
+                          </div>
+                        </div>
+
+                        {/* Nav items */}
+                        <div style={{ flex: 1, padding: `${Math.round(sh * 0.025)}px 0`, display: "flex", flexDirection: "column", gap: 1 }}>
+                          {sideItems.map(item => {
+                            const sel = settingsSel === item.id
+                            return (
+                              <div key={item.id}
+                                onClick={() => setSettingsSel(item.id)}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: Math.round(sideW * 0.09),
+                                  padding: `${Math.round(sh * 0.018)}px ${Math.round(sideW * 0.1)}px`,
+                                  borderRadius: 7, margin: `0 ${Math.round(sideW * 0.05)}px`,
+                                  background: sel ? (isDark ? "rgba(10,132,255,0.2)" : "rgba(10,132,255,0.14)") : "transparent",
+                                  cursor: "pointer", transition: "background 0.12s",
+                                }}
+                              >
+                                <svg width={Math.round(sideW * 0.14)} height={Math.round(sideW * 0.14)} viewBox="0 0 24 24" fill="none" stroke={sel ? accentBlue : textSec} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                  <path d={item.svgPath} />
+                                </svg>
+                                <span style={{ fontSize: fs(0.028), fontWeight: sel ? 500 : 400, color: sel ? accentBlue : textPrimary, fontFamily: ff, transition: "color 0.12s" }}>{item.label}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
 
-                      {/* Content */}
-                      <div style={{ flex: 1, overflowY: "auto", padding: `${Math.round(sh * 0.06)}px ${Math.round(sw * 0.06)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.03) }}>
-                        {settingsSel === "about" && (<>
-                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(sw * 0.04) }}>
-                            <div style={{ width: Math.round(sw * 0.13), height: Math.round(sw * 0.13), borderRadius: "50%", background: "linear-gradient(135deg,#5856D6,#3634A3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <span style={{ fontSize: Math.round(sw * 0.07), color: "white" }}>Z</span>
+                      {/* Content area */}
+                      <div style={{ flex: 1, overflowY: "auto", background: contentBg, padding: `${Math.round(sh * 0.052)}px ${Math.round(sw * 0.048)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.028) }}>
+
+                        {/* ── DEVELOPER ── */}
+                        {settingsSel === "developer" && (<>
+                          {/* Header */}
+                          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: Math.round(sh * 0.008) }}>
+                            <div>
+                              <div style={{ fontSize: fs(0.044), fontWeight: 700, color: textPrimary, fontFamily: ff, lineHeight: 1.15 }}>Zakaria Elbidar</div>
+                              <div style={{ fontSize: fs(0.028), color: textSec, fontFamily: ff, marginTop: 3 }}>Full-Stack Developer · Morocco 🇲🇦</div>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              <span style={{ fontSize: Math.round(sw * 0.038), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Zakaria</span>
-                              <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>Full-Stack Developer</span>
+                            <div style={{ width: Math.round(sw * 0.1), height: Math.round(sw * 0.1), borderRadius: "50%", background: "linear-gradient(135deg,#5856D6 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(88,86,214,0.4)" }}>
+                              <span style={{ fontSize: Math.round(sw * 0.052), color: "white", fontWeight: 700, fontFamily: ff }}>Z</span>
                             </div>
                           </div>
-                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.04)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.025) }}>
+
+                          {/* Stats row */}
+                          <div style={{ display: "flex", gap: Math.round(sw * 0.022) }}>
                             {[
-                              { label: "Role",     value: "Full-Stack Developer" },
-                              { label: "Stack",    value: "React · Node.js · TypeScript" },
-                              { label: "Based in", value: "Morocco 🇲🇦" },
-                            ].map(row => (
-                              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>{row.label}</span>
-                                <span style={{ fontSize: Math.round(sw * 0.028), color: textPrimary, fontFamily: "-apple-system,sans-serif", fontWeight: 500 }}>{row.value}</span>
+                              { value: "3+",     label: "Years exp." },
+                              { value: "10+",    label: "Projects" },
+                              { value: "React",  label: "Primary" },
+                              { value: "TS",     label: "Language" },
+                            ].map(stat => (
+                              <div key={stat.label} style={{ flex: 1, borderRadius: 9, background: cardBg, border: `0.5px solid ${cardBorder}`, padding: `${Math.round(sh * 0.028)}px ${Math.round(sw * 0.02)}px`, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                                <span style={{ fontSize: fs(0.036), fontWeight: 700, color: accentBlue, fontFamily: ff }}>{stat.value}</span>
+                                <span style={{ fontSize: fs(0.022), color: textSec, fontFamily: ff }}>{stat.label}</span>
                               </div>
                             ))}
                           </div>
-                        </>)}
 
-                        {settingsSel === "appearance" && (<>
-                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Wallpaper</span>
-                          <div style={{ display: "flex", gap: Math.round(sw * 0.04), flexWrap: "wrap" }}>
-                            {WALLPAPERS.map((url, i) => (
-                              <div
-                                key={i}
-                                onClick={() => setWallpaper(url)}
-                                style={{
-                                  width: Math.round(sw * 0.25), height: Math.round(sw * 0.16),
-                                  borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0,
-                                  backgroundImage: `url("${url}")`, backgroundSize: "cover", backgroundPosition: "center",
-                                  outline: wallpaper === url ? "2.5px solid #0a84ff" : "2.5px solid transparent",
-                                  outlineOffset: 2,
-                                  boxShadow: wallpaper === url ? "0 0 0 1px #0a84ff" : "0 1px 6px rgba(0,0,0,0.4)",
-                                  transition: "outline 0.15s, box-shadow 0.15s",
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </>)}
-
-                        {settingsSel === "contact" && (<>
-                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Contact</span>
-                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.02)}px ${Math.round(sw * 0.04)}px`, display: "flex", flexDirection: "column" }}>
+                          {/* Info rows */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, overflow: "hidden" }}>
                             {[
-                              { label: "GitHub",   value: "github.com/Zakaria12e",  href: "https://github.com/Zakaria12e" },
-                              { label: "LinkedIn", value: "linkedin.com/in/zakaria", href: "#" },
-                              { label: "Email",    value: "hello@zakaria.dev",       href: "mailto:hello@zakaria.dev" },
+                              { k: "Role",       v: "Full-Stack Developer" },
+                              { k: "Stack",      v: "React · Node.js · TypeScript" },
+                              { k: "Based in",   v: "Morocco 🇲🇦" },
+                              { k: "Open to",    v: "Remote · Freelance · Full-time" },
                             ].map((row, i, arr) => (
-                              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${Math.round(sh * 0.025)}px 0`, borderBottom: i < arr.length - 1 ? `0.5px solid ${divClr}` : "none" }}>
-                                <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>{row.label}</span>
-                                <a href={row.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: Math.round(sw * 0.028), color: "#0a84ff", fontFamily: "-apple-system,sans-serif", textDecoration: "none" }}>{row.value}</a>
+                              <div key={row.k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${Math.round(sh * 0.024)}px ${Math.round(sw * 0.038)}px`, borderBottom: i < arr.length - 1 ? `0.5px solid ${divClr}` : "none" }}>
+                                <span style={{ fontSize: fs(0.027), color: textSec, fontFamily: ff }}>{row.k}</span>
+                                <span style={{ fontSize: fs(0.027), color: textPrimary, fontFamily: ff, fontWeight: 500 }}>{row.v}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Bio card */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, padding: `${Math.round(sh * 0.032)}px ${Math.round(sw * 0.038)}px` }}>
+                            <div style={{ fontSize: fs(0.022), color: textSec, fontFamily: ff, marginBottom: 6, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>About</div>
+                            <div style={{ fontSize: fs(0.027), color: textMed, fontFamily: ff, lineHeight: 1.65 }}>
+                              Building fast, accessible web apps end-to-end. Passionate about clean architecture, smooth UX, and shipping things that matter.
+                            </div>
+                          </div>
+                        </>)}
+
+                        {/* ── SKILLS ── */}
+                        {settingsSel === "skills" && (<>
+                          <div style={{ fontSize: fs(0.036), fontWeight: 700, color: textPrimary, fontFamily: ff }}>Technical Skills</div>
+                          {[
+                            {
+                              category: "Frontend",
+                              color: "#0a84ff",
+                              skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion", "Vue.js"],
+                            },
+                            {
+                              category: "Backend",
+                              color: "#30d158",
+                              skills: ["Node.js", "Express", "PostgreSQL", "MongoDB", "Prisma", "REST APIs"],
+                            },
+                            {
+                              category: "DevOps & Tools",
+                              color: "#ff9f0a",
+                              skills: ["Git", "Docker", "Vercel", "AWS", "Vite", "Figma"],
+                            },
+                          ].map(cat => (
+                            <div key={cat.category} style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, padding: `${Math.round(sh * 0.032)}px ${Math.round(sw * 0.038)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.022) }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                                <span style={{ fontSize: fs(0.028), fontWeight: 600, color: textPrimary, fontFamily: ff }}>{cat.category}</span>
+                              </div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {cat.skills.map(sk => (
+                                  <span key={sk} style={{ fontSize: fs(0.024), fontFamily: ff, color: cat.color, background: `${cat.color}18`, border: `0.5px solid ${cat.color}38`, borderRadius: 6, padding: `3px ${Math.round(sw * 0.018)}px`, fontWeight: 500 }}>{sk}</span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </>)}
+
+                        {/* ── APPEARANCE ── */}
+                        {settingsSel === "appearance" && (<>
+                          <div style={{ fontSize: fs(0.036), fontWeight: 700, color: textPrimary, fontFamily: ff }}>Appearance</div>
+
+                          {/* Dark / Light */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, padding: `${Math.round(sh * 0.032)}px ${Math.round(sw * 0.038)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.02) }}>
+                            <span style={{ fontSize: fs(0.027), fontWeight: 600, color: textPrimary, fontFamily: ff }}>Mode</span>
+                            <div style={{ display: "flex", gap: Math.round(sw * 0.022) }}>
+                              {[
+                                { label: "Dark", value: true,  preview: "#1c1c1e" },
+                                { label: "Light", value: false, preview: "#f4f4f6" },
+                              ].map(opt => (
+                                <div key={opt.label}
+                                  onClick={() => setTheme(opt.value ? "dark" : "light")}
+                                  style={{ flex: 1, borderRadius: 9, border: `1.5px solid ${isDark === opt.value ? accentBlue : cardBorder}`, background: isDark === opt.value ? `${accentBlue}18` : cardBg, padding: `${Math.round(sh * 0.024)}px`, cursor: "pointer", transition: "border 0.15s, background 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                                >
+                                  <div style={{ width: "100%", height: Math.round(sh * 0.07), borderRadius: 6, background: opt.preview, border: `0.5px solid ${divClr}` }} />
+                                  <span style={{ fontSize: fs(0.026), color: isDark === opt.value ? accentBlue : textMed, fontWeight: isDark === opt.value ? 600 : 400, fontFamily: ff }}>{opt.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Wallpaper */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, padding: `${Math.round(sh * 0.032)}px ${Math.round(sw * 0.038)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.02) }}>
+                            <span style={{ fontSize: fs(0.027), fontWeight: 600, color: textPrimary, fontFamily: ff }}>Wallpaper</span>
+                            <div style={{ display: "flex", gap: Math.round(sw * 0.028), flexWrap: "wrap" }}>
+                              {WALLPAPERS.map((url, i) => (
+                                <div
+                                  key={i}
+                                  onClick={() => setWallpaper(url)}
+                                  style={{
+                                    width: Math.round(sw * 0.22), height: Math.round(sw * 0.14),
+                                    borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0,
+                                    backgroundImage: `url("${url}")`, backgroundSize: "cover", backgroundPosition: "center",
+                                    outline: wallpaper === url ? `2.5px solid ${accentBlue}` : "2.5px solid transparent",
+                                    outlineOffset: 2,
+                                    boxShadow: wallpaper === url ? `0 0 0 1px ${accentBlue}, 0 2px 12px rgba(10,132,255,0.3)` : "0 1px 6px rgba(0,0,0,0.4)",
+                                    transition: "outline 0.15s, box-shadow 0.15s",
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </>)}
+
+                        {/* ── CONTACT ── */}
+                        {settingsSel === "contact" && (<>
+                          <div style={{ fontSize: fs(0.036), fontWeight: 700, color: textPrimary, fontFamily: ff }}>Get in Touch</div>
+
+                          {/* CTA banner */}
+                          <div style={{ borderRadius: 10, background: `linear-gradient(135deg, ${isDark ? "rgba(88,86,214,0.22)" : "rgba(88,86,214,0.1)"} 0%, ${isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.08)"} 100%)`, border: `0.5px solid ${isDark ? "rgba(88,86,214,0.3)" : "rgba(88,86,214,0.2)"}`, padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.04)}px` }}>
+                            <div style={{ fontSize: fs(0.03), fontWeight: 600, color: textPrimary, fontFamily: ff, marginBottom: 6 }}>Open to opportunities</div>
+                            <div style={{ fontSize: fs(0.026), color: textMed, fontFamily: ff, lineHeight: 1.6 }}>Remote, freelance, or full-time — always happy to connect on interesting projects.</div>
+                          </div>
+
+                          {/* Links */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, overflow: "hidden" }}>
+                            {[
+                              { label: "GitHub",   sub: "Zakaria12e",                href: "https://github.com/Zakaria12e",        color: isDark ? "#e8e8e8" : "#1a1a1a" },
+                              { label: "LinkedIn", sub: "linkedin.com/in/zakaria",   href: "#",                                    color: "#0a84ff" },
+                              { label: "Email",    sub: "hello@zakaria.dev",         href: "mailto:hello@zakaria.dev",             color: "#30d158" },
+                            ].map((row, i, arr) => (
+                              <a key={row.label} href={row.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${Math.round(sh * 0.028)}px ${Math.round(sw * 0.038)}px`, borderBottom: i < arr.length - 1 ? `0.5px solid ${divClr}` : "none", textDecoration: "none", transition: "background 0.12s", cursor: "pointer" }}
+                              >
+                                <div>
+                                  <div style={{ fontSize: fs(0.028), color: textPrimary, fontWeight: 500, fontFamily: ff }}>{row.label}</div>
+                                  <div style={{ fontSize: fs(0.024), color: textSec, fontFamily: ff, marginTop: 1 }}>{row.sub}</div>
+                                </div>
+                                <svg width={Math.round(sw * 0.028)} height={Math.round(sw * 0.028)} viewBox="0 0 24 24" fill="none" stroke={row.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+                                </svg>
+                              </a>
+                            ))}
+                          </div>
+                        </>)}
+
+                        {/* ── SYSTEM ── */}
+                        {settingsSel === "system" && (<>
+                          <div style={{ fontSize: fs(0.036), fontWeight: 700, color: textPrimary, fontFamily: ff }}>System Info</div>
+
+                          {/* Terminal-style neofetch card */}
+                          <div style={{ borderRadius: 10, background: isDark ? "#0d0d0f" : "#1a1a1e", border: `0.5px solid rgba(255,255,255,0.08)`, padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.042)}px`, fontFamily: "'SF Mono','Fira Code',monospace", display: "flex", flexDirection: "column", gap: Math.round(sh * 0.015) }}>
+                            {[
+                              { key: "OS",        val: "Portfolio OS  v2.0",   valColor: "#e8e8e8" },
+                              { key: "Shell",     val: "bash 5.2 (zsh-like)",  valColor: "#e8e8e8" },
+                              { key: "Host",      val: "zakaria.dev",          valColor: "#0a84ff" },
+                              { key: "Uptime",    val: "3+ years coding",      valColor: "#30d158" },
+                              { key: "Memory",    val: "React + TS",           valColor: "#ff9f0a" },
+                              { key: "CPU",       val: "Node.js runtime",      valColor: "#ff453a" },
+                              { key: "GPU",       val: "CSS animations",       valColor: "#bf5af2" },
+                              { key: "Packages",  val: "10+ shipped projects", valColor: "#64d2ff" },
+                            ].map(row => (
+                              <div key={row.key} style={{ display: "flex", gap: Math.round(sw * 0.016), alignItems: "baseline" }}>
+                                <span style={{ fontSize: fs(0.024), color: "#5856D6", minWidth: Math.round(sw * 0.13), textAlign: "right", flexShrink: 0 }}>{row.key}</span>
+                                <span style={{ fontSize: fs(0.024), color: "rgba(255,255,255,0.3)" }}>:</span>
+                                <span style={{ fontSize: fs(0.024), color: row.valColor }}>{row.val}</span>
+                              </div>
+                            ))}
+                            {/* Color palette */}
+                            <div style={{ display: "flex", gap: 5, marginTop: Math.round(sh * 0.01) }}>
+                              {["#ff453a","#ff9f0a","#ffd60a","#30d158","#64d2ff","#0a84ff","#bf5af2","#ff375f"].map(c => (
+                                <div key={c} style={{ width: Math.round(sw * 0.025), height: Math.round(sw * 0.025), borderRadius: 3, background: c }} />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Runtime info */}
+                          <div style={{ borderRadius: 10, background: cardBg, border: `0.5px solid ${cardBorder}`, overflow: "hidden" }}>
+                            {[
+                              { k: "Framework",    v: "React 18 + Vite" },
+                              { k: "Language",     v: "TypeScript 5" },
+                              { k: "Styling",      v: "Tailwind CSS + inline" },
+                              { k: "Deployment",   v: "Vercel" },
+                              { k: "Version",      v: "2.0.0" },
+                            ].map((row, i, arr) => (
+                              <div key={row.k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${Math.round(sh * 0.022)}px ${Math.round(sw * 0.038)}px`, borderBottom: i < arr.length - 1 ? `0.5px solid ${divClr}` : "none" }}>
+                                <span style={{ fontSize: fs(0.027), color: textSec, fontFamily: ff }}>{row.k}</span>
+                                <span style={{ fontSize: fs(0.027), color: textPrimary, fontFamily: ff, fontWeight: 500 }}>{row.v}</span>
                               </div>
                             ))}
                           </div>
                         </>)}
+
                       </div>
                     </div>
                   </div>
