@@ -65,7 +65,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
-  const [windowOrder, setWindowOrder] = useState<(number | "settings")[]>([])
+  const [windowOrder, setWindowOrder] = useState<(number | "settings" | "terminal")[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -83,12 +83,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
   const [termPos, setTermPos] = useState({ x: 0, y: 0 })
+  const [hoveredTermTl, setHoveredTermTl] = useState(-1)
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsMinimized, setSettingsMinimized] = useState(false)
   const [settingsMaximized, setSettingsMaximized] = useState(false)
   const [settingsPos, setSettingsPos] = useState({ x: 0, y: 0 })
-  const [settingsSel, setSettingsSel] = useState("about")
+  const [settingsSel, setSettingsSel] = useState("developer")
   const WALLPAPERS = [
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
@@ -213,6 +214,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         return [...ws.filter(w => w.id !== existing.id), win]
       })
       setFocusedWinId(existing.id)
+      setWindowOrder(o => [...o.filter(k => k !== existing.id), existing.id])
       return
     }
     const id = ++winIdRef.current
@@ -436,19 +438,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "q" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        if (terminalOpen && !termMinimized) {
-          setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 })
-        } else {
-          // close the topmost window
-          const top = [...windowOrder].reverse().find(k =>
-            k === "settings" ? settingsOpen && !settingsMinimized : openWindows.some(w => w.id === k && !w.minimized)
-          )
-          if (top === "settings") {
-            setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false)
-            setSettingsPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "settings"))
-          } else if (typeof top === "number") {
-            closeWindow(top)
-          }
+        // close the topmost window in the unified stack
+        const top = [...windowOrder].reverse().find(k => {
+          if (k === "settings") return settingsOpen && !settingsMinimized
+          if (k === "terminal") return terminalOpen && !termMinimized
+          return openWindows.some(w => w.id === k && !w.minimized)
+        })
+        if (top === "settings") {
+          setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false)
+          setSettingsPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "settings"))
+        } else if (top === "terminal") {
+          setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal"))
+        } else if (typeof top === "number") {
+          closeWindow(top)
         }
         return
       }
@@ -456,14 +458,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         e.preventDefault()
         if (termMinimized) {
           setTermMinimized(false)
+          setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
           setTimeout(() => inputRef.current?.focus(), 50)
         } else {
-          setTerminalOpen(o => !o)
+          setTerminalOpen(o => {
+            const next = !o
+            setWindowOrder(wo => next ? [...wo.filter(k => k !== "terminal"), "terminal"] : wo.filter(k => k !== "terminal"))
+            return next
+          })
         }
         return
       }
       if (e.key === "Escape") {
-        setTerminalOpen(false)
+        setTerminalOpen(false); setWindowOrder(o => o.filter(k => k !== "terminal"))
         setFinderOpen(false)
         setQuickLookOpen(false)
         setQuickLookMax(false)
@@ -480,7 +487,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         })
         return
       }
-      if ((!terminalOpen || termMinimized) && !quickLookOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      if (!quickLookOpen && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
         e.preventDefault()
         const cur  = focusedDockIdxRef.current
         const next = e.key === "ArrowRight"
@@ -496,7 +503,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         if (arrowResetRef.current) clearTimeout(arrowResetRef.current)
         arrowResetRef.current = setTimeout(resetTargets, 700)
       }
-      if ((!terminalOpen || termMinimized) && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+      if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
         if (item.type === "finder") { setFinderOpen(o => !o) }
@@ -504,8 +511,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           openWindow(item.projIdx)
         }
         if (item.type === "terminal") {
-          if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
-          else setTerminalOpen(true)
+          const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
+          if (!terminalOpen || termMinimized) {
+            setTermMinimized(false); setTermMinimizing(false); setTerminalOpen(true)
+            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+            setTimeout(() => inputRef.current?.focus(), 50)
+          } else if (isOnTop) {
+            setTermMinimizing(true)
+            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340)
+          } else {
+            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+            setTimeout(() => inputRef.current?.focus(), 50)
+          }
         }
         if (item.type === "settings") {
           if (settingsOpen && settingsMinimized) { setSettingsMinimized(false); bringToFront("settings") }
@@ -579,15 +596,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         position: "absolute" as const,
         top: 0, left: "50%",
         width: fullW, height: fullH,
-        background: "rgba(18,18,20,0.96)",
-        backdropFilter: "blur(32px)",
-        WebkitBackdropFilter: "blur(32px)",
+        background: isDark ? "rgba(18,18,20,0.92)" : "rgba(255,255,255,0.68)",
+        backdropFilter: "blur(40px) saturate(1.8)",
+        WebkitBackdropFilter: "blur(40px) saturate(1.8)",
         borderRadius: `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`,
-        borderLeft: "0.5px solid rgba(255,255,255,0.08)",
-        borderRight: "0.5px solid rgba(255,255,255,0.08)",
-        borderBottom: "0.5px solid rgba(255,255,255,0.08)",
+        borderLeft: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
+        borderRight: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
+        borderBottom: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
         borderTop: "none",
-        boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
+        boxShadow: isDark ? "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)" : "0 16px 48px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
         overflow: "hidden",
         zIndex: 12,
         pointerEvents: "none" as const,
@@ -697,7 +714,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               <div style={{
                 display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
                 padding: `${Math.round(h * 0.022)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.008)}px`,
-                borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+                borderBottom: isDark ? "0.5px solid rgba(255,255,255,0.07)" : "0.5px solid rgba(0,0,0,0.06)",
               }}>
                 <div style={{
                   width: Math.round(w * 0.028), height: Math.round(w * 0.028),
@@ -711,12 +728,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 </div>
                 <span style={{
                   fontSize: Math.round(w * 0.018), fontWeight: 500,
-                  color: "rgba(255,255,255,0.45)",
+                  color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)",
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
                   letterSpacing: 0.1, flex: 1,
                 }}>Messages</span>
                 <span style={{
-                  fontSize: Math.round(w * 0.016), color: "rgba(255,255,255,0.3)",
+                  fontSize: Math.round(w * 0.016),
+                  color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.28)",
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
                 }}>now</span>
               </div>
@@ -727,12 +745,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               }}>
                 <span style={{
                   fontSize: Math.round(w * 0.02), fontWeight: 600,
-                  color: "rgba(255,255,255,0.9)", lineHeight: 1.2,
+                  color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)", lineHeight: 1.2,
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
                 }}>Zakaria</span>
                 <span style={{
                   fontSize: Math.round(w * 0.019), fontWeight: 400,
-                  color: "rgba(255,255,255,0.6)", lineHeight: 1.3,
+                  color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)", lineHeight: 1.3,
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
                 }}>Let&apos;s build something great 🤝</span>
               </div>
@@ -742,6 +760,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets}>
             <div style={s.screenOff} />
             <div style={s.screenOn}>
+
+              {/* Screen scrim — dims wallpaper when a window is open */}
+              {(openWindows.some(w => !w.minimized) || (settingsOpen && !settingsMinimized)) && (
+                <div style={{
+                  position: "absolute", inset: 0, zIndex: 2,
+                  background: "rgba(0,0,0,0.42)",
+                  backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
+                  pointerEvents: "none",
+                  animation: "mbFade 0.3s ease",
+                }} />
+              )}
 
               {/* macOS menu bar */}
               {hovered && (() => {
@@ -928,149 +957,132 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         pointerEvents: "none",
                       }}>
                         <span style={{
-                          fontSize: Math.round(w * 0.026), fontWeight: 500,
-                          color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)",
+                          fontSize: Math.round(w * 0.021), fontWeight: 500,
+                          color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
                           letterSpacing: -0.1,
                           fontFamily: "-apple-system,'SF Pro Text','Helvetica Neue',sans-serif",
                         }}>{p.title}</span>
                       </div>
                     </div>
 
-                    {/* Toolbar — stack icons + live + github */}
-                    <div style={{
-                      height: toolH, flexShrink: 0,
-                      background: isDark ? "#242426" : "#f5f5f5",
-                      borderBottom: `0.5px solid ${divClr}`,
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: `0 ${Math.round(winW * 0.025)}px`,
-                      userSelect: "none",
-                    }}>
-                      {/* Stack icons */}
-                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.012) }}>
-                        {pTags.slice(0, 7).map((tag, i) => {
-                          const url = deviconUrl(tag)
-                          return (
-                            <div key={i} title={tag} style={{
-                              width: iconSz, height: iconSz, flexShrink: 0,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              opacity: 0.85,
-                            }}>
-                              {url ? (
-                                <img src={url} alt={tag} draggable={false}
-                                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
-                                />
-                              ) : (
-                                <span style={{
-                                  fontSize: Math.round(iconSz * 0.42), fontWeight: 700,
-                                  color: textSec, fontFamily: "'SF Mono',monospace",
-                                }}>{tag.slice(0,2).toUpperCase()}</span>
-                              )}
+                    {/* Body: sidebar + screenshot */}
+                    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+                      {/* Sidebar */}
+                      <div style={{
+                        width: Math.round(winW * 0.3), flexShrink: 0,
+                        background: isDark ? "#222224" : "#eaeaec",
+                        borderRight: `0.5px solid ${divClr}`,
+                        display: "flex", flexDirection: "column",
+                        padding: "8px 9px", gap: 10,
+                        overflowY: "auto", scrollbarWidth: "none" as const,
+                      }}>
+                        {p.description && (
+                          <div>
+                            <div style={{ fontSize: 7, fontWeight: 600, color: textSec, textTransform: "uppercase" as const, letterSpacing: 0.7, fontFamily: "-apple-system,sans-serif", marginBottom: 3 }}>About</div>
+                            <div style={{ fontSize: Math.round(w * 0.019), color: isDark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.58)", lineHeight: 1.5, fontFamily: "-apple-system,sans-serif", display: "-webkit-box", WebkitLineClamp: 5 as unknown as string, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>{p.description}</div>
+                          </div>
+                        )}
+                        {pTags.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 7, fontWeight: 600, color: textSec, textTransform: "uppercase" as const, letterSpacing: 0.7, fontFamily: "-apple-system,sans-serif", marginBottom: 3 }}>Stack</div>
+                            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 3 }}>
+                              {pTags.map((tag, i) => {
+                                const iconUrl = deviconUrl(tag)
+                                return (
+                                  <span key={i} style={{
+                                    display: "inline-flex", alignItems: "center", gap: 3,
+                                    fontSize: Math.round(w * 0.018), padding: "1px 5px 1px 4px", borderRadius: 10,
+                                    background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+                                    color: isDark ? "rgba(255,255,255,0.58)" : "rgba(0,0,0,0.52)",
+                                    fontFamily: "-apple-system,sans-serif",
+                                    border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"}`,
+                                  }}>
+                                    {iconUrl && <img src={iconUrl} width={9} height={9} style={{ display: "block", flexShrink: 0 }} />}
+                                    {tag}
+                                  </span>
+                                )
+                              })}
                             </div>
-                          )
-                        })}
-                      </div>
-                      {/* Actions: Live + GitHub */}
-                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.018) }}>
-                        {pLiveUrl && pLiveUrl !== "#" && (
-                          <div
-                            onClick={e => { e.stopPropagation(); window.open(pLiveUrl, "_blank", "noopener,noreferrer") }}
-                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
-                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
-                            style={{
-                              display: "flex", alignItems: "center", gap: Math.round(winW * 0.012),
-                              padding: `2px ${Math.round(winW * 0.018)}px`,
-                              borderRadius: 5, cursor: "pointer", transition: "background 0.12s",
-                              background: "transparent",
-                            }}
-                          >
-                            <svg width={Math.round(iconSz * 0.88)} height={Math.round(iconSz * 0.88)} viewBox="0 0 24 24" fill="none">
-                              <circle cx="12" cy="12" r="9" stroke={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"} strokeWidth="1.5"/>
-                              <path d="M12 3c-2.4 2.8-3 5.5-3 9s.6 6.2 3 9M12 3c2.4 2.8 3 5.5 3 9s-.6 6.2-3 9M3 12h18" stroke={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"} strokeWidth="1.5"/>
-                            </svg>
-                            <span style={{
-                              fontSize: Math.round(w * 0.024), fontWeight: 500,
-                              color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
-                              fontFamily: "-apple-system,'SF Pro Text',sans-serif",
-                            }}>Live</span>
                           </div>
                         )}
-                        {pHasGit && (
-                          <div
-                            onClick={e => { e.stopPropagation(); window.open(pGitUrl, "_blank", "noopener,noreferrer") }}
-                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
-                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                        <div style={{ marginTop: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+                          {pLiveUrl && pLiveUrl !== "#" && (
+                            <span onClick={e => { e.stopPropagation(); window.open(pLiveUrl, "_blank", "noopener,noreferrer") }}
+                              style={{ fontSize: Math.round(w * 0.019), color: "#0a84ff", cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>↗ Live</span>
+                          )}
+                          {pHasGit && (
+                            <span onClick={e => { e.stopPropagation(); window.open(pGitUrl, "_blank", "noopener,noreferrer") }}
+                              style={{ fontSize: Math.round(w * 0.019), color: textSec, cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>↗ GitHub</span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Screenshot */}
+                      <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#050507" }}>
+                        {pImgList.length > 0 && pCurSrc ? (
+                          <img key={win.activeImg} src={pCurSrc} alt="screen"
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
+                              animation: "mbImg 0.28s cubic-bezier(0.16,1,0.3,1)" }}
+                          />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontSize: Math.round(w * 0.018), color: "rgba(255,255,255,0.1)", fontFamily: "-apple-system,sans-serif" }}>No preview</span>
+                          </div>
+                        )}
+                        {pImgList.length > 1 && (
+                          <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.max(0, win.activeImg - 1) }) }}
                             style={{
-                              display: "flex", alignItems: "center", gap: Math.round(winW * 0.012),
-                              padding: `2px ${Math.round(winW * 0.018)}px`,
-                              borderRadius: 5, cursor: "pointer", transition: "background 0.12s",
-                              background: "transparent",
-                            }}
-                          >
-                            <svg width={Math.round(iconSz * 0.88)} height={Math.round(iconSz * 0.88)} viewBox="0 0 24 24" fill={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"}>
-                              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+                              position: "absolute", left: 5, top: "50%", transform: "translateY(-50%)",
+                              width: 14, height: 14, borderRadius: "50%",
+                              background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)",
+                              border: "0.5px solid rgba(255,255,255,0.15)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: win.activeImg === 0 ? "default" : "pointer",
+                              opacity: win.activeImg === 0 ? 0.25 : 0.85, transition: "opacity 0.15s",
+                              pointerEvents: win.activeImg === 0 ? "none" : "auto", zIndex: 2,
+                            }}>
+                            <svg width={6} height={6} viewBox="0 0 24 24" fill="none">
+                              <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            <span style={{
-                              fontSize: Math.round(w * 0.024), fontWeight: 500,
-                              color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
-                              fontFamily: "-apple-system,'SF Pro Text',sans-serif",
-                            }}>GitHub</span>
+                          </div>
+                        )}
+                        {pImgList.length > 1 && (
+                          <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.min(pImgList.length - 1, win.activeImg + 1) }) }}
+                            style={{
+                              position: "absolute", right: 5, top: "50%", transform: "translateY(-50%)",
+                              width: 14, height: 14, borderRadius: "50%",
+                              background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)",
+                              border: "0.5px solid rgba(255,255,255,0.15)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: win.activeImg === pImgList.length - 1 ? "default" : "pointer",
+                              opacity: win.activeImg === pImgList.length - 1 ? 0.25 : 0.85, transition: "opacity 0.15s",
+                              pointerEvents: win.activeImg === pImgList.length - 1 ? "none" : "auto", zIndex: 2,
+                            }}>
+                            <svg width={6} height={6} viewBox="0 0 24 24" fill="none">
+                              <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        )}
+                        {pImgList.length > 1 && (
+                          <div style={{
+                            position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+                            display: "flex", gap: 4, zIndex: 3,
+                          }}>
+                            {pImgList.map((_, di) => (
+                              <div
+                                key={di}
+                                onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: di }) }}
+                                style={{
+                                  width: di === win.activeImg ? 12 : 4, height: 4, borderRadius: 2,
+                                  background: di === win.activeImg ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)",
+                                  cursor: "pointer",
+                                  transition: "width 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.15s",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ))}
                           </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Screenshot — full content */}
-                    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#050507" }}>
-                      {pImgList.length > 0 && pCurSrc ? (
-                        <img key={win.activeImg} src={pCurSrc} alt="screen"
-                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
-                            animation: "mbImg 0.28s cubic-bezier(0.16,1,0.3,1)" }}
-                        />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <span style={{ fontSize: Math.round(w * 0.02), color: "rgba(255,255,255,0.1)", fontFamily: "-apple-system,sans-serif" }}>No preview</span>
-                        </div>
-                      )}
-
-                      {/* Prev arrow */}
-                      {pImgList.length > 1 && (
-                        <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.max(0, win.activeImg - 1) }) }}
-                          style={{
-                            position: "absolute", left: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
-                            width: btnSz, height: btnSz, borderRadius: "50%",
-                            background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
-                            border: "0.5px solid rgba(255,255,255,0.13)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: win.activeImg === 0 ? "default" : "pointer",
-                            opacity: win.activeImg === 0 ? 0.2 : 1, transition: "opacity 0.15s",
-                            pointerEvents: win.activeImg === 0 ? "none" : "auto", zIndex: 2,
-                          }}>
-                          <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
-                            <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                      )}
-
-                      {/* Next arrow */}
-                      {pImgList.length > 1 && (
-                        <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.min(pImgList.length - 1, win.activeImg + 1) }) }}
-                          style={{
-                            position: "absolute", right: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
-                            width: btnSz, height: btnSz, borderRadius: "50%",
-                            background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
-                            border: "0.5px solid rgba(255,255,255,0.13)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: win.activeImg === pImgList.length - 1 ? "default" : "pointer",
-                            opacity: win.activeImg === pImgList.length - 1 ? 0.2 : 1, transition: "opacity 0.15s",
-                            pointerEvents: win.activeImg === pImgList.length - 1 ? "none" : "auto", zIndex: 2,
-                          }}>
-                          <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
-                            <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                      )}
-
                     </div>
                   </div>
                   )
@@ -1236,6 +1248,177 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             ))}
                           </div>
                         </>)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Terminal — standalone macOS window, same chrome as project windows */}
+              {terminalOpen && !termMinimized && (() => {
+                const mbH2    = Math.round(h * 0.036)
+                const availH2 = h - mbH2
+                const tw      = Math.round(w * 0.68)
+                const th      = Math.round(availH2 * 0.62)
+                const tTop    = mbH2 + Math.round((availH2 - th) * 0.28)
+                const tLeft   = Math.round((w - 20 - tw) / 2)
+                const winBg   = isDark ? "#1e1e1e" : "#ffffff"
+                const termBodyBg = isDark ? "#1e1e1e" : "#ffffff"
+                const termText   = isDark ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.82)"
+                const termSep    = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)"
+                const termPath   = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.38)"
+                const termCwdEnd = isDark ? "#a78bfa" : "#7c3aed"
+                const termPrompt = "#30d158"
+                const termPercent = isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)"
+                const tlSz2   = Math.round(22 * 0.54)
+                const tlGap2  = Math.round(22 * 0.45)
+                const tlLeft2 = Math.round(22 * 0.64)
+                const zIdx    = 3 + (windowOrder.indexOf("terminal") >= 0 ? windowOrder.indexOf("terminal") : windowOrder.length)
+                return (
+                  <div
+                    onClick={() => setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])}
+                    style={{
+                      position: "absolute",
+                      ...(termMaximized
+                        ? { top: mbH2, left: 0, right: 0, bottom: 0 }
+                        : {
+                            width: tw, height: th,
+                            top: tTop + termPos.y,
+                            left: tLeft + termPos.x,
+                          }
+                      ),
+                      borderRadius: termMaximized ? 0 : 10,
+                      background: winBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.55), 0 32px 80px rgba(0,0,0,0.6)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.07), 0 12px 36px rgba(0,0,0,0.12), 0 32px 80px rgba(0,0,0,0.16)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden", zIndex: zIdx,
+                      animation: termMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.36s cubic-bezier(0.22,1,0.36,1)",
+                      transformOrigin: termOrigin,
+                      transition: termDragRef.current ? "none" : "border-radius 0.2s ease",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div
+                      onMouseDown={e => {
+                        if (termMaximized) return
+                        e.preventDefault()
+                        termDragRef.current = { startX: e.clientX, startY: e.clientY, ox: termPos.x, oy: termPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = termDragRef.current
+                          if (!drag) return
+                          setTermPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
+                        }
+                        const onUp = () => { termDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        height: 22, flexShrink: 0,
+                        background: isDark ? "#2c2c2e" : "#ececec",
+                        borderBottom: `0.5px solid ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)"}`,
+                        display: "flex", alignItems: "center",
+                        position: "relative", userSelect: "none",
+                        cursor: termMaximized ? "default" : "grab",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap2, paddingLeft: tlLeft2 }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                            fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal")) } },
+                          { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
+                            fn: () => { setTermMinimizing(true); setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
+                            fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
+                        ].map((btn, i) => (
+                          <div key={i}
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setHoveredTermTl(i)}
+                            onMouseLeave={() => setHoveredTermTl(-1)}
+                            style={{
+                              width: tlSz2, height: tlSz2, borderRadius: "50%",
+                              background: btn.fill, border: `0.5px solid ${btn.border}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", flexShrink: 0,
+                            }}
+                          >
+                            <span style={{
+                              fontSize: Math.round(tlSz2 * 0.58), lineHeight: 1, fontWeight: 900,
+                              color: btn.symClr, opacity: hoveredTermTl === i ? 1 : 0,
+                              transition: "opacity 0.08s", userSelect: "none",
+                            }}>{btn.sym}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)", letterSpacing: -0.1, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
+                          {proj?.title ? `${proj.title} — zsh` : "Terminal — zsh"}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Terminal body */}
+                    <div
+                      ref={termBodyRef}
+                      onClick={() => inputRef.current?.focus()}
+                      style={{
+                        flex: 1, background: termBodyBg,
+                        padding: `${Math.round(w * 0.016)}px ${Math.round(w * 0.02)}px`,
+                        overflowY: "auto", scrollbarWidth: "none" as const,
+                        cursor: "text",
+                        fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
+                        fontSize: Math.round(w * 0.021), lineHeight: 1.65,
+                      }}
+                    >
+                      {termLines.map((line, i) => (
+                        <div key={i} style={{ color: line.color ?? termText, paddingBottom: 1, whiteSpace: "pre-wrap", wordBreak: "break-all" as const }}>
+                          {line.text}
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 0 }}>
+                        <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>➜</span>
+                        <span style={{ marginRight: 4 }}>
+                          {termCwd.split("/").map((seg, si, arr) => (
+                            <span key={si}>
+                              {si > 0 && <span style={{ color: termSep }}>/</span>}
+                              <span style={{ color: si === arr.length - 1 ? termCwdEnd : termPath }}>{seg}</span>
+                            </span>
+                          ))}
+                        </span>
+                        <span style={{ color: termPercent, marginRight: 6 }}>%</span>
+                        <input
+                          ref={inputRef}
+                          value={termInput}
+                          onChange={e => setTermInput(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => {
+                            e.stopPropagation()
+                            if (e.key === "Enter") { runCommand(termInput, termCwd); return }
+                            if (e.key === "Tab") {
+                              e.preventDefault()
+                              const val = termInput
+                              if (val.startsWith("cd ")) {
+                                const partial = val.slice(3)
+                                const dirs = getDirs(termCwd, allProjectSlugs)
+                                const match = dirs.find(d => d.startsWith(partial) && d !== partial)
+                                if (match) setTermInput(`cd ${match}`)
+                              } else {
+                                const match = COMMANDS.find(c => c.startsWith(val) && c !== val)
+                                if (match) setTermInput(match)
+                              }
+                            }
+                          }}
+                          autoFocus
+                          spellCheck={false}
+                          style={{
+                            flex: 1, background: "transparent", border: "none", outline: "none",
+                            color: termText, fontSize: "inherit", fontFamily: "inherit",
+                            caretColor: termPrompt, minWidth: 10,
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1423,164 +1606,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   </div>
                 )
               })()}
-
-              {/* Terminal overlay */}
-              {terminalOpen && !termMinimized && (
-                <div style={{
-                  position: "absolute", inset: 0, zIndex: 20,
-                  background: termMinimizing ? "rgba(0,0,0,0)" : "rgba(0,0,0,0.82)",
-                  backdropFilter: "blur(4px)",
-                  WebkitBackdropFilter: "blur(4px)",
-                  animation: termMinimizing ? undefined : "mbFade 0.15s ease",
-                  transition: "background 0.36s ease",
-                  pointerEvents: termMinimizing ? "none" : "auto",
-                }}>
-                  <div style={{
-                    position: "absolute",
-                    ...(termMaximized
-                      ? { inset: 0 }
-                      : {
-                          width: "72%",
-                          top: `calc(14% + ${termPos.y}px)`,
-                          left: `calc(14% + ${termPos.x}px)`,
-                        }
-                    ),
-                    borderRadius: termMaximized ? 0 : 8,
-                    overflow: "hidden",
-                    background: isDark ? "rgba(18,18,20,0.97)" : "rgba(255,255,255,0.97)",
-                    fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
-                    fontSize: Math.round(w * 0.022),
-                    lineHeight: 1.6,
-                    display: "flex", flexDirection: "column",
-                    transition: termDragRef.current ? "none" : "border-radius 0.2s ease",
-                    animation: termMinimizing
-                      ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
-                      : "mbPaper 0.42s cubic-bezier(0.22,1,0.36,1)",
-                    transformOrigin: termOrigin,
-                  }}>
-                    {/* Title bar */}
-                    <div
-                      onMouseDown={e => {
-                        if (termMaximized) return
-                        e.preventDefault()
-                        termDragRef.current = { startX: e.clientX, startY: e.clientY, ox: termPos.x, oy: termPos.y }
-                        const onMove = (ev: MouseEvent) => {
-                          const drag = termDragRef.current
-                          if (!drag) return
-                          setTermPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
-                        }
-                        const onUp = () => {
-                          termDragRef.current = null
-                          window.removeEventListener("mousemove", onMove)
-                          window.removeEventListener("mouseup", onUp)
-                        }
-                        window.addEventListener("mousemove", onMove)
-                        window.addEventListener("mouseup", onUp)
-                      }}
-                      style={{
-                        height: Math.round(w * 0.052),
-                        background: "rgba(28,28,30,0.98)",
-                        borderBottom: "0.5px solid rgba(255,255,255,0.08)",
-                        display: "flex", alignItems: "center",
-                        padding: `0 ${Math.round(w * 0.02)}px`, gap: 5,
-                        position: "relative",
-                        flexShrink: 0,
-                        cursor: termMaximized ? "default" : "grab",
-                      }}>
-                      {[
-                        { bg: "#ff5f57", fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }) } },
-                        { bg: "#febc2e", fn: () => {
-                          if (termMinimized) {
-                            setTermMinimized(false)
-                            setTimeout(() => inputRef.current?.focus(), 50)
-                          } else {
-                            setTermMinimizing(true)
-                            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 360)
-                          }
-                        }},
-                        { bg: "#28c840", fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
-                      ].map((btn, i) => (
-                        <div key={i}
-                          onClick={(e) => { e.stopPropagation(); btn.fn() }}
-                          style={{
-                            width: Math.round(w * 0.025), height: Math.round(w * 0.025),
-                            borderRadius: "50%", background: btn.bg, cursor: "pointer",
-                            flexShrink: 0, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.3)",
-                          }}
-                        />
-                      ))}
-                      <span style={{
-                        position: "absolute", left: "50%", transform: "translateX(-50%)",
-                        fontSize: Math.round(w * 0.02), color: "rgba(255,255,255,0.3)",
-                        fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif", fontWeight: 500,
-                        pointerEvents: "none",
-                      }}>terminal</span>
-                    </div>
-
-                    {/* Output area */}
-                    {!termMinimized && (
-                      <div
-                        ref={termBodyRef}
-                        style={{
-                          padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.022)}px`,
-                          minHeight: Math.round(w * 0.38),
-                          maxHeight: termMaximized ? "100%" : Math.round(w * 0.58),
-                          flex: termMaximized ? 1 : "none",
-                          overflowY: "auto", scrollbarWidth: "none",
-                        }}
-                      >
-                        {termLines.map((line, i) => (
-                          <div key={i} style={{ color: line.color ?? "rgba(255,255,255,0.75)", paddingBottom: 1 }}>
-                            {line.text}
-                          </div>
-                        ))}
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
-                          <span style={{ color: "#30d158", fontWeight: 600, flexShrink: 0 }}>➜ </span>
-                          <span style={{ color: "#64d2ff", flexShrink: 0 }}>
-                            {termCwd.split("/").map((seg, i, arr) => (
-                              <span key={i}>
-                                {i > 0 && <span style={{ opacity: 0.4 }}>/</span>}
-                                <span style={{ color: i === arr.length - 1 ? "#a78bfa" : "#64d2ff" }}>{seg}</span>
-                              </span>
-                            ))}{" "}
-                          </span>
-                          <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>$ </span>
-                          <input
-                            ref={inputRef}
-                            value={termInput}
-                            onChange={(e) => setTermInput(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              e.stopPropagation()
-                              if (e.key === "Enter") { runCommand(termInput, termCwd); return }
-                              if (e.key === "Tab") {
-                                e.preventDefault()
-                                const val = termInput
-                                if (val.startsWith("cd ")) {
-                                  const partial = val.slice(3)
-                                  const dirs = getDirs(termCwd, allProjectSlugs)
-                                  const match = dirs.find(d => d.startsWith(partial) && d !== partial)
-                                  if (match) setTermInput(`cd ${match}`)
-                                } else {
-                                  const match = COMMANDS.find(c => c.startsWith(val) && c !== val)
-                                  if (match) setTermInput(match)
-                                }
-                              }
-                            }}
-                            autoFocus
-                            spellCheck={false}
-                            style={{
-                              flex: 1, background: "transparent", border: "none", outline: "none",
-                              color: "#e2e8f0", fontSize: "inherit", fontFamily: "inherit",
-                              caretColor: "#30d158",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Finder overlay */}
               {finderOpen && (() => {
@@ -2058,12 +2083,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          if (termMinimized) {
-                            setTermMinimized(false)
+                          const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
+                          if (!terminalOpen || termMinimized) {
+                            setTermMinimized(false); setTermMinimizing(false)
+                            setTermOrigin(getOrigin(e)); setTerminalOpen(true)
+                            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
                             setTimeout(() => inputRef.current?.focus(), 50)
+                          } else if (isOnTop) {
+                            setTermMinimizing(true)
+                            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340)
                           } else {
-                            setTermOrigin(getOrigin(e))
-                            setTerminalOpen(o => !o)
+                            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+                            setTimeout(() => inputRef.current?.focus(), 50)
                           }
                         }}
                       >
