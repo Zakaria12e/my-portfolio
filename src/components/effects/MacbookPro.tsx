@@ -84,6 +84,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termPos, setTermPos] = useState({ x: 0, y: 0 })
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsMinimized, setSettingsMinimized] = useState(false)
+  const [settingsMaximized, setSettingsMaximized] = useState(false)
   const [settingsPos, setSettingsPos] = useState({ x: 0, y: 0 })
   const [settingsSel, setSettingsSel] = useState("about")
   const WALLPAPERS = [
@@ -428,6 +430,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         e.preventDefault()
         if (terminalOpen && !termMinimized) {
           setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 })
+        } else if (settingsOpen && !settingsMinimized) {
+          setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false); setSettingsPos({ x: 0, y: 0 })
         } else if (focusedWinId !== null) {
           closeWindow(focusedWinId)
         }
@@ -488,7 +492,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
         }
-        if (item.type === "settings") { setSettingsOpen(o => !o) }
+        if (item.type === "settings") {
+          if (settingsOpen && settingsMinimized) setSettingsMinimized(false)
+          else setSettingsOpen(o => !o)
+        }
         if (item.type === "github") {
           if (projects && openWindows.length === 0) {
             setTermOrigin("50% 80%"); setTerminalOpen(true)
@@ -1054,7 +1061,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })
               })()}
               {/* Settings Window */}
-              {settingsOpen && (() => {
+              {settingsOpen && !settingsMinimized && (() => {
                 const mbH = Math.round(h * 0.036)
                 const sw = Math.round(w * 0.82)
                 const sh = Math.round(h * 0.75)
@@ -1079,10 +1086,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     onClick={e => e.stopPropagation()}
                     style={{
                       position: "absolute",
-                      top: baseTop + settingsPos.y,
-                      left: baseLeft + settingsPos.x,
-                      width: sw, height: sh,
-                      borderRadius: 10,
+                      ...(settingsMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { top: baseTop + settingsPos.y, left: baseLeft + settingsPos.x, width: sw, height: sh }
+                      ),
+                      borderRadius: settingsMaximized ? 0 : 10,
                       background: winBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -1096,6 +1104,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {/* Title bar */}
                     <div
                       onMouseDown={e => {
+                        if (settingsMaximized) return
                         e.preventDefault()
                         settingsDragRef.current = { startX: e.clientX, startY: e.clientY, ox: settingsPos.x, oy: settingsPos.y }
                         const onMove = (ev: MouseEvent) => {
@@ -1111,12 +1120,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41" },
-                          { fill: "#f6be50", border: "#e1a73e" },
-                          { fill: "#61c555", border: "#2dac2f" },
+                          { fill: "#ed6a5f", border: "#e24b41", fn: () => { setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false); setSettingsPos({ x: 0, y: 0 }) } },
+                          { fill: "#f6be50", border: "#e1a73e", fn: () => setSettingsMinimized(m => !m) },
+                          { fill: "#61c555", border: "#2dac2f", fn: () => { setSettingsMaximized(m => !m); setSettingsMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i}
-                            onClick={e => { e.stopPropagation(); if (i === 0) { setSettingsOpen(false); setSettingsPos({ x: 0, y: 0 }) } }}
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
                             style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
                           />
                         ))}
@@ -2158,7 +2167,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onMouseEnter={() => setHoveredSlot("settings")}
                           onMouseLeave={() => setHoveredSlot(null)}
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
-                          onClick={e => { e.stopPropagation(); setSettingsOpen(o => !o) }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (settingsOpen && settingsMinimized) {
+                              setSettingsMinimized(false)
+                            } else {
+                              setSettingsOpen(o => !o)
+                            }
+                          }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "settings" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>System Settings</div>
                           <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: settingsOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
