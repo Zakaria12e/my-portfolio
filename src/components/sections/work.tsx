@@ -52,6 +52,8 @@ const projects = [
     tags: ["React", "Node.js", "Express", "MongoDB", "TailwindCSS"],
     liveUrl: "https://garamitos-ecom-demo.vercel.app",
     githubUrl: "https://github.com/Zakaria12e/Garamitos_Ecom",
+    icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775386546/image-removebg-preview_1_nlghmg.png",
+    iconDark: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775386546/image-removebg-preview_1_nlghmg.png",
   },
 ]
 

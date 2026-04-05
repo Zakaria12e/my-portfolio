@@ -66,6 +66,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMinimized, setTermMinimized] = useState(false)
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
+  const [winMaximized, setWinMaximized]   = useState(false)
+  const [winMinimized, setWinMinimized]   = useState(false)
+  const [winMinimizing, setWinMinimizing] = useState(false)
+  const [hoveredTl, setHoveredTl]         = useState(-1)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -141,6 +145,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     setFinderOpen(false)
     setFinderSel(null)
+    setWinMaximized(false)
+    setWinMinimized(false)
+    setWinMinimizing(false)
+    setHoveredTl(-1)
   }, [activeProject])
 
   const getOrigin = (e: React.MouseEvent): string => {
@@ -662,22 +670,264 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* Screenshot */}
-              {currentSrc ? (
-                <img
-                  key={activeImg}
-                  src={currentSrc}
-                  alt="screen"
-                  onClick={imgList.length > 1 ? (e) => { e.stopPropagation(); setQuickLookIdx(activeImg); setQuickLookOpen(true) } : undefined}
-                  style={{
-                    position: "absolute", inset: 0,
-                    width: "100%", height: "100%",
-                    objectFit: "cover", display: "block",
-                    animation: "mbImg 1.4s cubic-bezier(0.16,1,0.3,1)",
-                    cursor: imgList.length > 1 ? "zoom-in" : "default",
-                  }}
-                />
-              ) : null}
+              {/* App Window */}
+              {activeProject !== null && proj && !winMinimized ? (() => {
+                const mbH    = Math.round(h * 0.036)
+                const availH = h - mbH
+                const winW   = Math.round(w * 0.88)
+                const winH   = Math.round(availH * 0.80)
+                const winTop = mbH + Math.round((availH - winH) * 0.22)
+                const winLeft= Math.round((w - winW) / 2)
+                const titleH = 22
+                const toolH  = 28
+                const iconSz = Math.round(toolH * 0.52)
+                const btnSz  = Math.round(winW * 0.046)
+                const slugMap: Record<string,string> = {
+                  react:"react/react-original", typescript:"typescript/typescript-original",
+                  ts:"typescript/typescript-original", javascript:"javascript/javascript-original",
+                  js:"javascript/javascript-original", "node.js":"nodejs/nodejs-original",
+                  nodejs:"nodejs/nodejs-original", node:"nodejs/nodejs-original",
+                  "next.js":"nextjs/nextjs-original", nextjs:"nextjs/nextjs-original",
+                  next:"nextjs/nextjs-original", vue:"vuejs/vuejs-original",
+                  python:"python/python-original", mongodb:"mongodb/mongodb-original",
+                  postgresql:"postgresql/postgresql-original", postgres:"postgresql/postgresql-original",
+                  docker:"docker/docker-original", git:"git/git-original",
+                  css:"css3/css3-original", html:"html5/html5-original",
+                  tailwind:"tailwindcss/tailwindcss-plain", tailwindcss:"tailwindcss/tailwindcss-plain",
+                  firebase:"firebase/firebase-plain", figma:"figma/figma-original",
+                  graphql:"graphql/graphql-plain", redux:"redux/redux-original",
+                  vite:"vite/vite-original", express:"express/express-original",
+                  rust:"rust/rust-plain", go:"go/go-original", java:"java/java-original",
+                  swift:"swift/swift-original", supabase:"supabase/supabase-original",
+                  prisma:"prisma/prisma-original", aws:"amazonwebservices/amazonwebservices-plain",
+                  vercel:"vercel/vercel-original",
+                }
+                const deviconUrl = (tag: string) => {
+                  const slug = slugMap[tag.toLowerCase()]
+                  return slug ? `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}.svg` : null
+                }
+                const tlSz   = Math.round(titleH * 0.54)
+                const tlGap  = Math.round(titleH * 0.45)
+                const tlLeft = Math.round(titleH * 0.64)
+                const tl = [
+                  { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                    fn: () => { const s = currentSrc; setActiveProject(null); if (s) { setClosingSrc(s); setTimeout(() => setClosingSrc(null), 400) } } },
+                  { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
+                    fn: () => { setWinMinimizing(true); setTimeout(() => { setWinMinimized(true); setWinMinimizing(false) }, 340) } },
+                  { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
+                    fn: () => setWinMaximized(m => !m) },
+                ]
+                const winBg   = isDark ? "#1c1c1e" : "#f4f4f6"
+                const divClr  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
+                const textSec = isDark ? "rgba(255,255,255,0.5)"  : "rgba(0,0,0,0.45)"
+                return (
+                  <div
+                    key={activeProject}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      ...(winMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { top: winTop, left: winLeft, width: winW, height: winH }
+                      ),
+                      borderRadius: winMaximized ? 0 : 10,
+                      background: winBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.16)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.55), 0 32px 80px rgba(0,0,0,0.6)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.07), 0 12px 36px rgba(0,0,0,0.12), 0 32px 80px rgba(0,0,0,0.16)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden", zIndex: 3,
+                      transition: winMinimizing ? "none"
+                        : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
+                      animation: winMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.36s cubic-bezier(0.22,1,0.36,1)",
+                      transformOrigin: "50% 100%",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div style={{
+                      height: titleH, flexShrink: 0,
+                      background: isDark ? "#2c2c2e" : "#ececec",
+                      borderBottom: `0.5px solid ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)"}`,
+                      display: "flex", alignItems: "center",
+                      position: "relative", userSelect: "none",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, zIndex: 1 }}>
+                        {tl.map((btn, i) => (
+                          <div key={i}
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setHoveredTl(i)}
+                            onMouseLeave={() => setHoveredTl(-1)}
+                            style={{
+                              width: tlSz, height: tlSz, borderRadius: "50%",
+                              background: btn.fill, border: `0.5px solid ${btn.border}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", flexShrink: 0,
+                            }}
+                          >
+                            <span style={{
+                              fontSize: Math.round(tlSz * 0.58), lineHeight: 1, fontWeight: 900,
+                              color: btn.symClr, opacity: hoveredTl === i ? 1 : 0,
+                              transition: "opacity 0.08s", userSelect: "none",
+                            }}>{btn.sym}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        pointerEvents: "none",
+                      }}>
+                        <span style={{
+                          fontSize: Math.round(w * 0.026), fontWeight: 500,
+                          color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)",
+                          letterSpacing: -0.1,
+                          fontFamily: "-apple-system,'SF Pro Text','Helvetica Neue',sans-serif",
+                        }}>{proj.title}</span>
+                      </div>
+                    </div>
+
+                    {/* Toolbar — stack icons + live + github */}
+                    <div style={{
+                      height: toolH, flexShrink: 0,
+                      background: isDark ? "#242426" : "#f5f5f5",
+                      borderBottom: `0.5px solid ${divClr}`,
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: `0 ${Math.round(winW * 0.025)}px`,
+                      userSelect: "none",
+                    }}>
+                      {/* Stack icons */}
+                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.012) }}>
+                        {(tags ?? []).slice(0, 7).map((tag, i) => {
+                          const url = deviconUrl(tag)
+                          return (
+                            <div key={i} title={tag} style={{
+                              width: iconSz, height: iconSz, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              opacity: 0.85,
+                            }}>
+                              {url ? (
+                                <img src={url} alt={tag} draggable={false}
+                                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                                />
+                              ) : (
+                                <span style={{
+                                  fontSize: Math.round(iconSz * 0.42), fontWeight: 700,
+                                  color: textSec, fontFamily: "'SF Mono',monospace",
+                                }}>{tag.slice(0,2).toUpperCase()}</span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {/* Actions: Live + GitHub */}
+                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.018) }}>
+                        {liveUrl && liveUrl !== "#" && (
+                          <div
+                            onClick={e => { e.stopPropagation(); window.open(liveUrl, "_blank", "noopener,noreferrer") }}
+                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
+                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                            style={{
+                              display: "flex", alignItems: "center", gap: Math.round(winW * 0.012),
+                              padding: `2px ${Math.round(winW * 0.018)}px`,
+                              borderRadius: 5, cursor: "pointer", transition: "background 0.12s",
+                              background: "transparent",
+                            }}
+                          >
+                            <svg width={Math.round(iconSz * 0.88)} height={Math.round(iconSz * 0.88)} viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="9" stroke={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"} strokeWidth="1.5"/>
+                              <path d="M12 3c-2.4 2.8-3 5.5-3 9s.6 6.2 3 9M12 3c2.4 2.8 3 5.5 3 9s-.6 6.2-3 9M3 12h18" stroke={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"} strokeWidth="1.5"/>
+                            </svg>
+                            <span style={{
+                              fontSize: Math.round(w * 0.024), fontWeight: 500,
+                              color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
+                              fontFamily: "-apple-system,'SF Pro Text',sans-serif",
+                            }}>Live</span>
+                          </div>
+                        )}
+                        {hasGithub && (
+                          <div
+                            onClick={e => { e.stopPropagation(); window.open(githubUrl, "_blank", "noopener,noreferrer") }}
+                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
+                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                            style={{
+                              display: "flex", alignItems: "center", gap: Math.round(winW * 0.012),
+                              padding: `2px ${Math.round(winW * 0.018)}px`,
+                              borderRadius: 5, cursor: "pointer", transition: "background 0.12s",
+                              background: "transparent",
+                            }}
+                          >
+                            <svg width={Math.round(iconSz * 0.88)} height={Math.round(iconSz * 0.88)} viewBox="0 0 24 24" fill={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)"}>
+                              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+                            </svg>
+                            <span style={{
+                              fontSize: Math.round(w * 0.024), fontWeight: 500,
+                              color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
+                              fontFamily: "-apple-system,'SF Pro Text',sans-serif",
+                            }}>GitHub</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Screenshot — full content */}
+                    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#050507" }}>
+                      {imgList.length > 0 && currentSrc ? (
+                        <img key={activeImg} src={currentSrc} alt="screen"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
+                            animation: "mbImg 0.28s cubic-bezier(0.16,1,0.3,1)" }}
+                        />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: Math.round(w * 0.02), color: "rgba(255,255,255,0.1)", fontFamily: "-apple-system,sans-serif" }}>No preview</span>
+                        </div>
+                      )}
+
+                      {/* Prev arrow */}
+                      {imgList.length > 1 && (
+                        <div onClick={e => { e.stopPropagation(); setActiveImg(i => Math.max(0, i - 1)) }}
+                          style={{
+                            position: "absolute", left: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
+                            width: btnSz, height: btnSz, borderRadius: "50%",
+                            background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
+                            border: "0.5px solid rgba(255,255,255,0.13)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: activeImg === 0 ? "default" : "pointer",
+                            opacity: activeImg === 0 ? 0.2 : 1, transition: "opacity 0.15s",
+                            pointerEvents: activeImg === 0 ? "none" : "auto", zIndex: 2,
+                          }}>
+                          <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
+                            <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Next arrow */}
+                      {imgList.length > 1 && (
+                        <div onClick={e => { e.stopPropagation(); setActiveImg(i => Math.min(imgList.length - 1, i + 1)) }}
+                          style={{
+                            position: "absolute", right: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
+                            width: btnSz, height: btnSz, borderRadius: "50%",
+                            background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
+                            border: "0.5px solid rgba(255,255,255,0.13)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: activeImg === imgList.length - 1 ? "default" : "pointer",
+                            opacity: activeImg === imgList.length - 1 ? 0.2 : 1, transition: "opacity 0.15s",
+                            pointerEvents: activeImg === imgList.length - 1 ? "none" : "auto", zIndex: 2,
+                          }}>
+                          <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
+                            <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )
+              })() : null}
               {/* Closing animation — exit layer over wallpaper */}
               {closingSrc && (
                 <img
@@ -689,7 +939,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     width: "100%", height: "100%",
                     objectFit: "cover", display: "block",
                     animation: "mbImgClose 0.38s cubic-bezier(0.4,0,0.6,1) forwards",
-                    zIndex: 4, pointerEvents: "none",
+                    zIndex: 6, pointerEvents: "none",
                   }}
                 />
               )}
@@ -1347,9 +1597,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onClick={(e) => {
                             e.stopPropagation()
                             if (activeProject === idx) {
-                              const src = currentSrc || null
-                              setActiveProject(null)
-                              if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
+                              if (winMinimized) {
+                                setWinMinimized(false)
+                              } else {
+                                const src = currentSrc || null
+                                setActiveProject(null)
+                                if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
+                              }
                             } else {
                               setActiveProject(idx)
                             }
@@ -1623,6 +1877,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         @keyframes mbDockBounce {
           0%,100% { transform: scale(1) translateY(0); }
           40%     { transform: scale(1) translateY(-6px); }
+        }
+        @keyframes winIn {
+          0%   { opacity: 0; transform: scale(0.92) translateY(12px); }
+          60%  { opacity: 1; transform: scale(1.01) translateY(-2px); }
+          100% { opacity: 1; transform: scale(1)    translateY(0); }
         }
       `}</style>
     </div>
