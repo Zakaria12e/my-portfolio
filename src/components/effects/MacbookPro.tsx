@@ -1727,11 +1727,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               : "0 1px 5px rgba(0,0,0,0.5)",
                             transition: "box-shadow 0.2s",
                             flexShrink: 0,
-                            background: isDark ? "#1a1a1c" : "#ffffff",
+                            background: [
+                              "linear-gradient(135deg,#1A88FE,#0055D4)",
+                              "linear-gradient(135deg,#34C759,#248A3D)",
+                              "linear-gradient(135deg,#FF3B30,#C0001A)",
+                              "linear-gradient(135deg,#FF9500,#C65900)",
+                              "linear-gradient(135deg,#AF52DE,#7026B9)",
+                              "linear-gradient(135deg,#5856D6,#3634A3)",
+                              "linear-gradient(135deg,#32ADE6,#007AFF)",
+                              "linear-gradient(135deg,#FF2D55,#D60034)",
+                            ][idx % 8],
                           }}>
                             {thumb
                               ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: iconSrc ? "contain" : "cover", padding: iconSrc ? "14%" : 0, display: "block", boxSizing: "border-box" }} draggable={false} />
-                              : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1c1c1e,#2c2c2e)" }} />
+                              : <div style={{ width: "100%", height: "100%", background: [
+                                  "linear-gradient(135deg,#5e5ce6,#3634a3)",
+                                  "linear-gradient(135deg,#30d158,#248a3d)",
+                                  "linear-gradient(135deg,#ff6369,#d70015)",
+                                  "linear-gradient(135deg,#ffd60a,#ff9500)",
+                                  "linear-gradient(135deg,#64d2ff,#0071e3)",
+                                  "linear-gradient(135deg,#ff9f0a,#c93400)",
+                                  "linear-gradient(135deg,#bf5af2,#6e2fbb)",
+                                  "linear-gradient(135deg,#32d74b,#0a84ff)",
+                                ][idx % 8] }} />
                             }
                           </div>
                           <div style={{
