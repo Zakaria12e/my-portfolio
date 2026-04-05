@@ -109,15 +109,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [itunesOpen, setItunesOpen] = useState(false)
   const [itunesMinimized, setItunesMinimized] = useState(false)
-  const [itunesMaximized, setItunesMaximized] = useState(false)
-  const [itunesPos, setItunesPos] = useState({ x: 0, y: 0 })
   const WALLPAPERS = [
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
   ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
-  const itunesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -165,7 +162,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
-  const { theme, setTheme } = useTheme()
+  const { theme } = useTheme()
   const globalDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
   const [macDark, setMacDark] = useState(() => globalDark)
   const isDark = macDark
@@ -632,8 +629,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           return openWindows.some(w => w.id === k && !w.minimized)
         })
         if (top === "itunes") {
-          setItunesOpen(false); setItunesMinimized(false); setItunesMaximized(false)
-          setItunesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "itunes"))
+          setItunesOpen(false); setWindowOrder(o => o.filter(k => k !== "itunes"))
         } else if (top === "terminal") {
           setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal"))
         } else if (top === "safari") {
