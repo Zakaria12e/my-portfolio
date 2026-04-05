@@ -81,6 +81,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMinimized, setTermMinimized] = useState(false)
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
+  const [termPos, setTermPos] = useState({ x: 0, y: 0 })
+  const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -411,9 +413,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     if (!hovered) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "q" && (e.metaKey || e.ctrlKey) && focusedWinId !== null) {
+      if (e.key === "q" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        closeWindow(focusedWinId)
+        if (terminalOpen && !termMinimized) {
+          setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 })
+        } else if (focusedWinId !== null) {
+          closeWindow(focusedWinId)
+        }
         return
       }
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -483,7 +489,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow])
+  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -1223,14 +1229,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   background: termMinimizing ? "rgba(0,0,0,0)" : "rgba(0,0,0,0.82)",
                   backdropFilter: "blur(4px)",
                   WebkitBackdropFilter: "blur(4px)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
                   animation: termMinimizing ? undefined : "mbFade 0.15s ease",
                   transition: "background 0.36s ease",
                   pointerEvents: termMinimizing ? "none" : "auto",
                 }}>
                   <div style={{
-                    width: termMaximized ? "100%" : "72%",
-                    height: termMaximized ? "100%" : "auto",
+                    position: "absolute",
+                    ...(termMaximized
+                      ? { inset: 0 }
+                      : {
+                          width: "72%",
+                          top: `calc(14% + ${termPos.y}px)`,
+                          left: `calc(14% + ${termPos.x}px)`,
+                        }
+                    ),
                     borderRadius: termMaximized ? 0 : 8,
                     overflow: "hidden",
                     background: isDark ? "rgba(18,18,20,0.97)" : "rgba(255,255,255,0.97)",
@@ -1238,24 +1250,43 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     fontSize: Math.round(w * 0.022),
                     lineHeight: 1.6,
                     display: "flex", flexDirection: "column",
-                    transition: "width 0.2s ease, height 0.2s ease, border-radius 0.2s ease",
+                    transition: termDragRef.current ? "none" : "border-radius 0.2s ease",
                     animation: termMinimizing
                       ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
                       : "mbPaper 0.42s cubic-bezier(0.22,1,0.36,1)",
                     transformOrigin: termOrigin,
                   }}>
                     {/* Title bar */}
-                    <div style={{
-                      height: Math.round(w * 0.052),
-                      background: "rgba(28,28,30,0.98)",
-                      borderBottom: "0.5px solid rgba(255,255,255,0.08)",
-                      display: "flex", alignItems: "center",
-                      padding: `0 ${Math.round(w * 0.02)}px`, gap: 5,
-                      position: "relative",
-                      flexShrink: 0,
-                    }}>
+                    <div
+                      onMouseDown={e => {
+                        if (termMaximized) return
+                        e.preventDefault()
+                        termDragRef.current = { startX: e.clientX, startY: e.clientY, ox: termPos.x, oy: termPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = termDragRef.current
+                          if (!drag) return
+                          setTermPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
+                        }
+                        const onUp = () => {
+                          termDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        height: Math.round(w * 0.052),
+                        background: "rgba(28,28,30,0.98)",
+                        borderBottom: "0.5px solid rgba(255,255,255,0.08)",
+                        display: "flex", alignItems: "center",
+                        padding: `0 ${Math.round(w * 0.02)}px`, gap: 5,
+                        position: "relative",
+                        flexShrink: 0,
+                        cursor: termMaximized ? "default" : "grab",
+                      }}>
                       {[
-                        { bg: "#ff5f57", fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput("") } },
+                        { bg: "#ff5f57", fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }) } },
                         { bg: "#febc2e", fn: () => {
                           if (termMinimized) {
                             setTermMinimized(false)
