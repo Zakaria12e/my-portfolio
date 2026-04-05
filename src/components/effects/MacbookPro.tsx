@@ -411,6 +411,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     if (!hovered) return
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "q" && (e.metaKey || e.ctrlKey) && focusedWinId !== null) {
+        e.preventDefault()
+        closeWindow(focusedWinId)
+        return
+      }
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         if (termMinimized) {
@@ -478,7 +483,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl])
+  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
