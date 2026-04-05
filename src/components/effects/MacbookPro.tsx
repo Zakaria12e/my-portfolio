@@ -389,8 +389,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           const rect = el.getBoundingClientRect()
           computeTargets(rect.left + rect.width / 2)
         }
-        if (item.type === "image") setActiveImg(item.imgIdx)
-        if (item.type === "project") setActiveProject(item.projIdx)
       }
       if ((!terminalOpen || termMinimized) && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
         const item = dockItems[focusedDockIdxRef.current]
