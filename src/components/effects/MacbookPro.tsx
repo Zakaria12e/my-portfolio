@@ -130,6 +130,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [desktopItems, setDesktopItems] = useState<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
   const desktopItemIdRef = useRef(0)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
+  const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
+  const folderWinIdRef  = useRef(0)
+  const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -420,6 +424,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (terminalOpen) {
       const cwd = proj ? `~/projects/${projectSlug}` : "~"
       setTermCwd(cwd)
+      // sync desktop items back into termFs["~"] so ls reflects the screen
+      setTermFs(prev => ({
+        ...prev,
+        "~": desktopItems.map(d => ({ name: d.name, type: d.type })),
+      }))
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
         { text: "Tip   ⇥ Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
@@ -433,7 +442,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermLines([])
       setTermInput("")
       setTermCwd("~")
-      setTermFs({})
       setTermMinimized(false)
       setTermMinimizing(false)
       setTermMaximized(false)
@@ -873,6 +881,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       key={item.id}
                       onMouseDown={e => {
                         e.stopPropagation()
+                        // double-click detection
+                        const now = Date.now()
+                        const last = desktopClickRef.current
+                        if (last.id === item.id && now - last.time < 350) {
+                          // double-click: open folder window
+                          if (item.type === "folder") {
+                            const fid = folderWinIdRef.current++
+                            const fx = Math.round((w - 20) * 0.15) + fid * 24
+                            const fy = Math.round(h * 0.1) + fid * 20
+                            setFolderWins(prev => [...prev, { id: fid, name: item.name, path: `~/${item.name}`, pos: { x: fx, y: fy } }])
+                          }
+                          desktopClickRef.current = { id: -1, time: 0 }
+                          return
+                        }
+                        desktopClickRef.current = { id: item.id, time: now }
                         setDesktopItems(prev => prev.map(d => ({ ...d, selected: d.id === item.id })))
                         desktopDragRef.current = { id: item.id, startX: e.clientX, startY: e.clientY, ox: item.dx, oy: item.dy }
                         const onMove = (ev: MouseEvent) => {
@@ -929,6 +952,105 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   )
                 })
               })()}
+
+              {/* Folder windows — opened by double-clicking a desktop folder */}
+              {folderWins.map(fw => {
+                const fwW = Math.round(w * 0.62)
+                const fwH = Math.round(h * 0.58)
+                const titleH = 22
+                const tlSz2  = Math.round(titleH * 0.54)
+                const tlGap2 = Math.round(titleH * 0.45)
+                const tlLeft2= Math.round(titleH * 0.64)
+                const fwBg   = isDark ? "#1c1c1e" : "#f4f4f6"
+                const fwDiv  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"
+                const fwText = isDark ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.8)"
+                const fwSub  = isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.35)"
+                const contents = termFsRef.current[fw.path] ?? []
+                return (
+                  <div
+                    key={fw.id}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      left: fw.pos.x, top: fw.pos.y,
+                      width: fwW, height: fwH,
+                      borderRadius: 10,
+                      background: fwBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 12px 40px rgba(0,0,0,0.6)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.14)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden",
+                      zIndex: 50 + fw.id,
+                      animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        folderWinDragRef.current = { id: fw.id, startX: e.clientX, startY: e.clientY, ox: fw.pos.x, oy: fw.pos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = folderWinDragRef.current
+                          if (!drag || drag.id !== fw.id) return
+                          setFolderWins(prev => prev.map(f => f.id === fw.id
+                            ? { ...f, pos: { x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY } }
+                            : f
+                          ))
+                        }
+                        const onUp = () => { folderWinDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${fwDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: "grab" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap2, paddingLeft: tlLeft2 }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41" },
+                          { fill: "#f6be50", border: "#e1a73e" },
+                          { fill: "#61c555", border: "#2dac2f" },
+                        ].map((btn, i) => (
+                          <div key={i}
+                            onClick={e => { e.stopPropagation(); if (i === 0) setFolderWins(prev => prev.filter(f => f.id !== fw.id)) }}
+                            style={{ width: tlSz2, height: tlSz2, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <span style={{ fontSize: Math.round(w * 0.025), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fw.name}</span>
+                      </div>
+                    </div>
+
+                    {/* Toolbar */}
+                    <div style={{ height: 28, flexShrink: 0, background: isDark ? "#242426" : "#f0f0f2", borderBottom: `0.5px solid ${fwDiv}`, display: "flex", alignItems: "center", paddingLeft: Math.round(fwW * 0.03), gap: 6 }}>
+                      <span style={{ fontSize: Math.round(w * 0.021), color: fwSub, fontFamily: "-apple-system,sans-serif" }}>{fw.path.replace("~", "~")}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, overflowY: "auto", padding: Math.round(fwW * 0.04), display: "flex", flexWrap: "wrap", gap: Math.round(fwW * 0.03), alignContent: "flex-start" }}>
+                      {contents.length === 0 ? (
+                        <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, opacity: 0.4 }}>
+                          <img src={FOLDER_ICON} width={Math.round(w * 0.06)} height={Math.round(w * 0.06)} style={{ objectFit: "contain", opacity: 0.4 }} draggable={false} />
+                          <span style={{ fontSize: Math.round(w * 0.024), color: fwSub, fontFamily: "-apple-system,sans-serif" }}>Folder is empty</span>
+                          <span style={{ fontSize: Math.round(w * 0.02), color: fwSub, fontFamily: "-apple-system,sans-serif", opacity: 0.7 }}>Use  touch &lt;name&gt;  in terminal</span>
+                        </div>
+                      ) : (
+                        contents.map((item, ci) => (
+                          <div key={ci} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: Math.round(fwW * 0.1), cursor: "default" }}>
+                            <img
+                              src={item.type === "folder" ? FOLDER_ICON : FILE_ICON}
+                              draggable={false}
+                              style={{ width: Math.round(fwW * 0.08), height: Math.round(fwW * 0.08), objectFit: "contain", display: "block" }}
+                            />
+                            <span style={{ fontSize: Math.round(w * 0.019), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.25, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
 
               {/* Screen scrim — dims wallpaper when a window is open */}
               {(openWindows.some(w => !w.minimized) || (settingsOpen && !settingsMinimized)) && (
