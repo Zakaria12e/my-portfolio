@@ -30,7 +30,7 @@ interface MacbookProProps {
   className?: string
 }
 
-const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "ls", "mkdir", "touch"]
+const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "ls", "mkdir", "touch", "write"]
 const FOLDER_ICON = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403470/folder_ecvyzl.png"
 const FILE_ICON   = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403780/file_a2y8we.png"
 
@@ -124,7 +124,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
   const [termCwd, setTermCwd] = useState("~")
-  const [termLines, setTermLines] = useState<{ text?: string; color?: string; items?: FsEntry[] }[]>([])
+  const [termLines, setTermLines] = useState<{ text?: string; color?: string; items?: FsEntry[]; parts?: { text: string; color?: string }[] }[]>([])
   const [termFs, setTermFs] = useState<TermFs>({})
   const termFsRef = useRef<TermFs>({})
   const [desktopItems, setDesktopItems] = useState<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
@@ -399,20 +399,67 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       } else {
         setTermLines(l => [...l, echo, { text: "  No live demo available.", color: "#ff453a" }])
       }
+    } else if (cmd.startsWith("write")) {
+      const rest    = raw.trim().slice(5).trim()
+      const spaceAt = rest.indexOf(" ")
+      const name    = spaceAt === -1 ? rest : rest.slice(0, spaceAt)
+      const content = spaceAt === -1 ? "" : rest.slice(spaceAt + 1)
+      if (!name) {
+        setTermLines(l => [...l, echo, { parts: [
+          { text: "  usage: ", color: "#ff453a" },
+          { text: "write ", color: "#64d2ff" },
+          { text: "<filename> <text>", color: "#ffd60a" },
+        ]}])
+      } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
+        setTermLines(l => [...l, echo, { text: `  write: invalid filename — use letters, numbers, _ . -`, color: "#ff453a" }])
+      } else {
+        const fs     = termFsRef.current
+        const path   = cwd === "~" ? `~/${name}` : `${cwd}/${name}`
+        const exists = (fs[cwd] ?? []).some(e => e.name === name && e.type === "file")
+        if (!exists) {
+          // auto-create the file first
+          setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "file" }] }))
+          if (cwd === "~") {
+            const slot = desktopItemIdRef.current++
+            setDesktopItems(prev => [...prev, { id: slot, name, type: "file", slot, dx: 0, dy: 0, selected: false }])
+          }
+        }
+        setFileContents(prev => ({ ...prev, [path]: content }))
+        setTermLines(l => [...l, echo, { parts: [
+          { text: "  ✓ ", color: "#30d158" },
+          { text: name, color: "#64d2ff" },
+          { text: " written  ", color: "#30d158" },
+          { text: `(${content.length} chars)`, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" },
+        ]}])
+      }
     } else if (cmd === "clear" || cmd === "cls") {
       setTermLines([])
     } else if (cmd === "help") {
+      const c = { cmd: "#64d2ff", arg: "#ffd60a", sep: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)", dim: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.35)", sec: "#bf5af2", desc: isDark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.58)" }
+      const row = (cmd: string, args: string, desc: string) => ({ parts: [
+        { text: "  " },
+        { text: cmd.padEnd(8), color: c.cmd },
+        { text: (args + " ").padEnd(16), color: c.arg },
+        { text: desc, color: c.desc },
+      ]})
       setTermLines(l => [...l, echo,
-        { text: "  ls              — list directory contents",   color: "#64d2ff" },
-        { text: "  mkdir <name>    — create a folder",           color: "#64d2ff" },
-        { text: "  touch <name>    — create a file",             color: "#64d2ff" },
-        { text: "  cd <dir>        — navigate directories",      color: "#64d2ff" },
-        { text: "  desc            — project description",       color: "#64d2ff" },
-        { text: "  stack           — tech stack",                color: "#64d2ff" },
-        { text: "  features        — key features",              color: "#64d2ff" },
-        { text: "  github          — open GitHub repo",          color: "#64d2ff" },
-        { text: "  live            — open live demo",            color: "#64d2ff" },
-        { text: "  clear/cls       — clear terminal",            color: "#64d2ff" },
+        { parts: [{ text: "  filesystem", color: c.sec }] },
+        row("ls",      "",               "list directory contents"),
+        row("mkdir",   "<name>",         "create a folder"),
+        row("touch",   "<name>",         "create an empty file"),
+        row("write",   "<file> <text>",  "write text into a file"),
+        row("cd",      "<dir>",          "navigate  (Tab autocompletes)"),
+        { text: "" },
+        { parts: [{ text: "  project", color: c.sec }] },
+        row("desc",    "",               "show project description"),
+        row("stack",   "",               "show tech stack"),
+        row("features","",               "list key features"),
+        row("github",  "",               "open repo in browser"),
+        row("live",    "",               "open live demo"),
+        { text: "" },
+        { parts: [{ text: "  terminal", color: c.sec }] },
+        row("clear",   "",               "clear the screen"),
+        row("help",    "",               "show this menu"),
       ])
     } else if (cmd === "") {
       setTermLines(l => [...l, echo])
@@ -460,7 +507,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 2
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -524,8 +571,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     ),
     ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
     ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "itunes"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1 },
+    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -2002,7 +2048,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }}
                     >
                       {termLines.map((line, i) => (
-                        line.items ? (
+                        line.parts ? (
+                          <div key={i} style={{ paddingBottom: 1 }}>
+                            {line.parts.map((p, pi) => (
+                              <span key={pi} style={{ color: p.color ?? termText }}>{p.text}</span>
+                            ))}
+                          </div>
+                        ) : line.items ? (
                           <div key={i} style={{ display: "flex", flexWrap: "wrap" as const, gap: Math.round(w * 0.016), padding: `${Math.round(w * 0.008)}px 0 ${Math.round(w * 0.006)}px` }}>
                             {line.items.map((item, j) => (
                               <div key={j} style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, width: Math.round(w * 0.072), cursor: "default" }}>
@@ -2851,29 +2903,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     </>}
 
-                    {/* iTunes icon */}
-                    {(() => {
-                      const itunesRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
-                      const scale = scales[itunesRefIdx] ?? 1
-                      return (
-                        <div
-                          ref={(el) => { iconRefs.current[itunesRefIdx] = el }}
-                          onMouseEnter={() => setHoveredSlot("itunes")}
-                          onMouseLeave={() => setHoveredSlot(null)}
-                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>iTunes</div>
-                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: "0 1px 5px rgba(0,0,0,0.5)", flexShrink: 0 }}>
-                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775404539/ituns_c2ovl1.png" alt="iTunes" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          </div>
-                        </div>
-                      )
-                    })()}
-
                     {/* Settings icon */}
                     {(() => {
-                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
+                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[settingsRefIdx] ?? 1
                       return (
                         <div
