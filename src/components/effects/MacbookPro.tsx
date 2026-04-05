@@ -729,7 +729,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   <div style={{
                     position: "absolute", top: 0, left: 0, right: 0,
                     height: mbH,
-                    background: "rgba(12,12,14,0.72)",
+                    background: "transparent",
                     display: "flex", alignItems: "center",
                     justifyContent: "space-between",
                     padding: `0 ${Math.round(w * 0.015)}px`,
