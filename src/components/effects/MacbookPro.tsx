@@ -65,6 +65,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
+  const [windowOrder, setWindowOrder] = useState<(number | "settings")[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -89,8 +90,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [settingsPos, setSettingsPos] = useState({ x: 0, y: 0 })
   const [settingsSel, setSettingsSel] = useState("about")
   const WALLPAPERS = [
-    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
   ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
@@ -169,6 +170,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
 
+  const bringToFront = useCallback((key: number | "settings") => {
+    setWindowOrder(o => [...o.filter(k => k !== key), key])
+  }, [])
+
   const focusWin = useCallback((id: number) => {
     setOpenWindows(ws => {
       const win = ws.find(w => w.id === id)
@@ -176,6 +181,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       return [...ws.filter(w => w.id !== id), win]
     })
     setFocusedWinId(id)
+    setWindowOrder(o => [...o.filter(k => k !== id), id])
   }, [])
 
   const closeWindow = useCallback((id: number) => {
@@ -187,6 +193,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (csrc) { setClosingSrc(csrc); setTimeout(() => setClosingSrc(null), 400) }
     }
     setOpenWindows(prev => prev.filter(w => w.id !== id))
+    setWindowOrder(o => o.filter(k => k !== id))
     setFocusedWinId(prev => {
       if (prev !== id) return prev
       const remaining = openWindowsRef.current.filter(w => w.id !== id)
@@ -217,6 +224,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       hoveredTl: -1, activeImg: 0,
     }])
     setFocusedWinId(id)
+    setWindowOrder(o => [...o.filter(k => k !== id), id])
   }, [])
 
   const getOrigin = (e: React.MouseEvent): string => {
@@ -430,10 +438,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         e.preventDefault()
         if (terminalOpen && !termMinimized) {
           setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 })
-        } else if (settingsOpen && !settingsMinimized) {
-          setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false); setSettingsPos({ x: 0, y: 0 })
-        } else if (focusedWinId !== null) {
-          closeWindow(focusedWinId)
+        } else {
+          // close the topmost window
+          const top = [...windowOrder].reverse().find(k =>
+            k === "settings" ? settingsOpen && !settingsMinimized : openWindows.some(w => w.id === k && !w.minimized)
+          )
+          if (top === "settings") {
+            setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false)
+            setSettingsPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "settings"))
+          } else if (typeof top === "number") {
+            closeWindow(top)
+          }
         }
         return
       }
@@ -493,8 +508,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           else setTerminalOpen(true)
         }
         if (item.type === "settings") {
-          if (settingsOpen && settingsMinimized) setSettingsMinimized(false)
-          else setSettingsOpen(o => !o)
+          if (settingsOpen && settingsMinimized) { setSettingsMinimized(false); bringToFront("settings") }
+          else { setSettingsOpen(o => !o); bringToFront("settings") }
         }
         if (item.type === "github") {
           if (projects && openWindows.length === 0) {
@@ -508,7 +523,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, finderOpen, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos])
+  }, [hovered, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, settingsOpen, settingsMinimized, openWindows, bringToFront])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -804,7 +819,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const pLiveUrl = p.liveUrl   ?? liveProp
                   const pHasGit  = !!pGitUrl && pGitUrl !== "#"
                   const isFocused = win.id === focusedWinId
-                  const zIdx = 3 + winIndex
+                  const zIdx = 3 + (windowOrder.indexOf(win.id) >= 0 ? windowOrder.indexOf(win.id) : winIndex)
                   const winW   = baseWinW
                   const winH   = baseWinH
                   const winTop  = baseWinTop  + win.pos.y
@@ -1083,7 +1098,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const divClr = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
                 return (
                   <div
-                    onClick={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); bringToFront("settings"); setFocusedWinId(null) }}
                     style={{
                       position: "absolute",
                       ...(settingsMaximized
@@ -1097,7 +1112,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 12px 40px rgba(0,0,0,0.6), 0 32px 80px rgba(0,0,0,0.55)"
                         : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.14), 0 32px 80px rgba(0,0,0,0.12)",
                       display: "flex", flexDirection: "column",
-                      overflow: "hidden", zIndex: 10,
+                      overflow: "hidden",
+                      zIndex: 3 + (windowOrder.indexOf("settings") >= 0 ? windowOrder.indexOf("settings") : 0),
                       animation: "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
@@ -1120,7 +1136,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", fn: () => { setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false); setSettingsPos({ x: 0, y: 0 }) } },
+                          { fill: "#ed6a5f", border: "#e24b41", fn: () => { setSettingsOpen(false); setSettingsMinimized(false); setSettingsMaximized(false); setSettingsPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "settings")) } },
                           { fill: "#f6be50", border: "#e1a73e", fn: () => setSettingsMinimized(m => !m) },
                           { fill: "#61c555", border: "#2dac2f", fn: () => { setSettingsMaximized(m => !m); setSettingsMinimized(false) } },
                         ].map((btn, i) => (
@@ -2170,9 +2186,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onClick={e => {
                             e.stopPropagation()
                             if (settingsOpen && settingsMinimized) {
-                              setSettingsMinimized(false)
+                              setSettingsMinimized(false); bringToFront("settings")
                             } else {
-                              setSettingsOpen(o => !o)
+                              setSettingsOpen(o => { if (!o) setWindowOrder(ord => [...ord.filter(k => k !== "settings"), "settings"]); else setWindowOrder(ord => ord.filter(k => k !== "settings")); return !o })
                             }
                           }}
                         >
