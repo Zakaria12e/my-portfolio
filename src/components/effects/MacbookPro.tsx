@@ -142,6 +142,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [controlCenterOpen, setControlCenterOpen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [accentColor, setAccentColor] = useState("#0a84ff")
+  const [showNotch, setShowNotch] = useState(true)
   const [safariOpen, setSafariOpen] = useState(false)
   const [safariMinimized, setSafariMinimized] = useState(false)
   const [safariMinimizing, setSafariMinimizing] = useState(false)
@@ -558,19 +559,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const ICON_GAP   = Math.round(w * 0.011)
   const DOCK_PAD_X = Math.round(w * 0.015)
   const DOCK_PAD_Y = Math.round(w * 0.009)
-  const MAX_SCALE  = 1.55          // subtle — like real macOS at normal dock size
-  const RANGE      = ICON_BASE * 2.2
+  const MAX_SCALE = 1.55
+  const RANGE     = ICON_BASE * 2.2
 
   const startSpring = useCallback(() => {
     if (rafRef.current !== null) return
     const loop = () => {
       let done = true
       const next = currentScales.current.map((cur, i) => {
-        const tgt = targetScales.current[i] ?? 1
+        const tgt  = targetScales.current[i] ?? 1
         const diff = tgt - cur
         if (Math.abs(diff) < 0.0015) return tgt
         done = false
-        return cur + diff * 0.24  // snappy spring
+        return cur + diff * 0.24
       })
       currentScales.current = next
       setScales([...next])
@@ -825,6 +826,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       background: `url("${wallpaper}") center/cover no-repeat`,
       transition: "background 0.4s ease",
       zIndex: 1,
+      cursor: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, default`,
     },
     screenOff: {
       position: "absolute", inset: 0,
@@ -894,7 +896,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     >
       <div style={s.lid}>
         <div style={s.bezel}>
-          <div style={s.notch}>
+          <div style={{
+            ...s.notch,
+            transformOrigin: "top center",
+            transform: showNotch ? "translateX(-50%) scaleY(1)" : "translateX(-50%) scaleY(0)",
+            opacity: showNotch ? 1 : 0,
+            transition: showNotch
+              ? "transform 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease"
+              : "transform 0.22s cubic-bezier(0.55,0,1,0.45), opacity 0.18s ease",
+          }}>
             <div style={s.cam} />
           </div>
 
@@ -948,7 +958,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             </div>
           </div>
 
-          <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets} onClick={() => setControlCenterOpen(false)}>
+          <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => setControlCenterOpen(false)}>
             <div style={s.screenOff} />
             <div style={s.screenOn} onClick={() => setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))}>
 
@@ -1320,7 +1330,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     background: "transparent",
                     display: "flex", alignItems: "center",
                     justifyContent: "space-between",
-                    padding: `0 ${Math.round(w * 0.015)}px`,
+                    padding: `${Math.round(mbH * 0.18)}px ${Math.round(w * 0.015)}px 0`,
                     zIndex: 15, pointerEvents: "none",
                     fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                     fontSize: fs,
@@ -1330,7 +1340,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <img
                         src="/moon-purple.png"
                         alt="logo"
-                        style={{ height: Math.round(mbH * 0.62), width: "auto", display: "block" }}
+                        style={{ height: Math.round(w * 0.023), width: "auto", display: "block" }}
                       />
                       <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.88)", fontSize: Math.round(w * 0.013), fontFamily: "'Playwrite IE', cursive", letterSpacing: "0.02em" }}>{proj?.title ?? "Zakaria"}</span>
                     </div>
@@ -1340,17 +1350,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onClick={e => { e.stopPropagation(); setControlCenterOpen(o => !o) }}
                         style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: Math.round(w * 0.03), height: Math.round(w * 0.03), borderRadius: Math.round(w * 0.006), background: controlCenterOpen ? "rgba(255,255,255,0.18)" : "transparent", transition: "background 0.15s" }}
                       >
-                        <svg width={Math.round(w * 0.018)} height={Math.round(w * 0.018)} viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="2.5" fill="rgba(255,255,255,0.85)" />
-                          <circle cx="12" cy="5" r="2" fill="rgba(255,255,255,0.85)" />
-                          <circle cx="12" cy="19" r="2" fill="rgba(255,255,255,0.85)" />
-                          <line x1="4" y1="12" x2="9.5" y2="12" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="14.5" y1="12" x2="20" y2="12" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="4" y1="5" x2="7" y2="5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="11" y1="5" x2="20" y2="5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="4" y1="19" x2="7" y2="19" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="11" y1="19" x2="20" y2="19" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
+                        <img src={isDark ? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423308/control_centerfor_darkmode_yywvs0.gif" : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775422540/controle_center_fzldo2.png"} alt="Control Center" draggable={false} style={{ width: Math.round(w * 0.023), height: Math.round(w * 0.023), objectFit: "contain", display: "block" }} />
                       </div>
                       <span style={{ color: "rgba(255,255,255,0.82)", fontWeight: 400, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
                     </div>
@@ -1361,7 +1361,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {/* Control Center Panel */}
               {hovered && controlCenterOpen && (() => {
                 const mbH     = Math.round(h * 0.036)
-                const panW    = Math.round(w * 0.38)
+                const panW    = Math.round(w * 0.32)
                 const gap     = Math.round(panW * 0.028)
                 const pad     = Math.round(panW * 0.046)
                 const tileR   = Math.round(panW * 0.048)
@@ -1379,13 +1379,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   { id: "green",    value: "#30d158" },
                   { id: "graphite", value: "#8e8e93" },
                 ]
-                const panBg      = isDark ? "rgba(28,28,30,0.88)" : "rgba(255,255,255,0.58)"
-                const tileBg     = isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.72)"
-                const tileBgOn   = isDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.98)"
-                const iconBgOff  = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.07)"
+                const panBg      = isDark ? "rgba(28,28,30,0.88)" : "rgba(160,160,165,0.38)"
+                const tileBg     = isDark ? "rgba(255,255,255,0.09)" : "rgba(200,200,205,0.45)"
+                const tileBgOn   = isDark ? "rgba(255,255,255,0.17)" : "rgba(230,230,235,0.78)"
+                const iconBgOff  = isDark ? "rgba(255,255,255,0.13)" : "rgba(80,80,85,0.14)"
                 const textPri    = isDark ? "rgba(255,255,255,0.93)" : "rgba(0,0,0,0.87)"
-                const textSec    = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.40)"
-                const panBorder  = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
+                const textSec    = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.50)"
+                const panBorder  = isDark ? "rgba(255,255,255,0.1)" : "transparent"
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
                 const fsPx = (px: number) => Math.round(px * panW / 260)
 
@@ -1399,19 +1399,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       width: panW,
                       zIndex: 20,
                       background: panBg,
-                      backdropFilter: "blur(60px) saturate(2.2)",
-                      WebkitBackdropFilter: "blur(60px) saturate(2.2)",
+                      backdropFilter: isDark ? "blur(60px) saturate(2.2)" : "blur(80px) saturate(2.8)",
+                      WebkitBackdropFilter: isDark ? "blur(60px) saturate(2.2)" : "blur(80px) saturate(2.8)",
                       borderRadius: Math.round(panW * 0.058),
                       border: `0.5px solid ${panBorder}`,
                       boxShadow: isDark
                         ? "0 4px 32px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05) inset"
-                        : "0 4px 32px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,1) inset",
+                        : "0 4px 32px rgba(0,0,0,0.1)",
                       padding: pad,
                       display: "flex", flexDirection: "column", gap,
                       animation: "ccIn 0.2s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
-                    {/* Row 1: Dark Mode + Animations */}
+                    {/* Row 1: Dark Mode + Animations (2 square tiles) */}
                     <div style={{ display: "flex", gap }}>
                       {[
                         {
@@ -1465,6 +1465,55 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Row 2: Notch — compact horizontal tile */}
+                    <div
+                      onClick={() => setShowNotch(n => !n)}
+                      style={{
+                        background: showNotch ? tileBgOn : tileBg,
+                        borderRadius: tileR,
+                        padding: `${Math.round(panW * 0.028)}px ${Math.round(panW * 0.036)}px`,
+                        cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: Math.round(panW * 0.032),
+                        transition: "background 0.18s ease",
+                        border: `0.5px solid ${showNotch ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)") : "transparent"}`,
+                      }}
+                    >
+                      <div style={{
+                        width: iconSz, height: iconSz, borderRadius: "50%", flexShrink: 0,
+                        background: showNotch ? accentColor : iconBgOff,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "background 0.18s ease",
+                        boxShadow: showNotch ? `0 2px 8px ${accentColor}55` : "none",
+                      }}>
+                        <svg width={iconSvg} height={iconSvg} viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="3" width="18" height="13" rx="2" fill="white" opacity="0.3"/>
+                          <rect x="8" y="3" width="8" height="3.5" rx="1.5" fill="white"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3" }}>Notch</div>
+                        <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>{showNotch ? "Visible" : "Hidden"}</div>
+                      </div>
+                      {/* Toggle pill */}
+                      <div style={{
+                        width: Math.round(panW * 0.118), height: Math.round(panW * 0.062),
+                        borderRadius: 999, flexShrink: 0,
+                        background: showNotch ? accentColor : (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"),
+                        transition: "background 0.22s ease",
+                        position: "relative",
+                      }}>
+                        <div style={{
+                          position: "absolute",
+                          top: Math.round(panW * 0.007),
+                          left: showNotch ? `calc(100% - ${Math.round(panW * 0.048)}px - ${Math.round(panW * 0.007)}px)` : Math.round(panW * 0.007),
+                          width: Math.round(panW * 0.048), height: Math.round(panW * 0.048),
+                          borderRadius: "50%", background: "#fff",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                          transition: "left 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+                        }} />
+                      </div>
                     </div>
 
                     {/* Row 2: Accent Color */}
@@ -2649,7 +2698,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {/* Tab bar */}
                     <div style={{ height: tabH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.012), gap: Math.round(sw2 * 0.008) }}>
                       <div style={{ height: Math.round(tabH * 0.72), paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.012), background: isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.8)", borderRadius: Math.round(tabH * 0.28), display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.008), minWidth: Math.round(sw2 * 0.16), maxWidth: Math.round(sw2 * 0.25), border: `0.5px solid ${divClr}` }}>
-                        <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
+                        <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
                         <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{safariUrl ? (() => { try { return new URL(safariUrl.startsWith("http") ? safariUrl : "https://" + safariUrl).hostname } catch { return safariUrl } })() : "New Tab"}</span>
                         <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>×</span>
                       </div>
@@ -2670,7 +2719,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         /* Start page */
                         <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.12), gap: Math.round(sh2 * 0.032), background: isDark ? "#3a3a3c" : "#ffffff", overflow: "auto" }}>
                           {/* Safari compass icon */}
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
                           <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
                           {/* Favorites */}
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: Math.round(sw2 * 0.018), width: Math.round(sw2 * 0.72) }}>
@@ -2965,6 +3014,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       backdropFilter: "blur(28px) saturate(1.8)",
                       WebkitBackdropFilter: "blur(28px) saturate(1.8)",
                       borderRadius: Math.round(ICON_BASE * 0.48),
+                      border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "none",
                       boxShadow: isDark
                         ? "0 4px 24px rgba(0,0,0,0.5)"
                         : "0 4px 20px rgba(0,0,0,0.1)",
@@ -3323,7 +3373,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Safari</div>
                           <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: safariOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
-                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" alt="Safari" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                           </div>
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
@@ -3372,6 +3422,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       <div style={s.shadow} />
 
       <style>{`
+        [data-mac-screen] [style*="cursor: pointer"],
+        [data-mac-screen] *[style*="cursor:pointer"] {
+          cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424539/link-select_omlszb.svg") 6 0, pointer !important;
+        }
         @keyframes mbFade {
           from { opacity: 0 } to { opacity: 1 }
         }
