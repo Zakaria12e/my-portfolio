@@ -1697,7 +1697,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            openWindow(idx)
+                            const existing = openWindows.find(w => w.projectIdx === idx)
+                            if (existing && !existing.minimized && existing.id === focusedWinId) {
+                              updateWin(existing.id, { minimizing: true })
+                              setTimeout(() => updateWin(existing.id, { minimized: true, minimizing: false }), 340)
+                            } else {
+                              openWindow(idx)
+                            }
                           }}
                         >
                           {/* label */}
