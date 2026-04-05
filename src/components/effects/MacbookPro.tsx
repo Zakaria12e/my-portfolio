@@ -2629,7 +2629,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
                       zIndex: 3 + (windowOrder.indexOf("safari") >= 0 ? windowOrder.indexOf("safari") : 0),
-                      animation: "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      animation: safariMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
                     {/* Title bar + URL bar */}
