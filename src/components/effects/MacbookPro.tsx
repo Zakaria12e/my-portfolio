@@ -86,6 +86,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsPos, setSettingsPos] = useState({ x: 0, y: 0 })
   const [settingsSel, setSettingsSel] = useState("about")
+  const WALLPAPERS = [
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
+  ]
+  const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
   const settingsDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
@@ -585,7 +591,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       bottom: 4,
       borderRadius: 3,
       overflow: "hidden",
-      background: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg") center/cover no-repeat`,
+      background: `url("${wallpaper}") center/cover no-repeat`,
+      transition: "background 0.4s ease",
       zIndex: 1,
     },
     screenOff: {
@@ -1167,14 +1174,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </>)}
 
                         {settingsSel === "appearance" && (<>
-                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Appearance</span>
-                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.04)}px` }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: Math.round(sw * 0.028), color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Dark Mode</span>
-                              <div style={{ width: Math.round(sw * 0.1), height: Math.round(sw * 0.052), borderRadius: 100, background: isDark ? "#30d158" : "rgba(0,0,0,0.15)", position: "relative", cursor: "pointer", transition: "background 0.2s", flexShrink: 0 }}>
-                                <div style={{ position: "absolute", top: 2, left: isDark ? `calc(100% - ${Math.round(sw * 0.046)}px - 2px)` : 2, width: Math.round(sw * 0.046), height: Math.round(sw * 0.046), borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.3)", transition: "left 0.2s" }} />
-                              </div>
-                            </div>
+                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Wallpaper</span>
+                          <div style={{ display: "flex", gap: Math.round(sw * 0.04), flexWrap: "wrap" }}>
+                            {WALLPAPERS.map((url, i) => (
+                              <div
+                                key={i}
+                                onClick={() => setWallpaper(url)}
+                                style={{
+                                  width: Math.round(sw * 0.25), height: Math.round(sw * 0.16),
+                                  borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0,
+                                  backgroundImage: `url("${url}")`, backgroundSize: "cover", backgroundPosition: "center",
+                                  outline: wallpaper === url ? "2.5px solid #0a84ff" : "2.5px solid transparent",
+                                  outlineOffset: 2,
+                                  boxShadow: wallpaper === url ? "0 0 0 1px #0a84ff" : "0 1px 6px rgba(0,0,0,0.4)",
+                                  transition: "outline 0.15s, box-shadow 0.15s",
+                                }}
+                              />
+                            ))}
                           </div>
                         </>)}
 
