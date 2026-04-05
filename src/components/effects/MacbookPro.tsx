@@ -70,6 +70,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [winMinimized, setWinMinimized]   = useState(false)
   const [winMinimizing, setWinMinimizing] = useState(false)
   const [hoveredTl, setHoveredTl]         = useState(-1)
+  const [winPos, setWinPos]               = useState({ x: 0, y: 0 })
+  const winDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -149,6 +151,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setWinMinimized(false)
     setWinMinimizing(false)
     setHoveredTl(-1)
+    setWinPos({ x: 0, y: 0 })
   }, [activeProject])
 
   const getOrigin = (e: React.MouseEvent): string => {
@@ -728,7 +731,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       position: "absolute",
                       ...(winMaximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
-                        : { top: winTop, left: winLeft, width: winW, height: winH }
+                        : { top: winTop + winPos.y, left: winLeft + winPos.x, width: winW, height: winH }
                       ),
                       borderRadius: winMaximized ? 0 : 10,
                       background: winBg,
@@ -738,7 +741,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         : "0 0 0 0.5px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.07), 0 12px 36px rgba(0,0,0,0.12), 0 32px 80px rgba(0,0,0,0.16)",
                       display: "flex", flexDirection: "column",
                       overflow: "hidden", zIndex: 3,
-                      transition: winMinimizing ? "none"
+                      transition: winMinimizing || winDragRef.current ? "none"
                         : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                       animation: winMinimizing
                         ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
@@ -747,13 +750,33 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     }}
                   >
                     {/* Title bar */}
-                    <div style={{
-                      height: titleH, flexShrink: 0,
-                      background: isDark ? "#2c2c2e" : "#ececec",
-                      borderBottom: `0.5px solid ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)"}`,
-                      display: "flex", alignItems: "center",
-                      position: "relative", userSelect: "none",
-                    }}>
+                    <div
+                      onMouseDown={e => {
+                        if (winMaximized) return
+                        e.preventDefault()
+                        winDragRef.current = { startX: e.clientX, startY: e.clientY, ox: winPos.x, oy: winPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          if (!winDragRef.current) return
+                          const dx = ev.clientX - winDragRef.current.startX
+                          const dy = ev.clientY - winDragRef.current.startY
+                          setWinPos({ x: winDragRef.current.ox + dx, y: winDragRef.current.oy + dy })
+                        }
+                        const onUp = () => {
+                          winDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        height: titleH, flexShrink: 0,
+                        background: isDark ? "#2c2c2e" : "#ececec",
+                        borderBottom: `0.5px solid ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)"}`,
+                        display: "flex", alignItems: "center",
+                        position: "relative", userSelect: "none",
+                        cursor: winMaximized ? "default" : "grab",
+                      }}>
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, zIndex: 1 }}>
                         {tl.map((btn, i) => (
                           <div key={i}
