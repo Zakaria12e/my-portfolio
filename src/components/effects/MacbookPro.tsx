@@ -3069,7 +3069,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       <style>{`
         [data-mac-screen] [style*="cursor: pointer"],
         [data-mac-screen] *[style*="cursor:pointer"] {
-          cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424539/link-select_omlszb.svg") 6 0, pointer !important;
+          cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, pointer !important;
         }
         [data-dock], [data-dock] * {
           cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, default !important;
