@@ -1307,7 +1307,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const screenW    = w - 20
                 const baseWinLeft= Math.round((screenW - baseWinW) / 2)
                 const titleH = 22
-                const toolH  = 28
+                // const toolH  = 28
                 const slugMap: Record<string,string> = {
                   react:"react/react-original", typescript:"typescript/typescript-original",
                   ts:"typescript/typescript-original", javascript:"javascript/javascript-original",
@@ -1347,7 +1347,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const winH   = baseWinH
                   const winTop  = baseWinTop  + win.pos.y
                   const winLeft = baseWinLeft + win.pos.x
-                  const btnSz  = Math.round(winW * 0.046)
+                  // const btnSz  = Math.round(winW * 0.046)
                   const tlSz   = Math.round(titleH * 0.54)
                   const tlGap  = Math.round(titleH * 0.45)
                   const tlLeft = Math.round(titleH * 0.64)
