@@ -30,7 +30,9 @@ interface MacbookProProps {
   className?: string
 }
 
-const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd"]
+const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "ls", "mkdir", "touch"]
+const FOLDER_ICON = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403470/folder_ecvyzl.png"
+const FILE_ICON   = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403780/file_a2y8we.png"
 
 interface WinState {
   id: number
@@ -54,11 +56,31 @@ function resolvePath(cwd: string, target: string): string {
   return cwd === "~" ? `~/${target}` : `${cwd}/${target}`
 }
 
-function getDirs(cwd: string, slugs: string[]): string[] {
-  if (cwd === "~") return ["projects"]
-  if (cwd === "~/projects") return [...slugs, ".."]
-  if (/^~\/projects\/[^/]+$/.test(cwd)) return ["src", "public", ".."]
-  return [".."]
+type FsEntry = { name: string; type: "folder" | "file" }
+type TermFs   = Record<string, FsEntry[]>
+
+function getDirs(cwd: string, slugs: string[], userFs: TermFs = {}): string[] {
+  const userDirs = (userFs[cwd] ?? []).filter(e => e.type === "folder").map(e => e.name)
+  if (cwd === "~") return ["projects", ...userDirs]
+  if (cwd === "~/projects") return [...slugs, ...userDirs, ".."]
+  if (/^~\/projects\/[^/]+$/.test(cwd)) return ["src", "public", ...userDirs, ".."]
+  return [...userDirs, ".."]
+}
+
+function getStaticItems(cwd: string, slugs: string[]): FsEntry[] {
+  if (cwd === "~")         return [{ name: "projects", type: "folder" }]
+  if (cwd === "~/projects") return slugs.map(s => ({ name: s, type: "folder" as const }))
+  if (/^~\/projects\/[^/]+$/.test(cwd))         return [
+    { name: "src", type: "folder" }, { name: "public", type: "folder" },
+    { name: "package.json", type: "file" }, { name: "README.md", type: "file" },
+  ]
+  if (/^~\/projects\/[^/]+\/src$/.test(cwd))    return [
+    { name: "index.tsx", type: "file" }, { name: "App.tsx", type: "file" }, { name: "components", type: "folder" },
+  ]
+  if (/^~\/projects\/[^/]+\/public$/.test(cwd)) return [
+    { name: "index.html", type: "file" }, { name: "favicon.ico", type: "file" },
+  ]
+  return []
 }
 
 export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
@@ -102,7 +124,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
   const [termCwd, setTermCwd] = useState("~")
-  const [termLines, setTermLines] = useState<{ text: string; color?: string }[]>([])
+  const [termLines, setTermLines] = useState<{ text?: string; color?: string; items?: FsEntry[] }[]>([])
+  const [termFs, setTermFs] = useState<TermFs>({})
+  const termFsRef = useRef<TermFs>({})
+  const [desktopItems, setDesktopItems] = useState<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
+  const desktopItemIdRef = useRef(0)
+  const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -121,6 +148,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   // Keep openWindowsRef in sync for use in callbacks without stale closures
   openWindowsRef.current = openWindows
+  termFsRef.current = termFs
 
   // Derive focused window / active project (for terminal, finder, etc.)
   const focusedWin = openWindows.find(w => w.id === focusedWinId) ?? null
@@ -255,14 +283,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (cmd.startsWith("cd")) {
       const target = raw.trim().slice(2).trim()
       const newCwd = resolvePath(cwd, target || "~")
-      const valid = [
+      const fs = termFsRef.current
+      const staticValid = [
         "~", "~/projects",
         ...allProjectSlugs.map(s => `~/projects/${s}`),
         ...allProjectSlugs.flatMap(s => [`~/projects/${s}/src`, `~/projects/${s}/public`]),
       ]
-      if (valid.includes(newCwd)) {
+      // also allow cd into user-created folders
+      const parentPath = newCwd.includes("/") ? newCwd.slice(0, newCwd.lastIndexOf("/")) : "~"
+      const entryName  = newCwd.slice(newCwd.lastIndexOf("/") + 1)
+      const isUserFolder = (fs[parentPath] ?? []).some(e => e.name === entryName && e.type === "folder")
+      if (staticValid.includes(newCwd) || isUserFolder) {
         setTermCwd(newCwd)
-        // auto-switch project when cd-ing into a project dir
         const m = newCwd.match(/^~\/projects\/([^/]+)/)
         if (m) {
           const idx = allProjectSlugs.indexOf(m[1])
@@ -273,6 +305,58 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         setTermLines(l => [...l, echo,
           { text: `  cd: no such file or directory: ${target || "~"}`, color: "#ff453a" },
         ])
+      }
+    } else if (cmd === "ls") {
+      const fs = termFsRef.current
+      const staticItems = getStaticItems(cwd, allProjectSlugs)
+      const userItems   = fs[cwd] ?? []
+      const all: FsEntry[] = [...staticItems, ...userItems]
+      if (all.length === 0) {
+        setTermLines(l => [...l, echo, { text: "  (empty directory)", color: "#888" }])
+      } else {
+        setTermLines(l => [...l, echo, { items: all }])
+      }
+    } else if (cmd.startsWith("mkdir")) {
+      const name = raw.trim().slice(5).trim()
+      if (!name) {
+        setTermLines(l => [...l, echo, { text: "  usage: mkdir <name>", color: "#ff453a" }])
+      } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
+        setTermLines(l => [...l, echo, { text: `  mkdir: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+      } else {
+        const fs = termFsRef.current
+        if ((fs[cwd] ?? []).some(e => e.name === name)) {
+          setTermLines(l => [...l, echo, { text: `  mkdir: ${name}: already exists`, color: "#ff9f0a" }])
+        } else {
+          setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "folder" }] }))
+          setTermLines(l => [...l, echo, { text: `  ✓ Created folder: ${name}`, color: "#30d158" }])
+          // place on desktop when created at root
+          if (cwd === "~") {
+            const slot = desktopItemIdRef.current
+            desktopItemIdRef.current += 1
+            setDesktopItems(prev => [...prev, { id: slot, name, type: "folder", slot, dx: 0, dy: 0, selected: false }])
+          }
+        }
+      }
+    } else if (cmd.startsWith("touch")) {
+      const name = raw.trim().slice(5).trim()
+      if (!name) {
+        setTermLines(l => [...l, echo, { text: "  usage: touch <filename>", color: "#ff453a" }])
+      } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
+        setTermLines(l => [...l, echo, { text: `  touch: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+      } else {
+        const fs = termFsRef.current
+        if ((fs[cwd] ?? []).some(e => e.name === name)) {
+          setTermLines(l => [...l, echo, { text: `  ${name}: already exists`, color: "#ff9f0a" }])
+        } else {
+          setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "file" }] }))
+          setTermLines(l => [...l, echo, { text: `  ✓ Created file: ${name}`, color: "#30d158" }])
+          // place on desktop when created at root
+          if (cwd === "~") {
+            const slot = desktopItemIdRef.current
+            desktopItemIdRef.current += 1
+            setDesktopItems(prev => [...prev, { id: slot, name, type: "file", slot, dx: 0, dy: 0, selected: false }])
+          }
+        }
       }
     } else if (cmd === "desc" || cmd === "description") {
       setTermLines(l => [...l, echo,
@@ -310,13 +394,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermLines([])
     } else if (cmd === "help") {
       setTermLines(l => [...l, echo,
-        { text: "  desc      — project description",  color: "#64d2ff" },
-        { text: "  stack     — tech stack",            color: "#64d2ff" },
-        { text: "  features  — key features",          color: "#64d2ff" },
-        { text: "  github    — open GitHub repo",      color: "#64d2ff" },
-        { text: "  live      — open live demo",        color: "#64d2ff" },
-        { text: "  cd <dir>  — navigate directories",  color: "#64d2ff" },
-        { text: "  clear/cls — clear terminal",        color: "#64d2ff" },
+        { text: "  ls              — list directory contents",   color: "#64d2ff" },
+        { text: "  mkdir <name>    — create a folder",           color: "#64d2ff" },
+        { text: "  touch <name>    — create a file",             color: "#64d2ff" },
+        { text: "  cd <dir>        — navigate directories",      color: "#64d2ff" },
+        { text: "  desc            — project description",       color: "#64d2ff" },
+        { text: "  stack           — tech stack",                color: "#64d2ff" },
+        { text: "  features        — key features",              color: "#64d2ff" },
+        { text: "  github          — open GitHub repo",          color: "#64d2ff" },
+        { text: "  live            — open live demo",            color: "#64d2ff" },
+        { text: "  clear/cls       — clear terminal",            color: "#64d2ff" },
       ])
     } else if (cmd === "") {
       setTermLines(l => [...l, echo])
@@ -346,6 +433,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermLines([])
       setTermInput("")
       setTermCwd("~")
+      setTermFs({})
       setTermMinimized(false)
       setTermMinimizing(false)
       setTermMaximized(false)
@@ -759,7 +847,88 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
           <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets}>
             <div style={s.screenOff} />
-            <div style={s.screenOn}>
+            <div style={s.screenOn} onClick={() => setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))}>
+
+              {/* Desktop icons — folders/files created via terminal */}
+              {desktopItems.length > 0 && (() => {
+                const mbH      = Math.round(h * 0.036)
+                const dockH    = Math.round(w * 0.13)
+                const availH   = h - mbH - dockH
+                const iw       = Math.round(w * 0.072)
+                const ih       = Math.round(w * 0.09)
+                const gap      = Math.round(w * 0.014)
+                const padR     = Math.round(w * 0.022)
+                const padT     = Math.round(w * 0.018)
+                const perCol   = Math.max(1, Math.floor((availH - padT) / (ih + gap)))
+                return desktopItems.map(item => {
+                  const col  = Math.floor(item.slot / perCol)
+                  const row  = item.slot % perCol
+                  const bx   = (w - 20) - padR - iw - col * (iw + gap)
+                  const by   = mbH + padT + row * (ih + gap)
+                  const ix   = bx + item.dx
+                  const iy   = by + item.dy
+                  const iconSrc = item.type === "folder" ? FOLDER_ICON : FILE_ICON
+                  return (
+                    <div
+                      key={item.id}
+                      onMouseDown={e => {
+                        e.stopPropagation()
+                        setDesktopItems(prev => prev.map(d => ({ ...d, selected: d.id === item.id })))
+                        desktopDragRef.current = { id: item.id, startX: e.clientX, startY: e.clientY, ox: item.dx, oy: item.dy }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = desktopDragRef.current
+                          if (!drag || drag.id !== item.id) return
+                          setDesktopItems(prev => prev.map(d => d.id === drag.id
+                            ? { ...d, dx: drag.ox + ev.clientX - drag.startX, dy: drag.oy + ev.clientY - drag.startY }
+                            : d
+                          ))
+                        }
+                        const onUp = () => {
+                          desktopDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        position: "absolute",
+                        left: ix, top: iy,
+                        width: iw, height: ih,
+                        display: "flex", flexDirection: "column", alignItems: "center",
+                        gap: Math.round(w * 0.006),
+                        zIndex: 1,
+                        cursor: "default",
+                        userSelect: "none",
+                        borderRadius: 6,
+                        background: item.selected ? "rgba(10,132,255,0.18)" : "transparent",
+                        padding: `${Math.round(w * 0.005)}px`,
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <img
+                        src={iconSrc}
+                        draggable={false}
+                        style={{ width: Math.round(w * 0.054), height: Math.round(w * 0.054), objectFit: "contain", display: "block", flexShrink: 0 }}
+                      />
+                      <span style={{
+                        fontSize: Math.round(w * 0.019),
+                        color: "white",
+                        textAlign: "center",
+                        lineHeight: 1.25,
+                        wordBreak: "break-all",
+                        maxWidth: "100%",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.5)",
+                        padding: `1px ${Math.round(w * 0.006)}px`,
+                        borderRadius: 3,
+                        background: item.selected ? "rgba(10,132,255,0.5)" : "transparent",
+                      }}>
+                        {item.name}
+                      </span>
+                    </div>
+                  )
+                })
+              })()}
 
               {/* Screen scrim — dims wallpaper when a window is open */}
               {(openWindows.some(w => !w.minimized) || (settingsOpen && !settingsMinimized)) && (
@@ -1554,9 +1723,26 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }}
                     >
                       {termLines.map((line, i) => (
-                        <div key={i} style={{ color: line.color ?? termText, paddingBottom: 1, whiteSpace: "pre-wrap", wordBreak: "break-all" as const }}>
-                          {line.text}
-                        </div>
+                        line.items ? (
+                          <div key={i} style={{ display: "flex", flexWrap: "wrap" as const, gap: Math.round(w * 0.016), padding: `${Math.round(w * 0.008)}px 0 ${Math.round(w * 0.006)}px` }}>
+                            {line.items.map((item, j) => (
+                              <div key={j} style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, width: Math.round(w * 0.072), cursor: "default" }}>
+                                <img
+                                  src={item.type === "folder" ? FOLDER_ICON : FILE_ICON}
+                                  width={Math.round(w * 0.046)}
+                                  height={Math.round(w * 0.046)}
+                                  draggable={false}
+                                  style={{ objectFit: "contain", display: "block" }}
+                                />
+                                <span style={{ fontSize: Math.round(w * 0.018), color: termText, textAlign: "center" as const, wordBreak: "break-all" as const, lineHeight: 1.25, maxWidth: "100%" }}>{item.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div key={i} style={{ color: line.color ?? termText, paddingBottom: 1, whiteSpace: "pre-wrap", wordBreak: "break-all" as const }}>
+                            {line.text}
+                          </div>
+                        )
                       ))}
                       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 0 }}>
                         <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>➜</span>
@@ -1582,7 +1768,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               const val = termInput
                               if (val.startsWith("cd ")) {
                                 const partial = val.slice(3)
-                                const dirs = getDirs(termCwd, allProjectSlugs)
+                                const dirs = getDirs(termCwd, allProjectSlugs, termFsRef.current)
                                 const match = dirs.find(d => d.startsWith(partial) && d !== partial)
                                 if (match) setTermInput(`cd ${match}`)
                               } else {
