@@ -781,7 +781,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const baseWinW   = Math.round(w * 0.88)
                 const baseWinH   = Math.round(availH * 0.80)
                 const baseWinTop = mbH + Math.round((availH - baseWinH) * 0.22)
-                const baseWinLeft= Math.round((w - baseWinW) / 2)
+                const screenW    = w - 20
+                const baseWinLeft= Math.round((screenW - baseWinW) / 2)
                 const titleH = 22
                 const toolH  = 28
                 const iconSz = Math.round(toolH * 0.52)
@@ -1081,7 +1082,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const sw = Math.round(w * 0.82)
                 const sh = Math.round(h * 0.75)
                 const baseTop  = mbH + Math.round((h - mbH - sh) * 0.15)
-                const baseLeft = Math.round((w - sw) / 2)
+                const screenW2 = w - 20
+                const baseLeft = Math.round((screenW2 - sw) / 2)
                 const sideW = Math.round(sw * 0.32)
                 const tlSz  = Math.round(22 * 0.54)
                 const tlGap = Math.round(22 * 0.45)
