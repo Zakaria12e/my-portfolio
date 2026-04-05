@@ -166,7 +166,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
   const { theme, setTheme } = useTheme()
-  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  const globalDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  const [macDark, setMacDark] = useState(() => globalDark)
+  const isDark = macDark
 
   // Keep openWindowsRef in sync for use in callbacks without stale closures
   openWindowsRef.current = openWindows
@@ -746,11 +748,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     lid: {
       width: w,
       height: h,
-      background: isDark ? "#1e1e20" : "#e8e8ea",
+      background: globalDark ? "#1e1e20" : "#e8e8ea",
       borderRadius: `${Math.round(w * 0.023)}px ${Math.round(w * 0.023)}px 0 0`,
-      borderTop: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
-      borderLeft: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
-      borderRight: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderTop: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderLeft: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderRight: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
       borderBottom: "none",
       position: "relative",
       overflow: "hidden",
@@ -845,29 +847,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       position: "absolute", top: 0, left: "50%",
       transform: "translateX(-50%)",
       width: 80, height: 5,
-      background: isDark
+      background: globalDark
         ? "linear-gradient(180deg,#4a4a4e 0%,#3a3a3c 100%)"
         : "linear-gradient(180deg,#c0c0c2 0%,#b0b0b2 100%)",
       borderRadius: "0 0 6px 6px",
-      borderLeft: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
-      borderRight: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
-      borderBottom: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderLeft: globalDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderRight: globalDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderBottom: globalDark ? "1px solid #555558" : "1px solid #a0a0a2",
       borderTop: "none",
-      boxShadow: isDark
+      boxShadow: globalDark
         ? "0 2px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)"
         : "0 2px 4px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.5)",
       zIndex: 20,
     },
     base: {
       width: baseW, height: baseH,
-      background: isDark
+      background: globalDark
         ? "linear-gradient(180deg,#2c2c2e 0%,#222224 55%,#1a1a1c 100%)"
         : "linear-gradient(180deg,#dcdcde 0%,#d0d0d2 55%,#c8c8ca 100%)",
       borderRadius: "0 0 8px 8px",
-      borderLeft: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
-      borderRight: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
-      borderBottom: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
-      borderTop: isDark ? "1.5px solid #3a3a3c" : "1.5px solid #e8e8ea",
+      borderLeft: globalDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderRight: globalDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderBottom: globalDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderTop: globalDark ? "1.5px solid #3a3a3c" : "1.5px solid #e8e8ea",
       position: "relative",
     },
     shadow: {
@@ -1377,10 +1379,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   { id: "green",    value: "#30d158" },
                   { id: "graphite", value: "#8e8e93" },
                 ]
-                const panBg      = isDark ? "rgba(28,28,30,0.92)" : "rgba(246,246,248,0.88)"
-                const tileBg     = isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.62)"
-                const tileBgOn   = isDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.96)"
-                const iconBgOff  = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)"
+                const panBg      = isDark ? "rgba(28,28,30,0.88)" : "rgba(255,255,255,0.58)"
+                const tileBg     = isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.72)"
+                const tileBgOn   = isDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.98)"
+                const iconBgOff  = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.07)"
                 const textPri    = isDark ? "rgba(255,255,255,0.93)" : "rgba(0,0,0,0.87)"
                 const textSec    = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.40)"
                 const panBorder  = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
@@ -1397,13 +1399,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       width: panW,
                       zIndex: 20,
                       background: panBg,
-                      backdropFilter: "blur(50px) saturate(2)",
-                      WebkitBackdropFilter: "blur(50px) saturate(2)",
+                      backdropFilter: "blur(60px) saturate(2.2)",
+                      WebkitBackdropFilter: "blur(60px) saturate(2.2)",
                       borderRadius: Math.round(panW * 0.058),
                       border: `0.5px solid ${panBorder}`,
                       boxShadow: isDark
-                        ? "0 4px 24px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset"
-                        : "0 4px 24px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
+                        ? "0 4px 32px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05) inset"
+                        : "0 4px 32px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,1) inset",
                       padding: pad,
                       display: "flex", flexDirection: "column", gap,
                       animation: "ccIn 0.2s cubic-bezier(0.22,1,0.36,1)",
@@ -1414,7 +1416,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       {[
                         {
                           active: isDark, label: "Dark Mode", status: isDark ? "On" : "Off",
-                          onClick: () => setTheme(isDark ? "light" : "dark"),
+                          onClick: () => setMacDark(d => !d),
                           icon: (
                             <svg width={iconSvg} height={iconSvg} viewBox="0 0 24 24" fill="none">
                               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white" />
@@ -2959,12 +2961,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       paddingRight: DOCK_PAD_X,
                       paddingTop: DOCK_PAD_Y,
                       paddingBottom: DOCK_PAD_Y,
-                      background: "rgba(210,210,220,0.15)",
-                      backdropFilter: "blur(18px)",
-                      WebkitBackdropFilter: "blur(18px)",
+                      background: isDark ? "rgba(30,30,32,0.55)" : "rgba(255,255,255,0.28)",
+                      backdropFilter: "blur(28px) saturate(1.8)",
+                      WebkitBackdropFilter: "blur(28px) saturate(1.8)",
                       borderRadius: Math.round(ICON_BASE * 0.48),
-                      border: "0.5px solid rgba(255,255,255,0.2)",
-                      boxShadow: "0 2px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+                      boxShadow: isDark
+                        ? "0 4px 24px rgba(0,0,0,0.5)"
+                        : "0 4px 20px rgba(0,0,0,0.1)",
                       overflow: "visible",
                     }}
                   >
