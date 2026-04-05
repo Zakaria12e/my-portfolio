@@ -134,6 +134,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
   const folderWinIdRef  = useRef(0)
   const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const itemClickRef     = useRef<{ path: string; time: number }>({ path: "", time: 0 })
+  const [fileContents, setFileContents] = useState<Record<string, string>>({})
+  const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
+  const fileEditorIdRef  = useRef(0)
+  const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -455,7 +460,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 2
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -519,7 +524,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     ),
     ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
     ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "itunes"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1 },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -885,12 +891,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         const now = Date.now()
                         const last = desktopClickRef.current
                         if (last.id === item.id && now - last.time < 350) {
-                          // double-click: open folder window
+                          const ipath = `~/${item.name}`
                           if (item.type === "folder") {
                             const fid = folderWinIdRef.current++
                             const fx = Math.round((w - 20) * 0.15) + fid * 24
                             const fy = Math.round(h * 0.1) + fid * 20
-                            setFolderWins(prev => [...prev, { id: fid, name: item.name, path: `~/${item.name}`, pos: { x: fx, y: fy } }])
+                            setFolderWins(prev => [...prev, { id: fid, name: item.name, path: ipath, pos: { x: fx, y: fy } }])
+                          } else {
+                            const existing = fileEditorWins.find(f => f.path === ipath)
+                            if (!existing) {
+                              const eid = fileEditorIdRef.current++
+                              const ex = Math.round((w - 20) * 0.12) + eid * 22
+                              const ey = Math.round(h * 0.09) + eid * 18
+                              setFileEditorWins(prev => [...prev, { id: eid, name: item.name, path: ipath, pos: { x: ex, y: ey } }])
+                            }
                           }
                           desktopClickRef.current = { id: -1, time: 0 }
                           return
@@ -935,14 +949,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         style={{ width: Math.round(w * 0.054), height: Math.round(w * 0.054), objectFit: "contain", display: "block", flexShrink: 0 }}
                       />
                       <span style={{
-                        fontSize: Math.round(w * 0.019),
+                        fontSize: Math.round(w * 0.013),
                         color: "white",
                         textAlign: "center",
-                        lineHeight: 1.25,
+                        lineHeight: 1.2,
                         wordBreak: "break-all",
                         maxWidth: "100%",
-                        textShadow: "0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.5)",
-                        padding: `1px ${Math.round(w * 0.006)}px`,
+                        textShadow: "0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6)",
+                        padding: `1px ${Math.round(w * 0.005)}px`,
                         borderRadius: 3,
                         background: item.selected ? "rgba(10,132,255,0.5)" : "transparent",
                       }}>
@@ -1036,17 +1050,160 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           <span style={{ fontSize: Math.round(w * 0.02), color: fwSub, fontFamily: "-apple-system,sans-serif", opacity: 0.7 }}>Use  touch &lt;name&gt;  in terminal</span>
                         </div>
                       ) : (
-                        contents.map((item, ci) => (
-                          <div key={ci} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: Math.round(fwW * 0.1), cursor: "default" }}>
-                            <img
-                              src={item.type === "folder" ? FOLDER_ICON : FILE_ICON}
-                              draggable={false}
-                              style={{ width: Math.round(fwW * 0.08), height: Math.round(fwW * 0.08), objectFit: "contain", display: "block" }}
-                            />
-                            <span style={{ fontSize: Math.round(w * 0.019), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.25, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
-                          </div>
-                        ))
+                        contents.map((item, ci) => {
+                          const ipath = `${fw.path}/${item.name}`
+                          return (
+                            <div
+                              key={ci}
+                              onMouseDown={() => {
+                                const now = Date.now()
+                                const last = itemClickRef.current
+                                if (last.path === ipath && now - last.time < 350) {
+                                  itemClickRef.current = { path: "", time: 0 }
+                                  if (item.type === "file") {
+                                    const existing = fileEditorWins.find(f => f.path === ipath)
+                                    if (!existing) {
+                                      const eid = fileEditorIdRef.current++
+                                      const ex = Math.round((w - 20) * 0.12) + eid * 22
+                                      const ey = Math.round(h * 0.09) + eid * 18
+                                      setFileEditorWins(prev => [...prev, { id: eid, name: item.name, path: ipath, pos: { x: ex, y: ey } }])
+                                    }
+                                  } else {
+                                    const fid = folderWinIdRef.current++
+                                    setFolderWins(prev => [...prev, { id: fid, name: item.name, path: ipath, pos: { x: Math.round((w-20)*0.15) + fid*24, y: Math.round(h*0.1) + fid*20 } }])
+                                  }
+                                } else {
+                                  itemClickRef.current = { path: ipath, time: now }
+                                }
+                              }}
+                              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: Math.round(fwW * 0.1), cursor: "default", borderRadius: 6, padding: 4 }}
+                            >
+                              <img
+                                src={item.type === "folder" ? FOLDER_ICON : FILE_ICON}
+                                draggable={false}
+                                style={{ width: Math.round(fwW * 0.08), height: Math.round(fwW * 0.08), objectFit: "contain", display: "block" }}
+                              />
+                              <span style={{ fontSize: Math.round(w * 0.016), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.2, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
+                            </div>
+                          )
+                        })
                       )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* File editor windows */}
+              {fileEditorWins.map(fe => {
+                const feW = Math.round(w * 0.66)
+                const feH = Math.round(h * 0.62)
+                const titleH = 22
+                const tlSz3   = Math.round(titleH * 0.54)
+                const tlGap3  = Math.round(titleH * 0.45)
+                const tlLeft3 = Math.round(titleH * 0.64)
+                const edBg    = isDark ? "#1a1a1c" : "#ffffff"
+                const edDiv   = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
+                const edText  = isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)"
+                const edSub   = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.32)"
+                const edLine  = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"
+                const content = fileContents[fe.path] ?? ""
+                const lineCount = content.split("\n").length
+                return (
+                  <div
+                    key={fe.id}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      left: fe.pos.x, top: fe.pos.y,
+                      width: feW, height: feH,
+                      borderRadius: 10,
+                      background: edBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 12px 40px rgba(0,0,0,0.65)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.16)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden",
+                      zIndex: 60 + fe.id,
+                      animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        fileEditorDragRef.current = { id: fe.id, startX: e.clientX, startY: e.clientY, ox: fe.pos.x, oy: fe.pos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = fileEditorDragRef.current
+                          if (!drag || drag.id !== fe.id) return
+                          setFileEditorWins(prev => prev.map(f => f.id === fe.id
+                            ? { ...f, pos: { x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY } }
+                            : f
+                          ))
+                        }
+                        const onUp = () => { fileEditorDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${edDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: "grab" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap3, paddingLeft: tlLeft3 }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41" },
+                          { fill: "#f6be50", border: "#e1a73e" },
+                          { fill: "#61c555", border: "#2dac2f" },
+                        ].map((btn, i) => (
+                          <div key={i}
+                            onClick={e => { e.stopPropagation(); if (i === 0) setFileEditorWins(prev => prev.filter(f => f.id !== fe.id)) }}
+                            style={{ width: tlSz3, height: tlSz3, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: 5 }}>
+                        <span style={{ fontSize: Math.round(w * 0.025), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fe.name}</span>
+                        {content !== (fileContents[fe.path] ?? "") && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#888", display: "inline-block" }} />}
+                      </div>
+                    </div>
+
+                    {/* Editor body */}
+                    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+                      {/* Line numbers */}
+                      <div style={{ width: Math.round(feW * 0.072), flexShrink: 0, background: isDark ? "#161618" : "#f7f7f9", borderRight: `0.5px solid ${edDiv}`, overflowY: "hidden", padding: `${Math.round(feH * 0.022)}px 0`, display: "flex", flexDirection: "column", alignItems: "flex-end", paddingRight: Math.round(feW * 0.018) }}>
+                        {Array.from({ length: Math.max(lineCount, 1) }, (_, i) => (
+                          <div key={i} style={{ fontSize: Math.round(w * 0.018), color: edSub, fontFamily: "'SF Mono','Fira Code',monospace", lineHeight: "1.65", userSelect: "none" }}>{i + 1}</div>
+                        ))}
+                      </div>
+
+                      {/* Textarea */}
+                      <textarea
+                        value={content}
+                        onChange={e => setFileContents(prev => ({ ...prev, [fe.path]: e.target.value }))}
+                        onClick={e => e.stopPropagation()}
+                        onMouseDown={e => e.stopPropagation()}
+                        onKeyDown={e => e.stopPropagation()}
+                        spellCheck={false}
+                        placeholder="Start typing…"
+                        style={{
+                          flex: 1,
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          resize: "none",
+                          padding: `${Math.round(feH * 0.022)}px ${Math.round(feW * 0.03)}px`,
+                          color: edText,
+                          fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
+                          fontSize: Math.round(w * 0.02),
+                          lineHeight: "1.65",
+                          caretColor: "#0a84ff",
+                          scrollbarWidth: "none" as const,
+                        }}
+                      />
+                    </div>
+
+                    {/* Status bar */}
+                    <div style={{ height: 18, flexShrink: 0, background: isDark ? "#161618" : "#f0f0f2", borderTop: `0.5px solid ${edLine}`, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: Math.round(feW * 0.025), gap: Math.round(feW * 0.04) }}>
+                      <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>Ln {lineCount}</span>
+                      <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>{content.length} chars</span>
                     </div>
                   </div>
                 )
@@ -2694,9 +2851,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     </>}
 
+                    {/* iTunes icon */}
+                    {(() => {
+                      const itunesRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const scale = scales[itunesRefIdx] ?? 1
+                      return (
+                        <div
+                          ref={(el) => { iconRefs.current[itunesRefIdx] = el }}
+                          onMouseEnter={() => setHoveredSlot("itunes")}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>iTunes</div>
+                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: "0 1px 5px rgba(0,0,0,0.5)", flexShrink: 0 }}>
+                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775404539/ituns_c2ovl1.png" alt="iTunes" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          </div>
+                        </div>
+                      )
+                    })()}
+
                     {/* Settings icon */}
                     {(() => {
-                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
                       const scale = scales[settingsRefIdx] ?? 1
                       return (
                         <div
