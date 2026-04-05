@@ -83,6 +83,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMaximized, setTermMaximized] = useState(false)
   const [termPos, setTermPos] = useState({ x: 0, y: 0 })
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsPos, setSettingsPos] = useState({ x: 0, y: 0 })
+  const [settingsSel, setSettingsSel] = useState("about")
+  const settingsDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -337,7 +341,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -401,6 +405,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     ),
     ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
     ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
+    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -477,6 +482,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
         }
+        if (item.type === "settings") { setSettingsOpen(o => !o) }
         if (item.type === "github") {
           if (projects && openWindows.length === 0) {
             setTermOrigin("50% 80%"); setTerminalOpen(true)
@@ -1040,6 +1046,159 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   )
                 })
               })()}
+              {/* Settings Window */}
+              {settingsOpen && (() => {
+                const mbH = Math.round(h * 0.036)
+                const sw = Math.round(w * 0.82)
+                const sh = Math.round(h * 0.75)
+                const baseTop  = mbH + Math.round((h - mbH - sh) * 0.15)
+                const baseLeft = Math.round((w - sw) / 2)
+                const sideW = Math.round(sw * 0.32)
+                const tlSz  = Math.round(22 * 0.54)
+                const tlGap = Math.round(22 * 0.45)
+                const tlLeft = Math.round(22 * 0.64)
+                const sideItems = [
+                  { id: "about",      label: "About",        icon: "👤" },
+                  { id: "appearance", label: "Appearance",   icon: "🎨" },
+                  { id: "contact",    label: "Contact",      icon: "✉️" },
+                ]
+                const winBg  = isDark ? "#1c1c1e" : "#f4f4f6"
+                const sideBg = isDark ? "#2c2c2e" : "#e8e8ea"
+                const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
+                const textSec = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"
+                const divClr = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
+                return (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      top: baseTop + settingsPos.y,
+                      left: baseLeft + settingsPos.x,
+                      width: sw, height: sh,
+                      borderRadius: 10,
+                      background: winBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 12px 40px rgba(0,0,0,0.6), 0 32px 80px rgba(0,0,0,0.55)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.14), 0 32px 80px rgba(0,0,0,0.12)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden", zIndex: 10,
+                      animation: "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Title bar */}
+                    <div
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        settingsDragRef.current = { startX: e.clientX, startY: e.clientY, ox: settingsPos.x, oy: settingsPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = settingsDragRef.current
+                          if (!drag) return
+                          setSettingsPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
+                        }
+                        const onUp = () => { settingsDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{ height: 22, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: "grab" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41" },
+                          { fill: "#f6be50", border: "#e1a73e" },
+                          { fill: "#61c555", border: "#2dac2f" },
+                        ].map((btn, i) => (
+                          <div key={i}
+                            onClick={e => { e.stopPropagation(); if (i === 0) { setSettingsOpen(false); setSettingsPos({ x: 0, y: 0 }) } }}
+                            style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <span style={{ fontSize: Math.round(w * 0.026), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>System Settings</span>
+                      </div>
+                    </div>
+
+                    {/* Body: sidebar + content */}
+                    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+                      {/* Sidebar */}
+                      <div style={{ width: sideW, flexShrink: 0, background: sideBg, borderRight: `0.5px solid ${divClr}`, display: "flex", flexDirection: "column", padding: `${Math.round(sh * 0.04)}px 0`, gap: 2, overflowY: "auto" }}>
+                        {sideItems.map(item => (
+                          <div key={item.id}
+                            onClick={() => setSettingsSel(item.id)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: Math.round(sideW * 0.1),
+                              padding: `${Math.round(sh * 0.022)}px ${Math.round(sideW * 0.1)}px`,
+                              borderRadius: 7, margin: `0 ${Math.round(sideW * 0.06)}px`,
+                              background: settingsSel === item.id ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)") : "transparent",
+                              cursor: "pointer", transition: "background 0.12s",
+                            }}
+                          >
+                            <span style={{ fontSize: Math.round(sw * 0.036) }}>{item.icon}</span>
+                            <span style={{ fontSize: Math.round(sw * 0.028), fontWeight: 400, color: textPrimary, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, overflowY: "auto", padding: `${Math.round(sh * 0.06)}px ${Math.round(sw * 0.06)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.03) }}>
+                        {settingsSel === "about" && (<>
+                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(sw * 0.04) }}>
+                            <div style={{ width: Math.round(sw * 0.13), height: Math.round(sw * 0.13), borderRadius: "50%", background: "linear-gradient(135deg,#5856D6,#3634A3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <span style={{ fontSize: Math.round(sw * 0.07), color: "white" }}>Z</span>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: Math.round(sw * 0.038), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Zakaria</span>
+                              <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>Full-Stack Developer</span>
+                            </div>
+                          </div>
+                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.04)}px`, display: "flex", flexDirection: "column", gap: Math.round(sh * 0.025) }}>
+                            {[
+                              { label: "Role",     value: "Full-Stack Developer" },
+                              { label: "Stack",    value: "React · Node.js · TypeScript" },
+                              { label: "Based in", value: "Morocco 🇲🇦" },
+                            ].map(row => (
+                              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>{row.label}</span>
+                                <span style={{ fontSize: Math.round(sw * 0.028), color: textPrimary, fontFamily: "-apple-system,sans-serif", fontWeight: 500 }}>{row.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>)}
+
+                        {settingsSel === "appearance" && (<>
+                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Appearance</span>
+                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.04)}px ${Math.round(sw * 0.04)}px` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: Math.round(sw * 0.028), color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Dark Mode</span>
+                              <div style={{ width: Math.round(sw * 0.1), height: Math.round(sw * 0.052), borderRadius: 100, background: isDark ? "#30d158" : "rgba(0,0,0,0.15)", position: "relative", cursor: "pointer", transition: "background 0.2s", flexShrink: 0 }}>
+                                <div style={{ position: "absolute", top: 2, left: isDark ? `calc(100% - ${Math.round(sw * 0.046)}px - 2px)` : 2, width: Math.round(sw * 0.046), height: Math.round(sw * 0.046), borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.3)", transition: "left 0.2s" }} />
+                              </div>
+                            </div>
+                          </div>
+                        </>)}
+
+                        {settingsSel === "contact" && (<>
+                          <span style={{ fontSize: Math.round(sw * 0.032), fontWeight: 600, color: textPrimary, fontFamily: "-apple-system,sans-serif" }}>Contact</span>
+                          <div style={{ borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", padding: `${Math.round(sh * 0.02)}px ${Math.round(sw * 0.04)}px`, display: "flex", flexDirection: "column" }}>
+                            {[
+                              { label: "GitHub",   value: "github.com/Zakaria12e",  href: "https://github.com/Zakaria12e" },
+                              { label: "LinkedIn", value: "linkedin.com/in/zakaria", href: "#" },
+                              { label: "Email",    value: "hello@zakaria.dev",       href: "mailto:hello@zakaria.dev" },
+                            ].map((row, i, arr) => (
+                              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${Math.round(sh * 0.025)}px 0`, borderBottom: i < arr.length - 1 ? `0.5px solid ${divClr}` : "none" }}>
+                                <span style={{ fontSize: Math.round(sw * 0.028), color: textSec, fontFamily: "-apple-system,sans-serif" }}>{row.label}</span>
+                                <a href={row.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: Math.round(sw * 0.028), color: "#0a84ff", fontFamily: "-apple-system,sans-serif", textDecoration: "none" }}>{row.value}</a>
+                              </div>
+                            ))}
+                          </div>
+                        </>)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Closing animation — exit layer over wallpaper */}
               {closingSrc && (
                 <img
@@ -1634,15 +1793,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 >
                   <div
                     ref={dockRef}
-                    onMouseMove={(e) => {
-                      const mx = e.clientX, my = e.clientY
-                      targetScales.current = iconRefs.current.map((el) => {
-                        if (!el) return 1
-                        const r = el.getBoundingClientRect()
-                        return mx >= r.left && mx <= r.right && my >= r.top && my <= r.bottom ? MAX_SCALE : 1
-                      })
-                      startSpring()
-                    }}
+                    onMouseMove={(e) => { computeTargets(e.clientX) }}
                     onMouseLeave={resetTargets}
                     style={{
                       display: "flex",
@@ -1980,6 +2131,27 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       </div>
                     </>}
+
+                    {/* Settings icon */}
+                    {(() => {
+                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const scale = scales[settingsRefIdx] ?? 1
+                      return (
+                        <div
+                          ref={(el) => { iconRefs.current[settingsRefIdx] = el }}
+                          onMouseEnter={() => setHoveredSlot("settings")}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
+                          onClick={e => { e.stopPropagation(); setSettingsOpen(o => !o) }}
+                        >
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "settings" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>System Settings</div>
+                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: settingsOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
+                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775390749/image-removebg-preview_2_tomul8.png" alt="Settings" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                          </div>
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: settingsOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
+                        </div>
+                      )
+                    })()}
                   </div>
 
                 </div>
