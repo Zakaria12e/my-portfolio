@@ -695,6 +695,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         arrowResetRef.current = setTimeout(resetTargets, 700)
       }
       if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+        // Don't intercept Enter key if an input field is focused (like terminal input)
+        if (document.activeElement?.tagName === "INPUT") return
+        
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
         if (item.type === "finder") { setFinderOpen(o => !o) }
