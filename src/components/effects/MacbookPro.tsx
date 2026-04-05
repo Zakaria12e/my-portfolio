@@ -81,6 +81,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const focusedDockIdxRef = useRef(-1)
+  const arrowResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
@@ -389,6 +390,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           const rect = el.getBoundingClientRect()
           computeTargets(rect.left + rect.width / 2)
         }
+        if (arrowResetRef.current) clearTimeout(arrowResetRef.current)
+        arrowResetRef.current = setTimeout(resetTargets, 700)
       }
       if ((!terminalOpen || termMinimized) && e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
         const item = dockItems[focusedDockIdxRef.current]
@@ -624,7 +627,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             </div>
           </div>
 
-          <div ref={screenRef} style={s.screen}>
+          <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets}>
             <div style={s.screenOff} />
             <div style={s.screenOn}>
 
@@ -1244,7 +1247,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 >
                   <div
                     ref={dockRef}
-                    onMouseMove={(e) => computeTargets(e.clientX)}
+                    onMouseMove={(e) => {
+                      const mx = e.clientX, my = e.clientY
+                      targetScales.current = iconRefs.current.map((el) => {
+                        if (!el) return 1
+                        const r = el.getBoundingClientRect()
+                        return mx >= r.left && mx <= r.right && my >= r.top && my <= r.bottom ? MAX_SCALE : 1
+                      })
+                      startSpring()
+                    }}
                     onMouseLeave={resetTargets}
                     style={{
                       display: "flex",
