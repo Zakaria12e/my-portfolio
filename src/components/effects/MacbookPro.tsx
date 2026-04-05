@@ -32,6 +32,17 @@ interface MacbookProProps {
 
 const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd"]
 
+interface WinState {
+  id: number
+  projectIdx: number
+  pos: { x: number; y: number }
+  maximized: boolean
+  minimized: boolean
+  minimizing: boolean
+  hoveredTl: number
+  activeImg: number
+}
+
 function resolvePath(cwd: string, target: string): string {
   if (!target || target === "~") return "~"
   if (target === "..") {
@@ -52,7 +63,11 @@ function getDirs(cwd: string, slugs: string[]): string[] {
 
 export default function MacbookPro({ src, images: imagesProp, description: descProp, githubUrl: githubProp, liveUrl: liveProp, tags: tagsProp, features: featuresProp, projects, width = 440, className = "" }: MacbookProProps) {
 
-  const [activeProject, setActiveProject] = useState<number | null>(null)
+  const [openWindows, setOpenWindows] = useState<WinState[]>([])
+  const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
+  const winIdRef = useRef(0)
+  const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const openWindowsRef = useRef<WinState[]>([])
   const [quickLookOpen, setQuickLookOpen] = useState(false)
   const [quickLookIdx, setQuickLookIdx] = useState(0)
   const [quickLookMax, setQuickLookMax] = useState(false)
@@ -66,12 +81,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMinimized, setTermMinimized] = useState(false)
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
-  const [winMaximized, setWinMaximized]   = useState(false)
-  const [winMinimized, setWinMinimized]   = useState(false)
-  const [winMinimizing, setWinMinimizing] = useState(false)
-  const [hoveredTl, setHoveredTl]         = useState(-1)
-  const [winPos, setWinPos]               = useState({ x: 0, y: 0 })
-  const winDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -94,7 +103,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const { theme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
-  // Derive active project data
+  // Keep openWindowsRef in sync for use in callbacks without stale closures
+  openWindowsRef.current = openWindows
+
+  // Derive focused window / active project (for terminal, finder, etc.)
+  const focusedWin = openWindows.find(w => w.id === focusedWinId) ?? null
+  const activeProject = focusedWin?.projectIdx ?? null
   const proj = activeProject !== null ? projects?.[activeProject] : undefined
   const images = proj?.images ?? imagesProp
   const description = proj?.description ?? descProp
@@ -104,7 +118,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const features = proj?.features ?? featuresProp
 
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
-  const currentSrc = imgList[activeImg] ?? null
+  const currentSrc = focusedWin ? (imgList[focusedWin.activeImg] ?? null) : (imgList[activeImg] ?? null)
   // In projects mode, dock icons = one per project; otherwise = one per image
   const dockCount = projects ? projects.length : imgList.length
   const hasDock = dockCount > 1
@@ -137,22 +151,60 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const id = setInterval(fmt, 1000)
     return () => clearInterval(id)
   }, [])
-  useEffect(() => {
-    const fromTerminal = terminalOpen
-    setActiveImg(0)
-    if (!fromTerminal) {
-      setTerminalOpen(false)
-      setTermMinimized(false)
-      setTermMinimizing(false)
+  // ── multi-window helpers ───────────────────────────────────────────────────
+  const updateWin = useCallback((id: number, patch: Partial<WinState>) => {
+    setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
+  }, [])
+
+  const focusWin = useCallback((id: number) => {
+    setOpenWindows(ws => {
+      const win = ws.find(w => w.id === id)
+      if (!win) return ws
+      return [...ws.filter(w => w.id !== id), win]
+    })
+    setFocusedWinId(id)
+  }, [])
+
+  const closeWindow = useCallback((id: number) => {
+    const ws = openWindowsRef.current
+    const win = ws.find(w => w.id === id)
+    if (win) {
+      const p = projects?.[win.projectIdx]
+      const csrc = p?.images?.[win.activeImg] ?? null
+      if (csrc) { setClosingSrc(csrc); setTimeout(() => setClosingSrc(null), 400) }
     }
-    setFinderOpen(false)
-    setFinderSel(null)
-    setWinMaximized(false)
-    setWinMinimized(false)
-    setWinMinimizing(false)
-    setHoveredTl(-1)
-    setWinPos({ x: 0, y: 0 })
-  }, [activeProject])
+    setOpenWindows(prev => prev.filter(w => w.id !== id))
+    setFocusedWinId(prev => {
+      if (prev !== id) return prev
+      const remaining = openWindowsRef.current.filter(w => w.id !== id)
+      return remaining.length > 0 ? remaining[remaining.length - 1].id : null
+    })
+  }, [projects])
+
+  const openWindow = useCallback((projectIdx: number) => {
+    const existing = openWindowsRef.current.find(w => w.projectIdx === projectIdx)
+    if (existing) {
+      if (existing.minimized) {
+        setOpenWindows(ws => ws.map(w => w.id === existing.id ? { ...w, minimized: false, minimizing: false } : w))
+      }
+      setOpenWindows(ws => {
+        const win = ws.find(w => w.id === existing.id)
+        if (!win) return ws
+        return [...ws.filter(w => w.id !== existing.id), win]
+      })
+      setFocusedWinId(existing.id)
+      return
+    }
+    const id = ++winIdRef.current
+    const cascadeN = openWindowsRef.current.filter(w => !w.minimized).length
+    setOpenWindows(ws => [...ws, {
+      id, projectIdx,
+      pos: { x: cascadeN * 24, y: cascadeN * 24 },
+      maximized: false, minimized: false, minimizing: false,
+      hoveredTl: -1, activeImg: 0,
+    }])
+    setFocusedWinId(id)
+  }, [])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -191,7 +243,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         const m = newCwd.match(/^~\/projects\/([^/]+)/)
         if (m) {
           const idx = allProjectSlugs.indexOf(m[1])
-          if (idx >= 0) setActiveProject(idx)
+          if (idx >= 0) openWindow(idx)
         }
         setTermLines(l => [...l, echo])
       } else {
@@ -251,7 +303,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ])
     }
     setTermInput("")
-  }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark, allProjectSlugs, setActiveProject])
+  }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark, allProjectSlugs, openWindow])
 
   // Auto-focus input + show welcome hint when terminal opens
   useEffect(() => {
@@ -409,18 +461,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         if (!item) return
         if (item.type === "finder") { setFinderOpen(o => !o) }
         if (item.type === "project") {
-          if (activeProject === item.projIdx) {
-            const src = currentSrc || null
-            setActiveProject(null)
-            if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
-          } else { setActiveProject(item.projIdx) }
+          openWindow(item.projIdx)
         }
         if (item.type === "terminal") {
           if (termMinimized) { setTermMinimized(false); setTimeout(() => inputRef.current?.focus(), 50) }
           else setTerminalOpen(true)
         }
         if (item.type === "github") {
-          if (projects && activeProject === null) {
+          if (projects && openWindows.length === 0) {
             setTermOrigin("50% 80%"); setTerminalOpen(true)
             setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
           } else if (githubUrl && githubUrl !== "#") {
@@ -449,7 +497,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       height: h,
       background: isDark ? "#1e1e20" : "#e8e8ea",
       borderRadius: `${Math.round(w * 0.023)}px ${Math.round(w * 0.023)}px 0 0`,
-      border: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderTop: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderLeft: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderRight: isDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
       borderBottom: "none",
       position: "relative",
       overflow: "hidden",
@@ -489,7 +539,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         backdropFilter: "blur(32px)",
         WebkitBackdropFilter: "blur(32px)",
         borderRadius: `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`,
-        border: "0.5px solid rgba(255,255,255,0.08)",
+        borderLeft: "0.5px solid rgba(255,255,255,0.08)",
+        borderRight: "0.5px solid rgba(255,255,255,0.08)",
+        borderBottom: "0.5px solid rgba(255,255,255,0.08)",
         borderTop: "none",
         boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
         overflow: "hidden",
@@ -545,7 +597,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         ? "linear-gradient(180deg,#4a4a4e 0%,#3a3a3c 100%)"
         : "linear-gradient(180deg,#c0c0c2 0%,#b0b0b2 100%)",
       borderRadius: "0 0 6px 6px",
-      border: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderLeft: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderRight: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
+      borderBottom: isDark ? "1px solid #555558" : "1px solid #a0a0a2",
       borderTop: "none",
       boxShadow: isDark
         ? "0 2px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)"
@@ -558,7 +612,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         ? "linear-gradient(180deg,#2c2c2e 0%,#222224 55%,#1a1a1c 100%)"
         : "linear-gradient(180deg,#dcdcde 0%,#d0d0d2 55%,#c8c8ca 100%)",
       borderRadius: "0 0 8px 8px",
-      border: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderLeft: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderRight: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
+      borderBottom: isDark ? "1px solid #181819" : "1px solid #b8b8ba",
       borderTop: isDark ? "1.5px solid #3a3a3c" : "1.5px solid #e8e8ea",
       position: "relative",
     },
@@ -673,18 +729,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* App Window */}
-              {activeProject !== null && proj && !winMinimized ? (() => {
+              {/* App Windows — one per open project */}
+              {(() => {
                 const mbH    = Math.round(h * 0.036)
                 const availH = h - mbH
-                const winW   = Math.round(w * 0.88)
-                const winH   = Math.round(availH * 0.80)
-                const winTop = mbH + Math.round((availH - winH) * 0.22)
-                const winLeft= Math.round((w - winW) / 2)
+                const baseWinW   = Math.round(w * 0.88)
+                const baseWinH   = Math.round(availH * 0.80)
+                const baseWinTop = mbH + Math.round((availH - baseWinH) * 0.22)
+                const baseWinLeft= Math.round((w - baseWinW) / 2)
                 const titleH = 22
                 const toolH  = 28
                 const iconSz = Math.round(toolH * 0.52)
-                const btnSz  = Math.round(winW * 0.046)
                 const slugMap: Record<string,string> = {
                   react:"react/react-original", typescript:"typescript/typescript-original",
                   ts:"typescript/typescript-original", javascript:"javascript/javascript-original",
@@ -709,41 +764,59 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const slug = slugMap[tag.toLowerCase()]
                   return slug ? `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}.svg` : null
                 }
-                const tlSz   = Math.round(titleH * 0.54)
-                const tlGap  = Math.round(titleH * 0.45)
-                const tlLeft = Math.round(titleH * 0.64)
-                const tl = [
-                  { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
-                    fn: () => { const s = currentSrc; setActiveProject(null); if (s) { setClosingSrc(s); setTimeout(() => setClosingSrc(null), 400) } } },
-                  { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
-                    fn: () => { setWinMinimizing(true); setTimeout(() => { setWinMinimized(true); setWinMinimizing(false) }, 340) } },
-                  { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
-                    fn: () => setWinMaximized(m => !m) },
-                ]
-                const winBg   = isDark ? "#1c1c1e" : "#f4f4f6"
-                const divClr  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
-                const textSec = isDark ? "rgba(255,255,255,0.5)"  : "rgba(0,0,0,0.45)"
-                return (
+                return openWindows.filter(win => !win.minimized).map((win, winIndex) => {
+                  const p = projects?.[win.projectIdx]
+                  if (!p) return null
+                  const pTags    = p.tags ?? tagsProp ?? []
+                  const pImgList = p.images && p.images.length > 0 ? p.images : src ? [src] : []
+                  const pCurSrc  = pImgList[win.activeImg] ?? null
+                  const pGitUrl  = p.githubUrl ?? githubProp
+                  const pLiveUrl = p.liveUrl   ?? liveProp
+                  const pHasGit  = !!pGitUrl && pGitUrl !== "#"
+                  const isFocused = win.id === focusedWinId
+                  const zIdx = 3 + winIndex
+                  const winW   = baseWinW
+                  const winH   = baseWinH
+                  const winTop  = baseWinTop  + win.pos.y
+                  const winLeft = baseWinLeft + win.pos.x
+                  const btnSz  = Math.round(winW * 0.046)
+                  const tlSz   = Math.round(titleH * 0.54)
+                  const tlGap  = Math.round(titleH * 0.45)
+                  const tlLeft = Math.round(titleH * 0.64)
+                  const tl = [
+                    { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                      fn: () => closeWindow(win.id) },
+                    { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
+                      fn: () => { updateWin(win.id, { minimizing: true }); setTimeout(() => updateWin(win.id, { minimized: true, minimizing: false }), 340) } },
+                    { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
+                      fn: () => updateWin(win.id, { maximized: !win.maximized }) },
+                  ]
+                  const winBg   = isDark ? "#1c1c1e" : "#f4f4f6"
+                  const divClr  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"
+                  const textSec = isDark ? "rgba(255,255,255,0.5)"  : "rgba(0,0,0,0.45)"
+                  return (
                   <div
-                    key={activeProject}
-                    onClick={e => e.stopPropagation()}
+                    key={win.id}
+                    onClick={e => { e.stopPropagation(); focusWin(win.id) }}
                     style={{
                       position: "absolute",
-                      ...(winMaximized
+                      ...(win.maximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
-                        : { top: winTop + winPos.y, left: winLeft + winPos.x, width: winW, height: winH }
+                        : { top: winTop, left: winLeft, width: winW, height: winH }
                       ),
-                      borderRadius: winMaximized ? 0 : 10,
+                      borderRadius: win.maximized ? 0 : 10,
                       background: winBg,
-                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.16)"}`,
-                      boxShadow: isDark
-                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.55), 0 32px 80px rgba(0,0,0,0.6)"
-                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.07), 0 12px 36px rgba(0,0,0,0.12), 0 32px 80px rgba(0,0,0,0.16)",
+                      border: `0.5px solid ${isFocused ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.2)") : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.1)")}`,
+                      boxShadow: isFocused
+                        ? (isDark
+                          ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.55), 0 32px 80px rgba(0,0,0,0.6)"
+                          : "0 0 0 0.5px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.07), 0 12px 36px rgba(0,0,0,0.12), 0 32px 80px rgba(0,0,0,0.16)")
+                        : "0 2px 12px rgba(0,0,0,0.2)",
                       display: "flex", flexDirection: "column",
-                      overflow: "hidden", zIndex: 3,
-                      transition: winMinimizing || winDragRef.current ? "none"
+                      overflow: "hidden", zIndex: zIdx,
+                      transition: win.minimizing || winDragRef.current?.winId === win.id ? "none"
                         : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
-                      animation: winMinimizing
+                      animation: win.minimizing
                         ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
                         : "winIn 0.36s cubic-bezier(0.22,1,0.36,1)",
                       transformOrigin: "50% 100%",
@@ -752,14 +825,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {/* Title bar */}
                     <div
                       onMouseDown={e => {
-                        if (winMaximized) return
+                        if (win.maximized) return
                         e.preventDefault()
-                        winDragRef.current = { startX: e.clientX, startY: e.clientY, ox: winPos.x, oy: winPos.y }
+                        focusWin(win.id)
+                        winDragRef.current = { winId: win.id, startX: e.clientX, startY: e.clientY, ox: win.pos.x, oy: win.pos.y }
                         const onMove = (ev: MouseEvent) => {
-                          if (!winDragRef.current) return
-                          const dx = ev.clientX - winDragRef.current.startX
-                          const dy = ev.clientY - winDragRef.current.startY
-                          setWinPos({ x: winDragRef.current.ox + dx, y: winDragRef.current.oy + dy })
+                          const drag = winDragRef.current
+                          if (!drag) return
+                          const dx = ev.clientX - drag.startX
+                          const dy = ev.clientY - drag.startY
+                          setOpenWindows(ws => ws.map(w => w.id === drag.winId
+                            ? { ...w, pos: { x: drag.ox + dx, y: drag.oy + dy } }
+                            : w
+                          ))
                         }
                         const onUp = () => {
                           winDragRef.current = null
@@ -775,14 +853,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         borderBottom: `0.5px solid ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)"}`,
                         display: "flex", alignItems: "center",
                         position: "relative", userSelect: "none",
-                        cursor: winMaximized ? "default" : "grab",
+                        cursor: win.maximized ? "default" : "grab",
                       }}>
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, zIndex: 1 }}>
                         {tl.map((btn, i) => (
                           <div key={i}
                             onClick={e => { e.stopPropagation(); btn.fn() }}
-                            onMouseEnter={() => setHoveredTl(i)}
-                            onMouseLeave={() => setHoveredTl(-1)}
+                            onMouseEnter={() => updateWin(win.id, { hoveredTl: i })}
+                            onMouseLeave={() => updateWin(win.id, { hoveredTl: -1 })}
                             style={{
                               width: tlSz, height: tlSz, borderRadius: "50%",
                               background: btn.fill, border: `0.5px solid ${btn.border}`,
@@ -792,7 +870,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           >
                             <span style={{
                               fontSize: Math.round(tlSz * 0.58), lineHeight: 1, fontWeight: 900,
-                              color: btn.symClr, opacity: hoveredTl === i ? 1 : 0,
+                              color: btn.symClr, opacity: win.hoveredTl === i ? 1 : 0,
                               transition: "opacity 0.08s", userSelect: "none",
                             }}>{btn.sym}</span>
                           </div>
@@ -808,7 +886,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)",
                           letterSpacing: -0.1,
                           fontFamily: "-apple-system,'SF Pro Text','Helvetica Neue',sans-serif",
-                        }}>{proj.title}</span>
+                        }}>{p.title}</span>
                       </div>
                     </div>
 
@@ -823,7 +901,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     }}>
                       {/* Stack icons */}
                       <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.012) }}>
-                        {(tags ?? []).slice(0, 7).map((tag, i) => {
+                        {pTags.slice(0, 7).map((tag, i) => {
                           const url = deviconUrl(tag)
                           return (
                             <div key={i} title={tag} style={{
@@ -848,9 +926,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                       {/* Actions: Live + GitHub */}
                       <div style={{ display: "flex", alignItems: "center", gap: Math.round(winW * 0.018) }}>
-                        {liveUrl && liveUrl !== "#" && (
+                        {pLiveUrl && pLiveUrl !== "#" && (
                           <div
-                            onClick={e => { e.stopPropagation(); window.open(liveUrl, "_blank", "noopener,noreferrer") }}
+                            onClick={e => { e.stopPropagation(); window.open(pLiveUrl, "_blank", "noopener,noreferrer") }}
                             onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
                             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
                             style={{
@@ -871,9 +949,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }}>Live</span>
                           </div>
                         )}
-                        {hasGithub && (
+                        {pHasGit && (
                           <div
-                            onClick={e => { e.stopPropagation(); window.open(githubUrl, "_blank", "noopener,noreferrer") }}
+                            onClick={e => { e.stopPropagation(); window.open(pGitUrl, "_blank", "noopener,noreferrer") }}
                             onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}
                             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
                             style={{
@@ -898,8 +976,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Screenshot — full content */}
                     <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#050507" }}>
-                      {imgList.length > 0 && currentSrc ? (
-                        <img key={activeImg} src={currentSrc} alt="screen"
+                      {pImgList.length > 0 && pCurSrc ? (
+                        <img key={win.activeImg} src={pCurSrc} alt="screen"
                           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
                             animation: "mbImg 0.28s cubic-bezier(0.16,1,0.3,1)" }}
                         />
@@ -910,17 +988,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       )}
 
                       {/* Prev arrow */}
-                      {imgList.length > 1 && (
-                        <div onClick={e => { e.stopPropagation(); setActiveImg(i => Math.max(0, i - 1)) }}
+                      {pImgList.length > 1 && (
+                        <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.max(0, win.activeImg - 1) }) }}
                           style={{
                             position: "absolute", left: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
                             width: btnSz, height: btnSz, borderRadius: "50%",
                             background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
                             border: "0.5px solid rgba(255,255,255,0.13)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: activeImg === 0 ? "default" : "pointer",
-                            opacity: activeImg === 0 ? 0.2 : 1, transition: "opacity 0.15s",
-                            pointerEvents: activeImg === 0 ? "none" : "auto", zIndex: 2,
+                            cursor: win.activeImg === 0 ? "default" : "pointer",
+                            opacity: win.activeImg === 0 ? 0.2 : 1, transition: "opacity 0.15s",
+                            pointerEvents: win.activeImg === 0 ? "none" : "auto", zIndex: 2,
                           }}>
                           <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
                             <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -929,17 +1007,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       )}
 
                       {/* Next arrow */}
-                      {imgList.length > 1 && (
-                        <div onClick={e => { e.stopPropagation(); setActiveImg(i => Math.min(imgList.length - 1, i + 1)) }}
+                      {pImgList.length > 1 && (
+                        <div onClick={e => { e.stopPropagation(); updateWin(win.id, { activeImg: Math.min(pImgList.length - 1, win.activeImg + 1) }) }}
                           style={{
                             position: "absolute", right: Math.round(winW * 0.022), top: "50%", transform: "translateY(-50%)",
                             width: btnSz, height: btnSz, borderRadius: "50%",
                             background: "rgba(0,0,0,0.46)", backdropFilter: "blur(12px)",
                             border: "0.5px solid rgba(255,255,255,0.13)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: activeImg === imgList.length - 1 ? "default" : "pointer",
-                            opacity: activeImg === imgList.length - 1 ? 0.2 : 1, transition: "opacity 0.15s",
-                            pointerEvents: activeImg === imgList.length - 1 ? "none" : "auto", zIndex: 2,
+                            cursor: win.activeImg === pImgList.length - 1 ? "default" : "pointer",
+                            opacity: win.activeImg === pImgList.length - 1 ? 0.2 : 1, transition: "opacity 0.15s",
+                            pointerEvents: win.activeImg === pImgList.length - 1 ? "none" : "auto", zIndex: 2,
                           }}>
                           <svg width={btnSz * 0.4} height={btnSz * 0.4} viewBox="0 0 24 24" fill="none">
                             <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -949,8 +1027,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     </div>
                   </div>
-                )
-              })() : null}
+                  )
+                })
+              })()}
               {/* Closing animation — exit layer over wallpaper */}
               {closingSrc && (
                 <img
@@ -1602,7 +1681,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {/* Projects mode: one icon per project */}
                     {hasDock && projects && projects.map((p, idx) => {
                       const scale = scales[idx + 1] ?? 1
-                      const isActive = idx === activeProject
+                      const isActive = openWindows.some(w => w.projectIdx === idx)
                       const iconSrc = isDark ? (p.iconDark ?? p.icon) : (p.icon ?? p.iconDark)
                       const thumb = iconSrc ?? p.images?.[0]
                       const slotKey = `proj-${idx}`
@@ -1619,17 +1698,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            if (activeProject === idx) {
-                              if (winMinimized) {
-                                setWinMinimized(false)
-                              } else {
-                                const src = currentSrc || null
-                                setActiveProject(null)
-                                if (src) { setClosingSrc(src); setTimeout(() => setClosingSrc(null), 400) }
-                              }
-                            } else {
-                              setActiveProject(idx)
-                            }
+                            openWindow(idx)
                           }}
                         >
                           {/* label */}
@@ -1812,7 +1881,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          if (projects && activeProject === null) {
+                          if (projects && openWindows.length === 0) {
                             setTermOrigin(getOrigin(e)); setTerminalOpen(true)
                             setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
                           } else if (githubUrl && githubUrl !== "#") {
