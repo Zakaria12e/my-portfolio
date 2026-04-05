@@ -543,7 +543,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 2
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -607,8 +607,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     ),
     ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
     ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "safari"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "settings" as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "vscode"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "messages" as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "safari"   as const, refIdx: dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "settings" as const, refIdx: dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -3281,20 +3283,54 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           transition: "opacity 0.12s ease",
                           boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                         }}>GitHub</div>
-                        <svg
-                          width={slotSize} height={slotSize}
-                          viewBox="0 0 24 24"
-                          fill={isDark ? "white" : "#1b1f24"}
-                          style={{ transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform", flexShrink: 0, display: "block" }}
-                        >
-                          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
-                        </svg>
+                        <img
+                          src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png"
+                          alt="GitHub"
+                          draggable={false}
+                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                        />
                       </div>
                     </>}
 
+                    {/* VSCode icon */}
+                    {(() => {
+                      const vscodeRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const scale = scales[vscodeRefIdx] ?? 1
+                      return (
+                        <div
+                          ref={(el) => { iconRefs.current[vscodeRefIdx] = el }}
+                          onMouseEnter={() => setHoveredSlot("vscode")}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
+                          onClick={e => { e.stopPropagation() }}
+                        >
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Visual Studio Code</div>
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429665/128_na5mv8.webp" alt="VSCode" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                        </div>
+                      )
+                    })()}
+
+                    {/* Messages icon */}
+                    {(() => {
+                      const messagesRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const scale = scales[messagesRefIdx] ?? 1
+                      return (
+                        <div
+                          ref={(el) => { iconRefs.current[messagesRefIdx] = el }}
+                          onMouseEnter={() => setHoveredSlot("messages")}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
+                          onClick={e => { e.stopPropagation() }}
+                        >
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Messages</div>
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                        </div>
+                      )
+                    })()}
+
                     {/* Safari icon */}
                     {(() => {
-                      const safariRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const safariRefIdx = dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[safariRefIdx] ?? 1
                       return (
                         <div
@@ -3325,7 +3361,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Settings icon */}
                     {(() => {
-                      const settingsRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const settingsRefIdx = dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[settingsRefIdx] ?? 1
                       return (
                         <div
