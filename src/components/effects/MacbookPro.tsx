@@ -157,6 +157,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const inputRef    = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
+  const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
   const focusedDockIdxRef = useRef(-1)
   const arrowResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -729,6 +730,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             window.open(githubUrl, "_blank", "noopener,noreferrer")
           }
         }
+        if (item.type === "vscode") {
+          if (vscodeAudioRef.current) {
+            vscodeAudioRef.current.pause()
+            vscodeAudioRef.current.currentTime = 0
+            vscodeAudioRef.current.play().catch(() => {})
+          }
+        }
       }
     }
     window.addEventListener("keydown", onKey, { capture: true })
@@ -894,6 +902,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       className={className}
       style={s.scene}
     >
+      <audio ref={vscodeAudioRef} src="/sounds/trum-vscode-cmt.mp3" preload="auto" />
       <div style={s.lid}>
         <div style={s.bezel}>
           <div style={{
@@ -2954,7 +2963,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onMouseEnter={() => setHoveredSlot("vscode")}
                           onMouseLeave={() => setHoveredSlot(null)}
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
-                          onClick={e => { e.stopPropagation() }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (vscodeAudioRef.current) {
+                              vscodeAudioRef.current.pause()
+                              vscodeAudioRef.current.currentTime = 0
+                              vscodeAudioRef.current.play().catch(() => {})
+                            }
+                          }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Visual Studio Code</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429665/128_na5mv8.webp" alt="VSCode" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
