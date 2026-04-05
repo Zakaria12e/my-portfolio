@@ -142,6 +142,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
+  const macRef      = useRef<HTMLDivElement>(null)
   const screenRef   = useRef<HTMLDivElement>(null)
   const dockRef     = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
@@ -203,6 +204,26 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const id = setInterval(fmt, 1000)
     return () => clearInterval(id)
   }, [])
+  // ── scroll-based wake/sleep ────────────────────────────────────────────────
+  useEffect(() => {
+    const el = macRef.current
+    if (!el) return
+    let wakeTimer: ReturnType<typeof setTimeout> | null = null
+    const check = () => {
+      const rect = el.getBoundingClientRect()
+      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)
+      const ratio = Math.max(0, visible) / rect.height
+      if (ratio >= 0.65) {
+        if (!wakeTimer) wakeTimer = setTimeout(() => setHovered(true), 100)
+      } else {
+        if (wakeTimer) { clearTimeout(wakeTimer); wakeTimer = null }
+        setHovered(false)
+      }
+    }
+    window.addEventListener("scroll", check, { passive: true })
+    return () => { window.removeEventListener("scroll", check); if (wakeTimer) clearTimeout(wakeTimer) }
+  }, [])
+
   // ── multi-window helpers ───────────────────────────────────────────────────
   const updateWin = useCallback((id: number, patch: Partial<WinState>) => {
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
@@ -844,10 +865,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   return (
     <div
+      ref={macRef}
       className={className}
       style={s.scene}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <div style={s.lid}>
         <div style={s.bezel}>
