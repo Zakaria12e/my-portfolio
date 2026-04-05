@@ -118,7 +118,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const features = proj?.features ?? featuresProp
 
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
-  const currentSrc = focusedWin ? (imgList[focusedWin.activeImg] ?? null) : (imgList[activeImg] ?? null)
   // In projects mode, dock icons = one per project; otherwise = one per image
   const dockCount = projects ? projects.length : imgList.length
   const hasDock = dockCount > 1
