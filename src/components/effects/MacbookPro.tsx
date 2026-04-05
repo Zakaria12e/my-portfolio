@@ -3049,22 +3049,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         transition: "opacity 0.12s ease",
                         boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                       }}>Finder</div>
-                      <div style={{
-                        width: slotSize, height: slotSize,
-                        transform: `scale(${scales[0] ?? 1})`,
-                        transformOrigin: "bottom center",
-                        willChange: "transform",
-                        borderRadius: Math.round(slotSize * 0.22),
-                        overflow: "hidden",
-                        flexShrink: 0,
-                      }}>
-                        <img
-                          src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775311266/finder-mac-removebg-preview_tuvtfs.png"
-                          alt="app icon"
-                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                          draggable={false}
-                        />
-                      </div>
+                      <img
+                        src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775311266/finder-mac-removebg-preview_tuvtfs.png"
+                        alt="Finder"
+                        draggable={false}
+                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                      />
                     </div>
 
                     {/* Separator between app icon and thumbnails */}
@@ -3118,43 +3108,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             transition: "opacity 0.12s ease",
                             boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                           }}>{p.title ?? `Project ${idx + 1}`}</div>
-                          <div style={{
-                            width: slotSize, height: slotSize,
-                            transform: `scale(${scale})`,
-                            transformOrigin: "bottom center",
-                            willChange: "transform",
-                            borderRadius: Math.round(slotSize * 0.22),
-                            overflow: "hidden",
-                            boxShadow: isActive
-                              ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)"
-                              : "0 1px 5px rgba(0,0,0,0.5)",
-                            transition: "box-shadow 0.2s",
-                            flexShrink: 0,
-                            background: [
-                              "linear-gradient(135deg,#1A88FE,#0055D4)",
-                              "linear-gradient(135deg,#34C759,#248A3D)",
-                              "linear-gradient(135deg,#FF3B30,#C0001A)",
-                              "linear-gradient(135deg,#FF9500,#C65900)",
-                              "linear-gradient(135deg,#AF52DE,#7026B9)",
-                              "linear-gradient(135deg,#5856D6,#3634A3)",
-                              "linear-gradient(135deg,#32ADE6,#007AFF)",
-                              "linear-gradient(135deg,#FF2D55,#D60034)",
-                            ][idx % 8],
-                          }}>
-                            {thumb
-                              ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: iconSrc ? "contain" : "cover", padding: iconSrc ? "14%" : 0, display: "block", boxSizing: "border-box" }} draggable={false} />
-                              : <div style={{ width: "100%", height: "100%", background: [
-                                  "linear-gradient(135deg,#5e5ce6,#3634a3)",
-                                  "linear-gradient(135deg,#30d158,#248a3d)",
-                                  "linear-gradient(135deg,#ff6369,#d70015)",
-                                  "linear-gradient(135deg,#ffd60a,#ff9500)",
-                                  "linear-gradient(135deg,#64d2ff,#0071e3)",
-                                  "linear-gradient(135deg,#ff9f0a,#c93400)",
-                                  "linear-gradient(135deg,#bf5af2,#6e2fbb)",
-                                  "linear-gradient(135deg,#32d74b,#0a84ff)",
-                                ][idx % 8] }} />
-                            }
-                          </div>
+                          {thumb
+                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8] }} />
+                          }
                           <div style={{
                             position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
                             transform: "translateX(-50%)", width: 2.5, height: 2.5,
@@ -3262,28 +3219,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             fontWeight: 400,
                           }}>⌘↩</span>
                         </div>
-                        <div style={{
-                          width: slotSize, height: slotSize,
-                          transform: `scale(${scales[dockCount + 1] ?? 1})`,
-                          transformOrigin: "bottom center",
-                          willChange: "transform",
-                          borderRadius: Math.round(slotSize * 0.22),
-                          background: isDark
-                            ? (terminalOpen ? "linear-gradient(145deg,#1a1a2e,#16213e)" : "linear-gradient(145deg,#1c1c1e,#2c2c2e)")
-                            : (terminalOpen ? "linear-gradient(145deg,#e8f5e9,#f0f8ff)" : "#ffffff"),
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          boxShadow: terminalOpen
-                            ? "0 0 0 1.5px #30d158, 0 2px 8px rgba(0,0,0,0.6)"
-                            : "0 1px 5px rgba(0,0,0,0.6)",
-                          transition: "box-shadow 0.2s, background 0.2s",
-                          flexShrink: 0,
-                          animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
-                        }}>
-                          <svg width={slotSize * 0.5} height={slotSize * 0.5} viewBox="0 0 24 24" fill="none">
-                            <polyline points="4 17 10 11 4 5" stroke={isDark ? "white" : "#1c1c1e"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            <line x1="12" y1="19" x2="20" y2="19" stroke={isDark ? "white" : "#1c1c1e"} strokeWidth="2.5" strokeLinecap="round"/>
-                          </svg>
-                        </div>
+                        <img
+                          src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png"
+                          draggable={false}
+                          style={{
+                            width: slotSize, height: slotSize,
+                            transform: `scale(${scales[dockCount + 1] ?? 1})`,
+                            transformOrigin: "bottom center",
+                            willChange: "transform",
+                            flexShrink: 0,
+                            objectFit: "contain",
+                            display: "block",
+                            animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
+                          }}
+                        />
                       </div>
                     </>}
 
@@ -3330,21 +3279,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           transition: "opacity 0.12s ease",
                           boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                         }}>GitHub</div>
-                        <div style={{
-                          width: slotSize, height: slotSize,
-                          transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`,
-                          transformOrigin: "bottom center",
-                          willChange: "transform",
-                          borderRadius: Math.round(slotSize * 0.22),
-                          background: "linear-gradient(145deg,#24292e,#1a1f24)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          boxShadow: "0 1px 5px rgba(0,0,0,0.6)",
-                          flexShrink: 0,
-                        }}>
-                          <svg width={slotSize * 0.56} height={slotSize * 0.56} viewBox="0 0 24 24" fill="white">
-                            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
-                          </svg>
-                        </div>
+                        <svg
+                          width={slotSize} height={slotSize}
+                          viewBox="0 0 24 24"
+                          fill={isDark ? "white" : "#1b1f24"}
+                          style={{ transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform", flexShrink: 0, display: "block" }}
+                        >
+                          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
                       </div>
                     </>}
 
@@ -3373,9 +3315,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Safari</div>
-                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: safariOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
-                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          </div>
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
@@ -3401,9 +3341,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "settings" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>System Settings</div>
-                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: settingsOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
-                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775390749/image-removebg-preview_2_tomul8.png" alt="Settings" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                          </div>
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775390749/image-removebg-preview_2_tomul8.png" alt="Settings" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: settingsOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
