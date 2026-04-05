@@ -3054,7 +3054,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
                       }}>Finder</div>
                       <img
-                        src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775311266/finder-mac-removebg-preview_tuvtfs.png"
+                        src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png"
                         alt="Finder"
                         draggable={false}
                         style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
@@ -3379,7 +3379,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "settings" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>System Settings</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775390749/image-removebg-preview_2_tomul8.png" alt="Settings" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="Settings" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: settingsOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
