@@ -87,7 +87,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
-  const [windowOrder, setWindowOrder] = useState<(number | "settings" | "terminal")[]>([])
+  const [windowOrder, setWindowOrder] = useState<(number | "settings" | "terminal" | "safari")[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -139,6 +139,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const [safariOpen, setSafariOpen] = useState(false)
+  const [safariMinimized, setSafariMinimized] = useState(false)
+  const [safariMinimizing, setSafariMinimizing] = useState(false)
+  const [safariMaximized, setSafariMaximized] = useState(false)
+  const [safariPos, setSafariPos] = useState({ x: 0, y: 0 })
+  const [safariUrl, setSafariUrl] = useState("")
+  const [safariInput, setSafariInput] = useState("")
+  const [safariHoveredTl, setSafariHoveredTl] = useState(-1)
+  const safariDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -229,7 +238,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
 
-  const bringToFront = useCallback((key: number | "settings") => {
+  const bringToFront = useCallback((key: number | "settings" | "safari") => {
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
@@ -528,7 +537,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [termLines])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 1
+    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 2
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -592,7 +601,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     ),
     ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
     ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "settings" as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "safari"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "settings" as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -611,6 +621,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         const top = [...windowOrder].reverse().find(k => {
           if (k === "settings") return settingsOpen && !settingsMinimized
           if (k === "terminal") return terminalOpen && !termMinimized
+          if (k === "safari") return safariOpen && !safariMinimized
           return openWindows.some(w => w.id === k && !w.minimized)
         })
         if (top === "settings") {
@@ -618,6 +629,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           setSettingsPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "settings"))
         } else if (top === "terminal") {
           setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal"))
+        } else if (top === "safari") {
+          setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false)
+          setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari"))
         } else if (typeof top === "number") {
           closeWindow(top)
         }
@@ -692,6 +706,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
             setTimeout(() => inputRef.current?.focus(), 50)
           }
+        }
+        if (item.type === "safari") {
+          if (safariOpen && safariMinimized) { setSafariMinimized(false); bringToFront("safari") }
+          else { setSafariOpen(o => !o); bringToFront("safari") }
         }
         if (item.type === "settings") {
           if (settingsOpen && settingsMinimized) { setSettingsMinimized(false); bringToFront("settings") }
@@ -2324,6 +2342,169 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
+              {/* Safari Window */}
+              {safariOpen && !safariMinimized && (() => {
+                const mbH   = Math.round(h * 0.036)
+                const sw2   = Math.round(w * 0.9)
+                const sh2   = Math.round(h * 0.82)
+                const baseTop  = mbH + Math.round((h - mbH - sh2) * 0.1)
+                const screenW2 = w - 20
+                const baseLeft = Math.round((screenW2 - sw2) / 2)
+                const tlSz  = Math.round(22 * 0.54)
+                const tlGap = Math.round(22 * 0.45)
+                const tlLeft = Math.round(22 * 0.64)
+                const toolbarH = Math.round(sh2 * 0.068)
+                const tabH     = Math.round(sh2 * 0.042)
+                const bg    = isDark ? "#1c1c1e" : "#f0f0f2"
+                const toolBg = isDark ? "#2c2c2e" : "#e8e8ea"
+                const inputBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
+                const divClr  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"
+                const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
+                const textSec     = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)"
+                const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
+                const fs = (n: number) => Math.round(sw2 * n)
+                const navigate = (raw: string) => {
+                  let url = raw.trim()
+                  if (!url) return
+                  if (!/^https?:\/\//i.test(url)) url = "https://" + url
+                  setSafariUrl(url)
+                  setSafariInput(url)
+                }
+                return (
+                  <div
+                    onClick={e => { e.stopPropagation(); bringToFront("safari"); setFocusedWinId(null) }}
+                    style={{
+                      position: "absolute",
+                      ...(safariMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { top: baseTop + safariPos.y, left: baseLeft + safariPos.x, width: sw2, height: sh2 }
+                      ),
+                      borderRadius: safariMaximized ? 0 : 10,
+                      background: bg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 12px 40px rgba(0,0,0,0.7), 0 32px 80px rgba(0,0,0,0.6)"
+                        : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.14), 0 32px 80px rgba(0,0,0,0.12)",
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden",
+                      zIndex: 3 + (windowOrder.indexOf("safari") >= 0 ? windowOrder.indexOf("safari") : 0),
+                      animation: "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Title bar + URL bar */}
+                    <div
+                      onMouseDown={e => {
+                        if (safariMaximized) return
+                        e.preventDefault()
+                        safariDragRef.current = { startX: e.clientX, startY: e.clientY, ox: safariPos.x, oy: safariPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const d = safariDragRef.current; if (!d) return
+                          setSafariPos({ x: d.ox + ev.clientX - d.startX, y: d.oy + ev.clientY - d.startY })
+                        }
+                        const onUp = () => { safariDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{ height: toolbarH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.01), paddingRight: Math.round(sw2 * 0.015), userSelect: "none", cursor: "grab" }}
+                    >
+                      {/* Traffic lights */}
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}
+                        onMouseEnter={() => setSafariHoveredTl(0)}
+                        onMouseLeave={() => setSafariHoveredTl(-1)}
+                      >
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
+                          { fill: "#f6be50", border: "#e1a73e", sym: "−", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", sym: "⤢", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
+                        ].map((btn, i) => (
+                          <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }}
+                            style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontSize: tlSz * 0.72, color: "rgba(0,0,0,0.55)", lineHeight: 1, fontWeight: 700, opacity: safariHoveredTl >= 0 ? 1 : 0, transition: "opacity 0.1s" }}>{btn.sym}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Back / Forward */}
+                      <div style={{ display: "flex", gap: 2, marginLeft: Math.round(sw2 * 0.01), flexShrink: 0 }}>
+                        {["‹", "›"].map((ch, i) => (
+                          <div key={i} style={{ width: Math.round(sw2 * 0.032), height: Math.round(sw2 * 0.032), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: Math.round(sw2 * 0.008), background: "transparent", cursor: "default", color: textSec, fontSize: Math.round(sw2 * 0.028), fontWeight: 300, fontFamily: ff }}>{ch}</div>
+                        ))}
+                      </div>
+                      {/* URL bar */}
+                      <div style={{ flex: 1, height: Math.round(toolbarH * 0.52), background: inputBg, borderRadius: Math.round(toolbarH * 0.28), display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.008), gap: Math.round(sw2 * 0.006), border: `0.5px solid ${divClr}` }}>
+                        <svg width={Math.round(sw2 * 0.014)} height={Math.round(sw2 * 0.014)} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill={textSec as string} />
+                        </svg>
+                        <input
+                          value={safariInput}
+                          onChange={e => setSafariInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") navigate(safariInput) }}
+                          onFocus={e => e.target.select()}
+                          onClick={e => e.stopPropagation()}
+                          placeholder="Search or enter website name"
+                          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
+                        />
+                        {safariInput && (
+                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>×</div>
+                        )}
+                      </div>
+                      {/* Share button */}
+                      <div style={{ width: Math.round(sw2 * 0.034), height: Math.round(sw2 * 0.034), display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
+                        <svg width={Math.round(sw2 * 0.022)} height={Math.round(sw2 * 0.022)} viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2v12M8 6l4-4 4 4M4 16v4h16v-4" stroke={textSec as string} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Tab bar */}
+                    <div style={{ height: tabH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.012), gap: Math.round(sw2 * 0.008) }}>
+                      <div style={{ height: Math.round(tabH * 0.72), paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.012), background: isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.8)", borderRadius: Math.round(tabH * 0.28), display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.008), minWidth: Math.round(sw2 * 0.16), maxWidth: Math.round(sw2 * 0.25), border: `0.5px solid ${divClr}` }}>
+                        <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
+                        <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{safariUrl ? (() => { try { return new URL(safariUrl.startsWith("http") ? safariUrl : "https://" + safariUrl).hostname } catch { return safariUrl } })() : "New Tab"}</span>
+                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>×</span>
+                      </div>
+                      <div style={{ width: Math.round(tabH * 0.65), height: Math.round(tabH * 0.65), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.018), borderRadius: 4 }}>+</div>
+                    </div>
+
+                    {/* Content area */}
+                    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: isDark ? "#1c1c1e" : "#ffffff" }}>
+                      {safariUrl ? (
+                        <iframe
+                          key={safariUrl}
+                          src={safariUrl}
+                          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                          title="Safari"
+                        />
+                      ) : (
+                        /* Start page */
+                        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.12), gap: Math.round(sh2 * 0.032), background: isDark ? "linear-gradient(180deg,#1c1c1e 0%,#232325 100%)" : "linear-gradient(180deg,#f8f8fa 0%,#ffffff 100%)", overflow: "auto" }}>
+                          {/* Safari compass icon */}
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
+                          <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
+                          {/* Favorites */}
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: Math.round(sw2 * 0.018), width: Math.round(sw2 * 0.72) }}>
+                            {[
+                              { label: "GitHub", url: "https://github.com", color: "#24292e", icon: "G" },
+                              { label: "Google", url: "https://google.com", color: "#4285f4", icon: "G" },
+                              { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "▶" },
+                              { label: "MDN", url: "https://developer.mozilla.org", color: "#0065a2", icon: "M" },
+                              { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "▲" },
+                              { label: "NPM", url: "https://npmjs.com", color: "#cb3837", icon: "N" },
+                              { label: "Tailwind", url: "https://tailwindcss.com", color: "#38bdf8", icon: "T" },
+                              { label: "TypeScript", url: "https://typescriptlang.org", color: "#3178c6", icon: "TS" },
+                            ].map(fav => (
+                              <div key={fav.label} onClick={() => navigate(fav.url)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: Math.round(sh2 * 0.014), cursor: "pointer" }}>
+                                <div style={{ width: Math.round(sw2 * 0.065), height: Math.round(sw2 * 0.065), borderRadius: Math.round(sw2 * 0.014), background: fav.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs(0.022), fontWeight: 700, color: "#fff", fontFamily: ff, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>{fav.icon}</div>
+                                <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textSec as string }}>{fav.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Finder overlay */}
               {finderOpen && (() => {
                 const fw = Math.round(w * 0.94)
@@ -2923,9 +3104,42 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     </>}
 
+                    {/* Safari icon */}
+                    {(() => {
+                      const safariRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const scale = scales[safariRefIdx] ?? 1
+                      return (
+                        <div
+                          ref={(el) => { iconRefs.current[safariRefIdx] = el }}
+                          onMouseEnter={() => setHoveredSlot("safari")}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            const isOnTop = windowOrder[windowOrder.length - 1] === "safari"
+                            if (!safariOpen || safariMinimized) {
+                              setSafariMinimized(false); setSafariMinimizing(false); setSafariOpen(true)
+                              setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
+                            } else if (isOnTop) {
+                              setSafariMinimizing(true)
+                              setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340)
+                            } else {
+                              setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
+                            }
+                          }}
+                        >
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Safari</div>
+                          <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), overflow: "hidden", boxShadow: safariOpen ? "0 0 0 1.5px rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.5)" : "0 1px 5px rgba(0,0,0,0.5)", transition: "box-shadow 0.2s", flexShrink: 0 }}>
+                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" alt="Safari" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          </div>
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
+                        </div>
+                      )
+                    })()}
+
                     {/* Settings icon */}
                     {(() => {
-                      const settingsRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const settingsRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[settingsRefIdx] ?? 1
                       return (
                         <div
