@@ -139,6 +139,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const [controlCenterOpen, setControlCenterOpen] = useState(false)
+  const [reducedMotion, setReducedMotion] = useState(false)
+  const [accentColor, setAccentColor] = useState("#0a84ff")
   const [safariOpen, setSafariOpen] = useState(false)
   const [safariMinimized, setSafariMinimized] = useState(false)
   const [safariMinimizing, setSafariMinimizing] = useState(false)
@@ -943,7 +946,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             </div>
           </div>
 
-          <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets}>
+          <div ref={screenRef} style={s.screen} onMouseEnter={resetTargets} onClick={() => setControlCenterOpen(false)}>
             <div style={s.screenOff} />
             <div style={s.screenOn} onClick={() => setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))}>
 
@@ -1329,8 +1332,195 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       />
                       <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.88)", fontSize: Math.round(w * 0.013), fontFamily: "'Playwrite IE', cursive", letterSpacing: "0.02em" }}>{proj?.title ?? "Zakaria"}</span>
                     </div>
-                    {/* Right: clock */}
-                    <span style={{ color: "rgba(255,255,255,0.82)", fontWeight: 400, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
+                    {/* Right: control center + clock */}
+                    <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.01), pointerEvents: "auto" }}>
+                      <div
+                        onClick={e => { e.stopPropagation(); setControlCenterOpen(o => !o) }}
+                        style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: Math.round(w * 0.03), height: Math.round(w * 0.03), borderRadius: Math.round(w * 0.006), background: controlCenterOpen ? "rgba(255,255,255,0.18)" : "transparent", transition: "background 0.15s" }}
+                      >
+                        <svg width={Math.round(w * 0.018)} height={Math.round(w * 0.018)} viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="2.5" fill="rgba(255,255,255,0.85)" />
+                          <circle cx="12" cy="5" r="2" fill="rgba(255,255,255,0.85)" />
+                          <circle cx="12" cy="19" r="2" fill="rgba(255,255,255,0.85)" />
+                          <line x1="4" y1="12" x2="9.5" y2="12" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="14.5" y1="12" x2="20" y2="12" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="4" y1="5" x2="7" y2="5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="11" y1="5" x2="20" y2="5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="4" y1="19" x2="7" y2="19" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="11" y1="19" x2="20" y2="19" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <span style={{ color: "rgba(255,255,255,0.82)", fontWeight: 400, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Control Center Panel */}
+              {hovered && controlCenterOpen && (() => {
+                const mbH     = Math.round(h * 0.036)
+                const panW    = Math.round(w * 0.38)
+                const gap     = Math.round(panW * 0.028)
+                const pad     = Math.round(panW * 0.046)
+                const tileR   = Math.round(panW * 0.048)
+                const iconSz  = Math.round(panW * 0.115)
+                const iconSvg = Math.round(iconSz * 0.5)
+                const tileH   = Math.round(panW * 0.42)
+                const swatchSz= Math.round(panW * 0.073)
+                const ACCENT_COLORS = [
+                  { id: "blue",     value: "#0a84ff" },
+                  { id: "purple",   value: "#bf5af2" },
+                  { id: "pink",     value: "#ff375f" },
+                  { id: "red",      value: "#ff453a" },
+                  { id: "orange",   value: "#ff9f0a" },
+                  { id: "yellow",   value: "#ffd60a" },
+                  { id: "green",    value: "#30d158" },
+                  { id: "graphite", value: "#8e8e93" },
+                ]
+                const panBg      = isDark ? "rgba(28,28,30,0.92)" : "rgba(246,246,248,0.88)"
+                const tileBg     = isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.62)"
+                const tileBgOn   = isDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.96)"
+                const iconBgOff  = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)"
+                const textPri    = isDark ? "rgba(255,255,255,0.93)" : "rgba(0,0,0,0.87)"
+                const textSec    = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.40)"
+                const panBorder  = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
+                const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
+                const fsPx = (px: number) => Math.round(px * panW / 260)
+
+                return (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      top: mbH + 3,
+                      right: Math.round(w * 0.014),
+                      width: panW,
+                      zIndex: 20,
+                      background: panBg,
+                      backdropFilter: "blur(50px) saturate(2)",
+                      WebkitBackdropFilter: "blur(50px) saturate(2)",
+                      borderRadius: Math.round(panW * 0.058),
+                      border: `0.5px solid ${panBorder}`,
+                      boxShadow: isDark
+                        ? "0 4px 24px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset"
+                        : "0 4px 24px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
+                      padding: pad,
+                      display: "flex", flexDirection: "column", gap,
+                      animation: "ccIn 0.2s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    {/* Row 1: Dark Mode + Animations */}
+                    <div style={{ display: "flex", gap }}>
+                      {[
+                        {
+                          active: isDark, label: "Dark Mode", status: isDark ? "On" : "Off",
+                          onClick: () => setTheme(isDark ? "light" : "dark"),
+                          icon: (
+                            <svg width={iconSvg} height={iconSvg} viewBox="0 0 24 24" fill="none">
+                              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white" />
+                            </svg>
+                          ),
+                        },
+                        {
+                          active: !reducedMotion, label: "Animations", status: !reducedMotion ? "On" : "Off",
+                          onClick: () => setReducedMotion(m => !m),
+                          icon: (
+                            <svg width={iconSvg} height={iconSvg} viewBox="0 0 24 24" fill="none">
+                              <path d="M5 3l14 9-14 9V3z" fill="white" />
+                              <circle cx="19" cy="12" r="2" fill="white" opacity="0.5" />
+                            </svg>
+                          ),
+                        },
+                      ].map(({ active, label, status, onClick, icon }) => (
+                        <div
+                          key={label}
+                          onClick={onClick}
+                          style={{
+                            flex: 1, height: tileH,
+                            background: active ? tileBgOn : tileBg,
+                            borderRadius: tileR,
+                            padding: Math.round(panW * 0.036),
+                            cursor: "pointer",
+                            display: "flex", flexDirection: "column",
+                            justifyContent: "space-between",
+                            transition: "background 0.18s ease",
+                            border: `0.5px solid ${active ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)") : "transparent"}`,
+                          }}
+                        >
+                          <div style={{
+                            width: iconSz, height: iconSz, borderRadius: "50%",
+                            background: active ? accentColor : iconBgOff,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "background 0.18s ease",
+                            flexShrink: 0,
+                            boxShadow: active ? `0 2px 8px ${accentColor}55` : "none",
+                          }}>
+                            {icon}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3", letterSpacing: "-0.01em" }}>{label}</div>
+                            <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>{status}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Row 2: Accent Color */}
+                    <div style={{ background: tileBg, borderRadius: tileR, padding: `${Math.round(panW * 0.036)}px ${Math.round(panW * 0.04)}px`, border: `0.5px solid ${isDark ? "transparent" : "rgba(0,0,0,0.04)"}` }}>
+                      <div style={{ fontSize: fsPx(11), fontWeight: 500, fontFamily: ff, color: textSec, marginBottom: Math.round(panW * 0.03), letterSpacing: "0.01em", textTransform: "uppercase" as const }}>Accent Color</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        {ACCENT_COLORS.map(c => {
+                          const selected = accentColor === c.value
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => setAccentColor(c.value)}
+                              style={{
+                                width: swatchSz, height: swatchSz, borderRadius: "50%",
+                                background: c.value, cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                outline: selected ? `2px solid ${c.value}` : "2px solid transparent",
+                                outlineOffset: 2,
+                                transition: "outline 0.15s, transform 0.12s",
+                                transform: selected ? "scale(1.15)" : "scale(1)",
+                              }}
+                            >
+                              {selected && (
+                                <svg width={Math.round(swatchSz * 0.52)} height={Math.round(swatchSz * 0.52)} viewBox="0 0 24 24" fill="none">
+                                  <path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Row 3: Wallpaper */}
+                    <div
+                      onClick={() => {
+                        const idx = WALLPAPERS.indexOf(wallpaper)
+                        setWallpaper(WALLPAPERS[(idx + 1) % WALLPAPERS.length])
+                      }}
+                      style={{
+                        background: tileBg, borderRadius: tileR, cursor: "pointer",
+                        display: "flex", alignItems: "center",
+                        gap: Math.round(panW * 0.038),
+                        padding: `${Math.round(panW * 0.03)}px ${Math.round(panW * 0.04)}px`,
+                        overflow: "hidden",
+                        border: `0.5px solid ${isDark ? "transparent" : "rgba(0,0,0,0.04)"}`,
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <div style={{ flexShrink: 0, borderRadius: Math.round(panW * 0.026), overflow: "hidden", width: Math.round(panW * 0.22), height: Math.round(panW * 0.14), boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                        <img src={wallpaper} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3" }}>Wallpaper</div>
+                        <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>Click to change</div>
+                      </div>
+                      <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>›</div>
+                    </div>
                   </div>
                 )
               })()}
@@ -2355,9 +2545,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tlLeft = Math.round(22 * 0.64)
                 const toolbarH = Math.round(sh2 * 0.068)
                 const tabH     = Math.round(sh2 * 0.042)
-                const bg    = isDark ? "#1c1c1e" : "#f0f0f2"
+                const bg    = isDark ? "#3a3a3c" : "#f5f5f7"
                 const toolBg = isDark ? "#2c2c2e" : "#e8e8ea"
-                const inputBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
+                const inputBg = isDark ? "#1c1c1e" : "#ffffff"
                 const divClr  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"
                 const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
                 const textSec     = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)"
@@ -2465,7 +2655,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
 
                     {/* Content area */}
-                    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: isDark ? "#1c1c1e" : "#ffffff" }}>
+                    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: isDark ? "#3a3a3c" : "#ffffff" }}>
                       {safariUrl ? (
                         <iframe
                           key={safariUrl}
@@ -2476,7 +2666,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         />
                       ) : (
                         /* Start page */
-                        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.12), gap: Math.round(sh2 * 0.032), background: isDark ? "linear-gradient(180deg,#1c1c1e 0%,#232325 100%)" : "linear-gradient(180deg,#f8f8fa 0%,#ffffff 100%)", overflow: "auto" }}>
+                        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.12), gap: Math.round(sh2 * 0.032), background: isDark ? "#3a3a3c" : "#ffffff", overflow: "auto" }}>
                           {/* Safari compass icon */}
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775418365/safari_ujltka.png" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
                           <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
@@ -3216,6 +3406,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         @keyframes winIn {
           0%   { opacity: 0; transform: scale(0.92) translateY(12px); }
           60%  { opacity: 1; transform: scale(1.01) translateY(-2px); }
+          100% { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+        @keyframes ccIn {
+          0%   { opacity: 0; transform: scale(0.96) translateY(-6px); }
           100% { opacity: 1; transform: scale(1)    translateY(0); }
         }
       `}</style>
