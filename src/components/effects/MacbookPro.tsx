@@ -151,6 +151,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
   const macRef      = useRef<HTMLDivElement>(null)
   const screenRef   = useRef<HTMLDivElement>(null)
   const dockRef     = useRef<HTMLDivElement>(null)
@@ -747,6 +749,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
   }, [])
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null)
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [])
+
   const s: Record<string, CSSProperties> = {
     scene: {
       display: "flex",
@@ -967,9 +977,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             </div>
           </div>
 
-          <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => setControlCenterOpen(false)}>
+          <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => {
+            setControlCenterOpen(false)
+            setContextMenu(null)
+          }} onContextMenu={e => {
+            e.preventDefault()
+            const rect = screenRef.current?.getBoundingClientRect()
+            if (rect) {
+              setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+            }
+          }}>
             <div style={s.screenOff} />
-            <div style={s.screenOn} onClick={() => setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))}>
+            <div style={s.screenOn} onClick={() => {
+              setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))
+              setContextMenu(null)
+            }}>
 
               {/* Desktop icons — folders/files created via terminal */}
               {desktopItems.length > 0 && (() => {
@@ -3056,6 +3078,102 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                 </div>
               )}
+
+              {/* Context Menu */}
+              {contextMenu && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: contextMenu.x,
+                    top: contextMenu.y,
+                    zIndex: 1000,
+                  }}
+                  onContextMenu={e => e.preventDefault()}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div
+                    style={{
+                      background: isDark 
+                        ? "rgba(55, 55, 55, 0.88)" 
+                        : "rgba(255, 255, 255, 0.88)",
+                      backdropFilter: "blur(30px)",
+                      WebkitBackdropFilter: "blur(30px)",
+                      borderRadius: 10,
+                      border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)"}`,
+                      boxShadow: isDark
+                        ? "0 16px 48px rgba(0,0,0,0.6), inset 1px 1px 0 rgba(255,255,255,0.08)"
+                        : "0 16px 48px rgba(0,0,0,0.15), inset 1px 1px 0 rgba(255,255,255,0.8)",
+                      minWidth: 200,
+                      maxWidth: 280,
+                      overflow: "hidden",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      animation: "menuFadeIn 0.15s ease-out",
+                    }}
+                  >
+                    {[
+                      { label: "Back", disabled: true },
+                      { label: "Forward", disabled: true },
+                      { label: "Reload", disabled: false },
+                      null,
+                      { label: "Save Image As...", disabled: false },
+                      { label: "Print", disabled: false },
+                      null,
+                      { label: "Copy Image Address", disabled: true },
+                      null,
+                      { label: "Inspect Element", disabled: false },
+                    ].map((item, idx) => 
+                      item === null ? (
+                        <div
+                          key={`sep-${idx}`}
+                          style={{
+                            height: 1,
+                            background: isDark 
+                              ? "rgba(255,255,255,0.08)" 
+                              : "rgba(0,0,0,0.08)",
+                            margin: "6px 0",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          key={idx}
+                          onMouseEnter={() => !item.disabled && setContextMenuHovered(idx)}
+                          onMouseLeave={() => setContextMenuHovered(null)}
+                          onClick={(e) => {
+                            if (!item.disabled) {
+                              e.stopPropagation()
+                              setContextMenu(null)
+                            }
+                          }}
+                          style={{
+                            padding: "8px 16px",
+                            color: item.disabled 
+                              ? isDark
+                                ? "rgba(255,255,255,0.35)"
+                                : "rgba(0,0,0,0.35)"
+                              : isDark 
+                              ? "rgba(255,255,255,0.9)" 
+                              : "rgba(0,0,0,0.85)",
+                            background: contextMenuHovered === idx && !item.disabled
+                              ? isDark
+                                ? "rgba(255,255,255,0.12)"
+                                : "rgba(0,120,215,0.15)"
+                              : "transparent",
+                            cursor: item.disabled ? "default" : "pointer",
+                            transition: "background 0.12s cubic-bezier(0.4, 0, 0.2, 1)",
+                            userSelect: "none",
+                            fontSize: 13,
+                            fontWeight: 400,
+                          }}
+                        >
+                          {item.label}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3076,6 +3194,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
         @keyframes mbFade {
           from { opacity: 0 } to { opacity: 1 }
+        }
+        @keyframes menuFadeIn {
+          from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0); }
         }
         @keyframes qlIn {
           from { opacity: 0; transform: scale(0.97); }
