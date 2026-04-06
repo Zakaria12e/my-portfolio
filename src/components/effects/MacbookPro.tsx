@@ -476,8 +476,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     (safariOpen && !safariMinimized) ||
     (messagesOpen && !messagesMinimized) ||
     (itunesOpen && !itunesMinimized) ||
-    folderWins.length > 0 ||
-    fileEditorWins.length > 0
+    folderWins.some(win => !win.minimized) ||
+    fileEditorWins.some(win => !win.minimized)
 
   const dockSleeping = dockForcedSleep
 
