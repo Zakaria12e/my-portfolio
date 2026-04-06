@@ -3640,15 +3640,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tlGap = Math.round(22 * 0.45)
                 const tlLeft = Math.round(22 * 0.64)
                 const titleH = Math.round(mh * 0.09)
-                const sideW = Math.round(mw * 0.31)
+                const sideW = Math.round(mw * 0.29)
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
-                const sidebarBg = isDark ? "rgba(36,36,40,0.94)" : "rgba(244,246,250,0.96)"
-                const bodyBg = isDark ? "#17181c" : "#ffffff"
-                const titleBg = isDark ? "rgba(44,44,48,0.9)" : "rgba(250,251,253,0.94)"
-                const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.18)"
-                const textPrimary = isDark ? "rgba(255,255,255,0.92)" : "rgba(15,23,42,0.92)"
-                const textSecondary = isDark ? "rgba(255,255,255,0.46)" : "rgba(71,85,105,0.8)"
+                const sidebarBg = isDark ? "linear-gradient(180deg, rgba(42,42,46,0.98), rgba(31,31,35,0.98))" : "linear-gradient(180deg, rgba(247,248,251,0.98), rgba(238,241,246,0.98))"
+                const bodyBg = isDark ? "#16171b" : "#f5f6f8"
+                const chatBg = isDark ? "linear-gradient(180deg, #18191d 0%, #141519 100%)" : "linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%)"
+                const titleBg = isDark ? "rgba(47,47,52,0.92)" : "rgba(250,251,253,0.92)"
+                const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.14)"
+                const textPrimary = isDark ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.95)"
+                const textSecondary = isDark ? "rgba(255,255,255,0.48)" : "rgba(71,85,105,0.74)"
+                const chipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.88)"
                 const bubbleBlue = "#0a84ff"
+                const bubbleGray = isDark ? "rgba(255,255,255,0.09)" : "rgba(230,233,239,0.96)"
                 const myAvatar = "Z"
                 const zIdx = 3 + (windowOrder.indexOf("messages") >= 0 ? windowOrder.indexOf("messages") : 0)
                 const latestMessage = messagesConversation[messagesConversation.length - 1]
@@ -3731,23 +3734,28 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div style={{ width: Math.round(w * 0.1) }} />
                     </div>
 
-                    <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+                    <div style={{ flex: 1, display: "flex", minHeight: 0, background: bodyBg }}>
                       <div style={{ width: sideW, flexShrink: 0, background: sidebarBg, borderRight: `0.5px solid ${divider}`, display: "flex", flexDirection: "column" }}>
-                        <div style={{ padding: `${Math.round(mh * 0.03)}px ${Math.round(mw * 0.024)}px ${Math.round(mh * 0.018)}px`, borderBottom: `0.5px solid ${divider}` }}>
-                          <div style={{ fontSize: Math.round(w * 0.026), fontWeight: 800, color: textPrimary as string, fontFamily: ff, marginBottom: Math.round(mh * 0.008) }}>Messages</div>
-                          <div style={{ height: Math.round(titleH * 0.7), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.86)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.016)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
+                        <div style={{ padding: `${Math.round(mh * 0.024)}px ${Math.round(mw * 0.022)}px ${Math.round(mh * 0.016)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
+                          <div style={{ fontSize: Math.round(w * 0.025), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Messages</div>
+                          <div style={{ height: Math.round(titleH * 0.68), borderRadius: 11, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.82)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", gap: 7, padding: `0 ${Math.round(mw * 0.015)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.0145), fontFamily: ff }}>
+                            <svg width={Math.round(w * 0.015)} height={Math.round(w * 0.015)} viewBox="0 0 24 24" fill="none">
+                              <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
+                              <path d="M16 16l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
                             Search
                           </div>
                         </div>
-                        <div style={{ padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.016)}px`, overflowY: "auto" }}>
-                          <div style={{ borderRadius: 18, background: isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.12)", border: `0.5px solid ${isDark ? "rgba(10,132,255,0.28)" : "rgba(10,132,255,0.16)"}`, padding: `${Math.round(mh * 0.015)}px ${Math.round(mw * 0.018)}px`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014), boxShadow: isDark ? "0 10px 30px rgba(0,0,0,0.18)" : "0 10px 24px rgba(15,23,42,0.06)" }}>
-                            <div style={{ width: Math.round(mw * 0.056), height: Math.round(mw * 0.056), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.016), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>PV</div>
+                        <div style={{ padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.014)}px`, overflowY: "auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.01) }}>
+                          <div style={{ fontSize: Math.round(w * 0.0125), fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: textSecondary as string, fontFamily: ff, padding: `0 ${Math.round(mw * 0.01)}px` }}>Pinned</div>
+                          <div style={{ borderRadius: 14, background: isDark ? "linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.16))" : "linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.09))", border: `0.5px solid ${isDark ? "rgba(10,132,255,0.3)" : "rgba(10,132,255,0.14)"}`, padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.016)}px`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
+                            <div style={{ width: Math.round(mw * 0.052), height: Math.round(mw * 0.052), borderRadius: "50%", background: "linear-gradient(135deg,#1ec3ff 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.015), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>PV</div>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: Math.round(w * 0.016), fontWeight: 700, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Portfolio Visitor</span>
-                                <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>Now</span>
+                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                                <span style={{ fontSize: Math.round(w * 0.0155), fontWeight: 700, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Portfolio Visitor</span>
+                                <span style={{ fontSize: Math.round(w * 0.0115), color: textSecondary as string, fontFamily: ff }}>now</span>
                               </div>
-                              <div style={{ fontSize: Math.round(w * 0.014), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <div style={{ marginTop: 3, fontSize: Math.round(w * 0.0135), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {messagesTyping ? "Zakaria is typing..." : latestMessage?.text ?? "Start a conversation"}
                               </div>
                             </div>
@@ -3755,49 +3763,65 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       </div>
 
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: bodyBg }}>
-                        <div style={{ padding: `${Math.round(mh * 0.034)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.018)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.018) }}>
-                          <div style={{ width: Math.round(mw * 0.06), height: Math.round(mw * 0.06), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.017), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>{myAvatar}</div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: Math.round(w * 0.022), fontWeight: 800, color: textPrimary as string, fontFamily: ff }}>Zakaria</div>
-                            <div style={{ fontSize: Math.round(w * 0.014), color: textSecondary as string, fontFamily: ff }}>Product-minded frontend developer</div>
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: chatBg }}>
+                        <div style={{ padding: `${Math.round(mh * 0.025)}px ${Math.round(mw * 0.03)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: Math.round(mw * 0.018), background: isDark ? "rgba(24,25,29,0.76)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.016), minWidth: 0 }}>
+                            <div style={{ width: Math.round(mw * 0.056), height: Math.round(mw * 0.056), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.016), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>{myAvatar}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: Math.round(w * 0.02), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Zakaria</div>
+                              <div style={{ fontSize: Math.round(w * 0.0135), color: textSecondary as string, fontFamily: ff }}>iMessage</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {[
+                              <path key="info" d="M12 8.25h.01M11 11h1v5h1" />,
+                              <path key="call" d="M19 17.5v2a1.5 1.5 0 0 1-1.64 1.5A15.5 15.5 0 0 1 3 6.64 1.5 1.5 0 0 1 4.5 5h2A1.5 1.5 0 0 1 8 6.28c.12.94.34 1.86.66 2.73a1.5 1.5 0 0 1-.34 1.58l-.85.85a12 12 0 0 0 5.02 5.02l.85-.85a1.5 1.5 0 0 1 1.58-.34c.87.32 1.79.54 2.73.66A1.5 1.5 0 0 1 19 17.5Z" />,
+                            ].map((icon, idx) => (
+                              <div key={idx} style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string }}>
+                                <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  {icon}
+                                </svg>
+                              </div>
+                            ))}
                           </div>
                         </div>
 
-                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.032)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.024)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.022), background: isDark ? "radial-gradient(circle at top, rgba(10,132,255,0.08), transparent 28%), #17181c" : "linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)" }}>
-                          <div style={{ alignSelf: "center", fontSize: Math.round(w * 0.013), fontWeight: 700, color: textSecondary as string, fontFamily: ff, letterSpacing: 0.3 }}>
+                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.028)}px ${Math.round(mw * 0.03)}px ${Math.round(mh * 0.02)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.02) }}>
+                          <div style={{ alignSelf: "center", padding: `${Math.round(mh * 0.006)}px ${Math.round(mw * 0.012)}px`, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.86)", border: `0.5px solid ${divider}`, fontSize: Math.round(w * 0.012), fontWeight: 700, color: textSecondary as string, fontFamily: ff, letterSpacing: 0.25 }}>
                             Today
                           </div>
                           {messagesConversation.map(message => (
-                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: message.sender === "zakaria" ? "flex-start" : "flex-end", gap: 6 }}>
+                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: message.sender === "zakaria" ? "flex-start" : "flex-end", gap: 5 }}>
                               <div style={{
-                                maxWidth: "76%",
-                                borderRadius: 22,
-                                ...(message.sender === "zakaria" ? { borderTopLeftRadius: 8, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(226,232,240,0.78)", color: textPrimary as string, boxShadow: "none" } : { borderTopRightRadius: 8, background: bubbleBlue, color: "#fff", boxShadow: "0 12px 30px rgba(10,132,255,0.24)" }),
-                                padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`,
-                                fontSize: Math.round(w * 0.017),
-                                lineHeight: 1.45,
+                                maxWidth: "78%",
+                                borderRadius: 21,
+                                ...(message.sender === "zakaria"
+                                  ? { borderTopLeftRadius: 9, background: bubbleGray, color: textPrimary as string, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.8)" }
+                                  : { borderTopRightRadius: 9, background: "linear-gradient(180deg, #1a8cff 0%, #0a84ff 100%)", color: "#fff", boxShadow: "0 10px 24px rgba(10,132,255,0.24)" }),
+                                padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.02)}px`,
+                                fontSize: Math.round(w * 0.016),
+                                lineHeight: 1.42,
                                 fontFamily: ff,
+                                letterSpacing: -0.08,
                               }}>
                                 {message.text}
                               </div>
-                              <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>{message.time}</span>
+                              <span style={{ fontSize: Math.round(w * 0.0115), color: textSecondary as string, fontFamily: ff, padding: "0 4px" }}>{message.time}</span>
                             </div>
                           ))}
                           {messagesTyping && (
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-                              <div style={{ borderRadius: 22, borderTopLeftRadius: 8, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(226,232,240,0.78)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`, display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ borderRadius: 21, borderTopLeftRadius: 9, background: bubbleGray, padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.018)}px`, display: "flex", alignItems: "center", gap: 6 }}>
                                 {[0, 1, 2].map(dot => (
                                   <span key={dot} style={{ width: 6, height: 6, borderRadius: "50%", background: textSecondary as string, opacity: 0.7 }} />
                                 ))}
                               </div>
-                              <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>Zakaria is typing...</span>
                             </div>
                           )}
                         </div>
 
-                        <div style={{ padding: `${Math.round(mh * 0.02)}px ${Math.round(mw * 0.03)}px`, borderTop: `0.5px solid ${divider}`, background: titleBg, display: "flex", flexDirection: "column", alignItems: "stretch", gap: Math.round(mh * 0.014) }}>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: Math.round(mw * 0.012) }}>
+                        <div style={{ padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.024)}px ${Math.round(mh * 0.02)}px`, borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.82)" : "rgba(250,251,253,0.92)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: Math.round(mw * 0.01) }}>
                             {availablePrompts.map(prompt => (
                               <button
                                 key={prompt.id}
@@ -3805,33 +3829,32 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 onClick={() => sendPromptToMessages(prompt)}
                                 disabled={messagesTyping}
                                 style={{
-                                  border: "none",
+                                  border: `0.5px solid ${activePromptId === prompt.id ? "#0a84ff" : divider}`,
                                   borderRadius: 999,
-                                  padding: `${Math.round(mh * 0.01)}px ${Math.round(mw * 0.016)}px`,
-                                  background: activePromptId === prompt.id ? bubbleBlue : (isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.96)"),
+                                  padding: `${Math.round(mh * 0.009)}px ${Math.round(mw * 0.014)}px`,
+                                  background: activePromptId === prompt.id ? bubbleBlue : chipBg,
                                   color: activePromptId === prompt.id ? "#fff" : textPrimary as string,
-                                  borderColor: divider,
-                                  boxShadow: activePromptId === prompt.id ? "0 10px 24px rgba(10,132,255,0.24)" : "none",
-                                  outline: "none",
+                                  boxShadow: activePromptId === prompt.id ? "0 8px 22px rgba(10,132,255,0.22)" : "none",
                                   cursor: messagesTyping ? "default" : "pointer",
-                                  opacity: messagesTyping ? 0.6 : 1,
-                                  fontSize: Math.round(w * 0.014),
+                                  opacity: messagesTyping ? 0.62 : 1,
+                                  fontSize: Math.round(w * 0.0135),
                                   fontWeight: 600,
                                   fontFamily: ff,
+                                  letterSpacing: -0.08,
                                 }}
                               >
                                 {prompt.question}
                               </button>
                             ))}
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
-                            <div style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.018), fontFamily: ff, flexShrink: 0 }}>+</div>
-                            <div style={{ flex: 1, height: Math.round(titleH * 0.82), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.94)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.02)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
-                              {messagesTyping ? "Zakaria is replying..." : availablePrompts.length > 0 ? "Choose a question above" : "All ready questions answered"}
+                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.012) }}>
+                            <div style={{ width: Math.round(mw * 0.03), height: Math.round(mw * 0.03), borderRadius: "50%", background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.017), fontFamily: ff, flexShrink: 0 }}>+</div>
+                            <div style={{ flex: 1, minHeight: Math.round(titleH * 0.82), borderRadius: 18, background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.018)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.014), fontFamily: ff }}>
+                              {messagesTyping ? "Zakaria is replying..." : availablePrompts.length > 0 ? "Choose a question to send" : "You answered every quick question"}
                             </div>
-                            <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.26)", flexShrink: 0 }}>
-                              <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none">
-                                <path d="M5 12h12M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.22)", flexShrink: 0 }}>
+                              <svg width={Math.round(mw * 0.015)} height={Math.round(mw * 0.015)} viewBox="0 0 24 24" fill="none">
+                                <path d="M6 12h12M13 5l7 7-7 7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </div>
                           </div>
@@ -4816,7 +4839,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
                       />
                       <div style={{
-                        position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                        position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
                         transform: "translateX(-50%)", width: 2.5, height: 2.5,
                         borderRadius: "50%",
                         background: finderOpen && !finderMinimized ? "rgba(255,255,255,0.9)" : "transparent",
@@ -4880,7 +4903,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8] }} />
                           }
                           <div style={{
-                            position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                            position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
                             transform: "translateX(-50%)", width: 2.5, height: 2.5,
                             borderRadius: "50%",
                             background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
@@ -4921,7 +4944,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             <img src={imgSrc} alt={`view ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
                           </div>
                           <div style={{
-                            position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                            position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
                             transform: "translateX(-50%)", width: 2.5, height: 2.5,
                             borderRadius: "50%",
                             background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
@@ -5123,7 +5146,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Messages</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
-                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
                     })()}
@@ -5154,7 +5177,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Safari</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
-                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
                     })()}
@@ -5180,7 +5203,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>iTunes</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
-                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: itunesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: itunesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
                     })()}
