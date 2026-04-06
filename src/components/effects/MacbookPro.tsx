@@ -265,7 +265,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const desktopItemIdRef = useRef(2)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
-  const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number } }[]>([])
+  const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number }; maximized: boolean; minimized: boolean; minimizing: boolean; hoveredTl: number }[]>([])
   const folderWinIdRef  = useRef(0)
   const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const finderDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
@@ -283,7 +283,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       "- Escape: close Terminal, close Finder, and exit Quick Look",
     ].join("\n"),
   })
-  const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number } }[]>([])
+  const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number }; maximized: boolean; minimized: boolean; minimizing: boolean; hoveredTl: number }[]>([])
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [controlCenterOpen, setControlCenterOpen] = useState(false)
@@ -417,12 +417,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (typeof key === "string" && key.startsWith("folder:")) {
         const id = Number(key.slice(7))
         const win = folderWins.find(w => w.id === id)
-        return win ? [{ key, label: win.name, icon: FOLDER_ICON, tone: "#60a5fa" }] : []
+        return win && !win.minimized ? [{ key, label: win.name, icon: FOLDER_ICON, tone: "#60a5fa" }] : []
       }
       if (typeof key === "string" && key.startsWith("file:")) {
         const id = Number(key.slice(5))
         const win = fileEditorWins.find(w => w.id === id)
-        return win ? [{ key, label: win.name, icon: FILE_ICON, tone: "#94a3b8" }] : []
+        return win && !win.minimized ? [{ key, label: win.name, icon: FILE_ICON, tone: "#94a3b8" }] : []
       }
       if (key === "finder") {
         return finderOpen && !finderMinimized
@@ -669,7 +669,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setFolderWins(ws => {
       const win = ws.find(w => w.id === id)
       if (!win) return ws
-      return [...ws.filter(w => w.id !== id), win]
+      return [...ws.filter(w => w.id !== id), { ...win, minimized: false, minimizing: false }]
     })
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
@@ -679,7 +679,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setFileEditorWins(ws => {
       const win = ws.find(w => w.id === id)
       if (!win) return ws
-      return [...ws.filter(w => w.id !== id), win]
+      return [...ws.filter(w => w.id !== id), { ...win, minimized: false, minimizing: false }]
     })
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
@@ -726,7 +726,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       const eid = fileEditorIdRef.current++
       const ex = Math.round((width - 20) * 0.12) + eid * 22
       const ey = Math.round(Math.round(width * 0.609) * 0.09) + eid * 18
-      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: Math.round(width * 0.66), h: Math.round(Math.round(width * 0.609) * 0.62) } }])
+      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: Math.round(width * 0.66), h: Math.round(Math.round(width * 0.609) * 0.62) }, maximized: false, minimized: false, minimizing: false, hoveredTl: -1 }])
       setWindowOrder(o => [...o.filter(k => k !== fileOrderKey(eid)), fileOrderKey(eid)])
     } else {
       focusFileEditorWin(existing.id)
@@ -741,6 +741,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       path: itemPath,
       pos: { x: Math.round((width - 20) * 0.15) + fid * 24, y: Math.round(Math.round(width * 0.609) * 0.1) + fid * 20 },
       size: { w: Math.round(width * 0.62), h: Math.round(Math.round(width * 0.609) * 0.58) },
+      maximized: false,
+      minimized: false,
+      minimizing: false,
+      hoveredTl: -1,
     }])
     setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
   }, [width, folderOrderKey])
@@ -2124,9 +2128,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               })()}
 
               {/* Folder windows - opened by double-clicking a desktop folder */}
-              {folderWins.map(fw => {
+              {folderWins.filter(fw => !fw.minimized).map(fw => {
                 const fwW = fw.size.w
                 const fwH = fw.size.h
+                const mbH = Math.round(h * 0.036)
                 const titleH = 22
                 const tlSz2  = Math.round(titleH * 0.54)
                 const tlGap2 = Math.round(titleH * 0.45)
@@ -2144,9 +2149,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     onClick={e => { e.stopPropagation(); focusFolderWin(fw.id) }}
                     style={{
                       position: "absolute",
-                      left: fw.pos.x, top: fw.pos.y,
-                      width: fwW, height: fwH,
-                      borderRadius: 10,
+                      ...(fw.maximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { left: fw.pos.x, top: fw.pos.y, width: fwW, height: fwH }),
+                      borderRadius: fw.maximized ? 0 : 10,
                       background: fwBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -2155,12 +2161,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
                       zIndex: zIdx,
-                      animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                      animation: fw.minimizing ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards" : "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
                     {/* Title bar */}
                     <div
                       onMouseDown={e => {
+                        if (fw.maximized) return
                         e.preventDefault()
                         folderWinDragRef.current = { id: fw.id, startX: e.clientX, startY: e.clientY, ox: fw.pos.x, oy: fw.pos.y }
                         const onMove = (ev: MouseEvent) => {
@@ -2175,18 +2182,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
-                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${fwDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: "grab" }}
+                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${fwDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: fw.maximized ? "default" : "grab" }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap2, paddingLeft: tlLeft2 }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41" },
-                          { fill: "#f6be50", border: "#e1a73e" },
-                          { fill: "#61c555", border: "#2dac2f" },
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804", fn: () => { setFolderWins(prev => prev.filter(f => f.id !== fw.id)); setWindowOrder(o => o.filter(k => k !== fwKey)) } },
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d", fn: () => { setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, minimizing: true } : f)); setTimeout(() => setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, minimized: true, minimizing: false } : f)), 340) } },
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218", fn: () => setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, maximized: !f.maximized } : f)) },
                         ].map((btn, i) => (
                           <div key={i}
-                            onClick={e => { e.stopPropagation(); if (i === 0) { setFolderWins(prev => prev.filter(f => f.id !== fw.id)); setWindowOrder(o => o.filter(k => k !== fwKey)) } }}
-                            style={{ width: tlSz2, height: tlSz2, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
-                          />
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, hoveredTl: i } : f))}
+                            onMouseLeave={() => setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, hoveredTl: -1 } : f))}
+                            style={{ width: tlSz2, height: tlSz2, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >
+                            <TrafficLightSymbol kind={btn.kind} color={btn.symClr} size={Math.round(tlSz2 * 0.84)} visible={fw.hoveredTl === i} />
+                          </div>
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
@@ -2319,7 +2330,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         })
                       )}
                     </div>
-                    <ResizeHandle
+                    {!fw.maximized && <ResizeHandle
                       onMouseDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -2347,15 +2358,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
-                    />
+                    />}
                   </div>
                 )
               })}
 
               {/* File editor windows */}
-              {fileEditorWins.map(fe => {
+              {fileEditorWins.filter(fe => !fe.minimized).map(fe => {
                 const feW = fe.size.w
                 const feH = fe.size.h
+                const mbH = Math.round(h * 0.036)
                 const titleH = 22
                 const tlSz3   = Math.round(titleH * 0.54)
                 const tlGap3  = Math.round(titleH * 0.45)
@@ -2375,9 +2387,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     onClick={e => { e.stopPropagation(); focusFileEditorWin(fe.id) }}
                     style={{
                       position: "absolute",
-                      left: fe.pos.x, top: fe.pos.y,
-                      width: feW, height: feH,
-                      borderRadius: 10,
+                      ...(fe.maximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { left: fe.pos.x, top: fe.pos.y, width: feW, height: feH }),
+                      borderRadius: fe.maximized ? 0 : 10,
                       background: edBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -2386,12 +2399,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
                       zIndex: zIdx,
-                      animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                      animation: fe.minimizing ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards" : "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
                     {/* Title bar */}
                     <div
                       onMouseDown={e => {
+                        if (fe.maximized) return
                         e.preventDefault()
                         fileEditorDragRef.current = { id: fe.id, startX: e.clientX, startY: e.clientY, ox: fe.pos.x, oy: fe.pos.y }
                         const onMove = (ev: MouseEvent) => {
@@ -2406,18 +2420,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
-                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${edDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: "grab" }}
+                      style={{ height: titleH, flexShrink: 0, background: isDark ? "#2c2c2e" : "#ececec", borderBottom: `0.5px solid ${edDiv}`, display: "flex", alignItems: "center", position: "relative", userSelect: "none", cursor: fe.maximized ? "default" : "grab" }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap3, paddingLeft: tlLeft3 }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41" },
-                          { fill: "#f6be50", border: "#e1a73e" },
-                          { fill: "#61c555", border: "#2dac2f" },
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804", fn: () => { setFileEditorWins(prev => prev.filter(f => f.id !== fe.id)); setWindowOrder(o => o.filter(k => k !== feKey)) } },
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d", fn: () => { setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, minimizing: true } : f)); setTimeout(() => setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, minimized: true, minimizing: false } : f)), 340) } },
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218", fn: () => setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, maximized: !f.maximized } : f)) },
                         ].map((btn, i) => (
                           <div key={i}
-                            onClick={e => { e.stopPropagation(); if (i === 0) { setFileEditorWins(prev => prev.filter(f => f.id !== fe.id)); setWindowOrder(o => o.filter(k => k !== feKey)) } }}
-                            style={{ width: tlSz3, height: tlSz3, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
-                          />
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, hoveredTl: i } : f))}
+                            onMouseLeave={() => setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, hoveredTl: -1 } : f))}
+                            style={{ width: tlSz3, height: tlSz3, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >
+                            <TrafficLightSymbol kind={btn.kind} color={btn.symClr} size={Math.round(tlSz3 * 0.84)} visible={fe.hoveredTl === i} />
+                          </div>
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: 5 }}>
@@ -2466,7 +2484,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>Ln {lineCount}</span>
                       <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>{content.length} chars</span>
                     </div>
-                    <ResizeHandle
+                    {!fe.maximized && <ResizeHandle
                       onMouseDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -2494,7 +2512,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
-                    />
+                    />}
                   </div>
                 )
               })}
