@@ -45,6 +45,27 @@ interface WinState {
   activeImg: number
 }
 
+type SwitchableKey = number | "finder" | "terminal" | "messages" | "safari" | "itunes"
+type SwitchableItem = {
+  key: SwitchableKey
+  label: string
+  icon: string | null
+  tone: string
+}
+
+type MessageBubble = {
+  id: number
+  sender: "zakaria" | "visitor"
+  text: string
+  time: string
+}
+
+type MessagePrompt = {
+  id: string
+  question: string
+  answer: string
+}
+
 function TrafficLightSymbol({
   kind,
   color,
@@ -132,7 +153,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
-  const [windowOrder, setWindowOrder] = useState<(number | "itunes" | "terminal" | "safari" | "messages")[]>([])
+  const [windowOrder, setWindowOrder] = useState<(number | "finder" | "itunes" | "terminal" | "safari" | "messages")[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -140,6 +161,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [quickLookIdx, setQuickLookIdx] = useState(0)
   const [quickLookMax, setQuickLookMax] = useState(false)
   const [hovered, setHovered] = useState(false)
+  const [macKeyboardActive, setMacKeyboardActive] = useState(false)
+  const [qShortcutHeld, setQShortcutHeld] = useState(false)
+  const [appSwitcherVisible, setAppSwitcherVisible] = useState(false)
+  const [appSwitcherIndex, setAppSwitcherIndex] = useState(0)
   const [clock, setClock] = useState("")
   const [showNotif, setShowNotif] = useState(false)
   const [notifBig, setNotifBig] = useState(false)
@@ -174,6 +199,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termFs, setTermFs] = useState<TermFs>({})
   const termFsRef = useRef<TermFs>({})
   const [desktopItems, setDesktopItems] = useState<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
+  const desktopItemsRef = useRef<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
   const desktopItemIdRef = useRef(0)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
@@ -209,17 +235,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [messagesPos, setMessagesPos] = useState({ x: 0, y: 0 })
   const [hoveredMessagesTl, setHoveredMessagesTl] = useState(-1)
   const messagesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const messagesReplyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const messagesBodyRef = useRef<HTMLDivElement>(null)
+  const messageIdRef = useRef(3)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
   const [dockPeek, setDockPeek] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
+  const [editingDesktopItemId, setEditingDesktopItemId] = useState<number | null>(null)
+  const [editingDesktopName, setEditingDesktopName] = useState("")
   const macRef      = useRef<HTMLDivElement>(null)
   const screenRef   = useRef<HTMLDivElement>(null)
   const dockRef     = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
   const safariInputRef = useRef<HTMLInputElement>(null)
+  const desktopRenameInputRef = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -236,6 +268,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   // Keep openWindowsRef in sync for use in callbacks without stale closures
   openWindowsRef.current = openWindows
   termFsRef.current = termFs
+  desktopItemsRef.current = desktopItems
 
   // Derive focused window / active project (for terminal, finder, etc.)
   const focusedWin = openWindows.find(w => w.id === focusedWinId) ?? null
@@ -255,12 +288,73 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
-  const messagesThread = useMemo(() => ([
-    { id: 1, text: "Hey, I am Zakaria. Thanks for checking out my portfolio.", time: "9:18 AM" },
-    { id: 2, text: "I design and build polished web experiences with strong frontend detail and real product thinking.", time: "9:19 AM" },
-    { id: 3, text: "Open any project here and you can explore the live demo, the code, and the stack without leaving the Mac view.", time: "9:20 AM" },
-    { id: 4, text: "If you want to work together, the best next step is to reach out and tell me what you are building.", time: "9:21 AM" },
+  const messagePrompts = useMemo<MessagePrompt[]>(() => ([
+    {
+      id: "intro",
+      question: "What kind of work do you do?",
+      answer: "I design and build frontend-heavy products with strong motion, clean interactions, and production-ready React experiences.",
+    },
+    {
+      id: "stack",
+      question: "What stack do you use most?",
+      answer: "My usual stack is React, TypeScript, Tailwind, animation libraries when needed, and a lot of attention to interface detail and performance.",
+    },
+    {
+      id: "projects",
+      question: "How should I explore your projects?",
+      answer: "Open any project window first, then use the live demo or GitHub actions. I set the Mac UI up so you can browse everything without leaving the experience.",
+    },
+    {
+      id: "hire",
+      question: "Are you available for freelance or full-time work?",
+      answer: "Yes. If the product is thoughtful and the team cares about quality, I am open to freelance collaborations and strong full-time opportunities.",
+    },
   ]), [])
+  const [messagesConversation, setMessagesConversation] = useState<MessageBubble[]>([
+    { id: 1, sender: "zakaria", text: "Hey, I am Zakaria. Pick one of the questions below and I will answer here.", time: "9:18 AM" },
+    { id: 2, sender: "zakaria", text: "This Messages window works like a small guided chat so you can learn about my work quickly.", time: "9:19 AM" },
+  ])
+  const [messagesTyping, setMessagesTyping] = useState(false)
+  const [activePromptId, setActivePromptId] = useState<string | null>(null)
+  const switchableWindows = useMemo<SwitchableItem[]>(() => {
+    const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
+      if (key === "finder") {
+        return finderOpen && !finderMinimized
+          ? [{ key, label: "Finder", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429274/128_u1g2xr.webp", tone: "#60a5fa" }]
+          : []
+      }
+      if (key === "terminal") {
+        return terminalOpen && !termMinimized
+          ? [{ key, label: "Terminal", icon: null, tone: "#111827" }]
+          : []
+      }
+      if (key === "messages") {
+        return messagesOpen && !messagesMinimized
+          ? [{ key, label: "Messages", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp", tone: "#22c55e" }]
+          : []
+      }
+      if (key === "safari") {
+        return safariOpen && !safariMinimized
+          ? [{ key, label: "Safari", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp", tone: "#0ea5e9" }]
+          : []
+      }
+      if (key === "itunes") {
+        return itunesOpen && !itunesMinimized
+          ? [{ key, label: "iTunes", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775430130/128_kdl9gm.webp", tone: "#f472b6" }]
+          : []
+      }
+      const win = openWindows.find(w => w.id === key && !w.minimized)
+      if (!win) return []
+      const project = projects?.[win.projectIdx]
+      return [{
+        key,
+        label: project?.title ?? "Project",
+        icon: project?.iconDark || project?.icon || null,
+        tone: "#8b5cf6",
+      }]
+    })
+    return entries
+  }, [windowOrder, finderOpen, finderMinimized, terminalOpen, termMinimized, messagesOpen, messagesMinimized, safariOpen, safariMinimized, itunesOpen, itunesMinimized, openWindows, projects])
   const hasFullscreenWindow =
     openWindows.some(w => w.maximized && !w.minimized) ||
     termMaximized ||
@@ -282,6 +376,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   useEffect(() => {
     if (!hovered) {
+      setMacKeyboardActive(false)
+      setQShortcutHeld(false)
+      setAppSwitcherVisible(false)
+      setAppSwitcherIndex(0)
       setShowNotif(false)
       setNotifBig(false)
       return
@@ -292,6 +390,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const hide   = setTimeout(() => setShowNotif(false), 2900)
     return () => { clearTimeout(show); clearTimeout(expand); clearTimeout(shrink); clearTimeout(hide) }
   }, [hovered])
+
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      if (!macRef.current?.contains(e.target as Node)) {
+        setMacKeyboardActive(false)
+        setQShortcutHeld(false)
+        setAppSwitcherVisible(false)
+        setAppSwitcherIndex(0)
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown)
+    return () => document.removeEventListener("mousedown", onPointerDown)
+  }, [])
 
   useEffect(() => { setActiveImg(0) }, [images, src])
   useEffect(() => {
@@ -330,7 +441,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
 
-  const bringToFront = useCallback((key: number | "itunes" | "safari" | "messages") => {
+  const bringToFront = useCallback((key: number | "finder" | "itunes" | "terminal" | "safari" | "messages") => {
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
@@ -400,6 +511,156 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setSafariOpen(true)
     setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
   }, [activeSafariTabId])
+
+  const createDesktopEntry = useCallback((type: "folder" | "file", requestedName?: string) => {
+    const fallbackName = type === "folder" ? "New Folder" : "New File.txt"
+    const initialName = (requestedName?.trim() || fallbackName).replace(/[\\/:*?"<>|]/g, "").trim() || fallbackName
+    const existingNames = new Set(desktopItems.map(item => item.name.toLowerCase()))
+    let candidate = initialName
+    let suffix = 2
+    while (existingNames.has(candidate.toLowerCase())) {
+      candidate = type === "folder"
+        ? `${initialName} ${suffix}`
+        : initialName.includes(".")
+          ? initialName.replace(/(\.[^.]*)?$/, ` ${suffix}$1`)
+          : `${initialName} ${suffix}`
+      suffix += 1
+    }
+    const slot = desktopItemIdRef.current++
+    setDesktopItems(prev => [...prev.map(item => ({ ...item, selected: false })), {
+      id: slot,
+      name: candidate,
+      type,
+      slot,
+      dx: 0,
+      dy: 0,
+      selected: true,
+    }])
+    setEditingDesktopItemId(slot)
+    setEditingDesktopName(candidate)
+  }, [desktopItems])
+
+  const commitDesktopRename = useCallback((id: number) => {
+    const target = desktopItems.find(item => item.id === id)
+    if (!target) return
+    const fallbackName = target.type === "folder" ? "New Folder" : "New File.txt"
+    const sanitized = editingDesktopName.replace(/[\\/:*?"<>|]/g, "").trim() || fallbackName
+    const usedNames = new Set(
+      desktopItems
+        .filter(item => item.id !== id)
+        .map(item => item.name.toLowerCase())
+    )
+    let finalName = sanitized
+    let suffix = 2
+    while (usedNames.has(finalName.toLowerCase())) {
+      finalName = target.type === "folder"
+        ? `${sanitized} ${suffix}`
+        : sanitized.includes(".")
+          ? sanitized.replace(/(\.[^.]*)?$/, ` ${suffix}$1`)
+          : `${sanitized} ${suffix}`
+      suffix += 1
+    }
+    setDesktopItems(prev => prev.map(item => item.id === id ? { ...item, name: finalName, selected: false } : item))
+    setEditingDesktopItemId(null)
+    setEditingDesktopName("")
+    desktopRenameInputRef.current?.blur()
+  }, [desktopItems, editingDesktopName])
+
+  const cancelDesktopRename = useCallback(() => {
+    setDesktopItems(prev => prev.map(item => editingDesktopItemId !== null && item.id === editingDesktopItemId ? { ...item, selected: false } : item))
+    setEditingDesktopItemId(null)
+    setEditingDesktopName("")
+    desktopRenameInputRef.current?.blur()
+  }, [editingDesktopItemId])
+
+  const moveDesktopItemToFolder = useCallback((draggedId: number, targetFolderId: number) => {
+    const draggedItem = desktopItems.find(item => item.id === draggedId)
+    const targetFolder = desktopItems.find(item => item.id === targetFolderId && item.type === "folder")
+    if (!draggedItem || !targetFolder || draggedItem.id === targetFolder.id) return
+
+    const targetPath = `~/${targetFolder.name}`
+    const siblingNames = new Set((termFsRef.current[targetPath] ?? []).map(entry => entry.name.toLowerCase()))
+    let finalName = draggedItem.name
+    let suffix = 2
+    while (siblingNames.has(finalName.toLowerCase())) {
+      finalName = draggedItem.type === "folder"
+        ? `${draggedItem.name} ${suffix}`
+        : draggedItem.name.includes(".")
+          ? draggedItem.name.replace(/(\.[^.]*)?$/, ` ${suffix}$1`)
+          : `${draggedItem.name} ${suffix}`
+      suffix += 1
+    }
+
+    setDesktopItems(prev => prev.filter(item => item.id !== draggedId).map(item => ({ ...item, selected: false, dx: 0, dy: 0 })))
+    setTermFs(prev => {
+      const next: TermFs = { ...prev }
+      const targetEntries = [...(next[targetPath] ?? []), { name: finalName, type: draggedItem.type }]
+      next[targetPath] = targetEntries
+
+      if (draggedItem.type === "folder") {
+        const oldPath = `~/${draggedItem.name}`
+        const newPath = `${targetPath}/${finalName}`
+        Object.keys(next).forEach(path => {
+          if (path === oldPath || path.startsWith(`${oldPath}/`)) {
+            const mappedPath = path === oldPath ? newPath : `${newPath}${path.slice(oldPath.length)}`
+            next[mappedPath] = next[path]
+            delete next[path]
+          }
+        })
+      }
+      return next
+    })
+    if (draggedItem.type === "file") {
+      setFileContents(prev => {
+        const oldPath = `~/${draggedItem.name}`
+        const newPath = `${targetPath}/${finalName}`
+        if (!(oldPath in prev)) return prev
+        const next = { ...prev, [newPath]: prev[oldPath] }
+        delete next[oldPath]
+        return next
+      })
+    }
+  }, [desktopItems])
+
+  const openTerminalWindow = useCallback(() => {
+    setTermMinimized(false)
+    setTermMinimizing(false)
+    setTerminalOpen(true)
+    setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [])
+
+  const stampMessageTime = useCallback(() => (
+    new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+  ), [])
+
+  const sendPromptToMessages = useCallback((prompt: MessagePrompt) => {
+    if (messagesTyping) return
+    const askedAlready = messagesConversation.some(message => message.sender === "visitor" && message.text === prompt.question)
+    if (askedAlready) return
+    const visitorMessage: MessageBubble = {
+      id: ++messageIdRef.current,
+      sender: "visitor",
+      text: prompt.question,
+      time: stampMessageTime(),
+    }
+    setMessagesConversation(current => [...current, visitorMessage])
+    setMessagesTyping(true)
+    setActivePromptId(prompt.id)
+    if (messagesReplyTimeoutRef.current) clearTimeout(messagesReplyTimeoutRef.current)
+    messagesReplyTimeoutRef.current = setTimeout(() => {
+      const replyMessage: MessageBubble = {
+        id: ++messageIdRef.current,
+        sender: "zakaria",
+        text: prompt.answer,
+        time: stampMessageTime(),
+      }
+      setMessagesConversation(current => [...current, replyMessage])
+      setMessagesTyping(false)
+      setActivePromptId(null)
+      messagesReplyTimeoutRef.current = null
+    }, 1200)
+  }, [messagesTyping, messagesConversation, stampMessageTime])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -657,6 +918,25 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [safariOpen, safariInputFocused, activeSafariTabId])
 
   useEffect(() => {
+    if (messagesBodyRef.current) {
+      messagesBodyRef.current.scrollTop = messagesBodyRef.current.scrollHeight
+    }
+  }, [messagesConversation, messagesTyping])
+
+  useEffect(() => {
+    if (editingDesktopItemId === null) return
+    const timer = setTimeout(() => {
+      desktopRenameInputRef.current?.focus()
+      desktopRenameInputRef.current?.select()
+    }, 30)
+    return () => clearTimeout(timer)
+  }, [editingDesktopItemId])
+
+  useEffect(() => () => {
+    if (messagesReplyTimeoutRef.current) clearTimeout(messagesReplyTimeoutRef.current)
+  }, [])
+
+  useEffect(() => {
     const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
@@ -743,22 +1023,63 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (!dockSleeping && dockPeek) setDockPeek(false)
   }, [dockSleeping, dockPeek])
 
-  // Keyboard shortcuts - only active while MacBook is hovered
+  // Keyboard shortcuts - only active after the MacBook has been clicked
   useEffect(() => {
-    if (!hovered) return
+    if (!hovered || !macKeyboardActive) return
+    const activateSwitchTarget = (target: SwitchableKey) => {
+      if (target === "finder") {
+        bringToFront("finder")
+      } else if (target === "terminal") {
+        bringToFront("terminal")
+        setTimeout(() => inputRef.current?.focus(), 50)
+      } else if (target === "messages") {
+        bringToFront("messages")
+      } else if (target === "safari") {
+        bringToFront("safari")
+      } else if (target === "itunes") {
+        bringToFront("itunes")
+      } else {
+        focusWin(target)
+      }
+    }
     const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "q" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setQShortcutHeld(true)
+        return
+      }
+      if (qShortcutHeld && e.key === "Tab") {
+        e.preventDefault()
+        if (switchableWindows.length < 2) return
+        setAppSwitcherVisible(true)
+        setAppSwitcherIndex(current => {
+          if (!appSwitcherVisible) {
+            return e.shiftKey
+              ? 0
+              : Math.max(0, switchableWindows.length - 2)
+          }
+          return e.shiftKey
+            ? (current - 1 + switchableWindows.length) % switchableWindows.length
+            : (current + 1) % switchableWindows.length
+        })
+        return
+      }
       if (e.key === "q" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         // close the topmost window in the unified stack
         const top = [...windowOrder].reverse().find(k => {
+          if (k === "finder") return finderOpen && !finderMinimized
           if (k === "itunes") return itunesOpen && !itunesMinimized
           if (k === "messages") return messagesOpen && !messagesMinimized
           if (k === "terminal") return terminalOpen && !termMinimized
           if (k === "safari") return safariOpen && !safariMinimized
           return openWindows.some(w => w.id === k && !w.minimized)
         })
-        if (top === "itunes") {
+        if (top === "finder") {
+          setFinderOpen(false); setFinderMinimized(false); setFinderMaximized(false); setFinderPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "finder"))
+        } else if (top === "itunes") {
           setItunesOpen(false); setWindowOrder(o => o.filter(k => k !== "itunes"))
+        } else if (top === "messages") {
+          setMessagesOpen(false); setMessagesMinimized(false); setMessagesMaximized(false); setMessagesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "messages"))
         } else if (top === "terminal") {
           setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal"))
         } else if (top === "safari") {
@@ -824,7 +1145,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
-        if (item.type === "finder") { setFinderOpen(o => !o) }
+        if (item.type === "finder") {
+          const isOnTop = windowOrder[windowOrder.length - 1] === "finder"
+          if (!finderOpen || finderMinimized) {
+            setFinderOpen(true); setFinderMinimized(false); setFinderMinimizing(false)
+            setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
+          } else if (isOnTop) {
+            setFinderMinimizing(true)
+            setTimeout(() => { setFinderMinimized(true); setFinderMinimizing(false) }, 340)
+          } else {
+            setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
+          }
+        }
         if (item.type === "project") {
           openWindow(item.projIdx)
         }
@@ -879,9 +1211,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
       }
     }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "q") {
+        setQShortcutHeld(false)
+        if (appSwitcherVisible) {
+          const selected = switchableWindows[appSwitcherIndex]
+          if (selected) activateSwitchTarget(selected.key)
+          setAppSwitcherVisible(false)
+        }
+      }
+    }
     window.addEventListener("keydown", onKey, { capture: true })
-    return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized])
+    window.addEventListener("keyup", onKeyUp, { capture: true })
+    return () => {
+      window.removeEventListener("keydown", onKey, { capture: true })
+      window.removeEventListener("keyup", onKeyUp, { capture: true })
+    }
+  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, switchableWindows, appSwitcherVisible, appSwitcherIndex])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -1049,6 +1395,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ref={macRef}
       className={className}
       style={s.scene}
+      onMouseDown={() => setMacKeyboardActive(true)}
     >
       <audio ref={vscodeAudioRef} src="/sounds/trum-vscode-cmt.mp3" preload="auto" />
       <div style={s.lid}>
@@ -1116,12 +1463,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           </div>
 
           <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => {
+            setMacKeyboardActive(true)
             setControlCenterOpen(false)
             setContextMenu(null)
+            cancelDesktopRename()
           }} onContextMenu={e => {
             e.preventDefault()
             const rect = screenRef.current?.getBoundingClientRect()
             if (rect) {
+              setContextMenuHovered(null)
+              cancelDesktopRename()
               setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top })
             }
           }}>
@@ -1129,6 +1480,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.screenOn} onClick={() => {
               setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))
               setContextMenu(null)
+              cancelDesktopRename()
             }}>
 
               {/* Desktop icons - folders/files created via terminal */}
@@ -1141,7 +1493,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const gap      = Math.round(w * 0.014)
                 const padR     = Math.round(w * 0.022)
                 const padT     = Math.round(w * 0.018)
+                const screenW  = w - 20
+                const minLeft  = Math.round(w * 0.018)
+                const maxLeft  = screenW - padR - iw
+                const minTop   = mbH + padT
+                const maxTop   = mbH + availH - ih - Math.round(w * 0.01)
                 const perCol   = Math.max(1, Math.floor((availH - padT) / (ih + gap)))
+                const totalCols = Math.max(1, Math.floor((screenW - minLeft - padR) / (iw + gap)))
                 return desktopItems.map(item => {
                   const col  = Math.floor(item.slot / perCol)
                   const row  = item.slot % perCol
@@ -1150,6 +1508,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const ix   = bx + item.dx
                   const iy   = by + item.dy
                   const iconSrc = item.type === "folder" ? FOLDER_ICON : FILE_ICON
+                  const isEditing = editingDesktopItemId === item.id
                   return (
                     <div
                       key={item.id}
@@ -1183,12 +1542,76 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         const onMove = (ev: MouseEvent) => {
                           const drag = desktopDragRef.current
                           if (!drag || drag.id !== item.id) return
+                          const unclampedLeft = bx + drag.ox + ev.clientX - drag.startX
+                          const unclampedTop = by + drag.oy + ev.clientY - drag.startY
+                          const clampedLeft = Math.max(minLeft, Math.min(maxLeft, unclampedLeft))
+                          const clampedTop = Math.max(minTop, Math.min(maxTop, unclampedTop))
                           setDesktopItems(prev => prev.map(d => d.id === drag.id
-                            ? { ...d, dx: drag.ox + ev.clientX - drag.startX, dy: drag.oy + ev.clientY - drag.startY }
+                            ? { ...d, dx: clampedLeft - bx, dy: clampedTop - by }
                             : d
                           ))
                         }
                         const onUp = () => {
+                          const currentItems = desktopItemsRef.current
+                          const draggedItem = currentItems.find(d => d.id === item.id)
+                          const draggedCol = draggedItem ? Math.floor(draggedItem.slot / perCol) : 0
+                          const draggedRow = draggedItem ? draggedItem.slot % perCol : 0
+                          const draggedBaseX = (w - 20) - padR - iw - draggedCol * (iw + gap)
+                          const draggedBaseY = mbH + padT + draggedRow * (ih + gap)
+                          const draggedLeft = draggedItem ? draggedBaseX + draggedItem.dx : ix
+                          const draggedTop = draggedItem ? draggedBaseY + draggedItem.dy : iy
+                          const dropTarget = currentItems.find(other => {
+                            if (other.id === item.id || other.type !== "folder") return false
+                            const otherCol = Math.floor(other.slot / perCol)
+                            const otherRow = other.slot % perCol
+                            const otherLeft = (w - 20) - padR - iw - otherCol * (iw + gap)
+                            const otherTop = mbH + padT + otherRow * (ih + gap)
+                            const otherX = otherLeft + other.dx
+                            const otherY = otherTop + other.dy
+                            const draggedRect = {
+                              left: draggedLeft,
+                              right: draggedLeft + iw,
+                              top: draggedTop,
+                              bottom: draggedTop + ih,
+                            }
+                            const targetRect = {
+                              left: otherX,
+                              right: otherX + iw,
+                              top: otherY,
+                              bottom: otherY + ih,
+                            }
+                            const overlapX = Math.min(draggedRect.right, targetRect.right) - Math.max(draggedRect.left, targetRect.left)
+                            const overlapY = Math.min(draggedRect.bottom, targetRect.bottom) - Math.max(draggedRect.top, targetRect.top)
+                            return overlapX > iw * 0.45 && overlapY > ih * 0.45
+                          })
+                          if (dropTarget) {
+                            moveDesktopItemToFolder(item.id, dropTarget.id)
+                            desktopDragRef.current = null
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                            return
+                          }
+                          setDesktopItems(prev => {
+                            const dragged = prev.find(d => d.id === item.id)
+                            if (!dragged) return prev
+                            const currentCol = Math.floor(dragged.slot / perCol)
+                            const currentRow = dragged.slot % perCol
+                            const currentBaseX = (w - 20) - padR - iw - currentCol * (iw + gap)
+                            const currentBaseY = mbH + padT + currentRow * (ih + gap)
+                            const currentLeft = currentBaseX + dragged.dx
+                            const currentTop = currentBaseY + dragged.dy
+                            const maxCol = Math.max(0, totalCols - 1)
+                            const targetCol = Math.max(0, Math.min(maxCol, Math.round((screenW - padR - iw - currentLeft) / (iw + gap))))
+                            const targetRow = Math.max(0, Math.min(perCol - 1, Math.round((currentTop - (mbH + padT)) / (ih + gap))))
+                            const targetSlot = targetCol * perCol + targetRow
+                            const occupied = prev.find(d => d.id !== dragged.id && d.slot === targetSlot)
+                            return prev.map(d => {
+                              if (d.id === dragged.id) return { ...d, slot: targetSlot, dx: 0, dy: 0 }
+                              if (occupied && d.id === occupied.id) return { ...d, slot: dragged.slot, dx: 0, dy: 0 }
+                              if (d.id === dragged.id || d.id === occupied?.id) return d
+                              return d
+                            })
+                          })
                           desktopDragRef.current = null
                           window.removeEventListener("mousemove", onMove)
                           window.removeEventListener("mouseup", onUp)
@@ -1216,20 +1639,52 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         draggable={false}
                         style={{ width: Math.round(w * 0.054), height: Math.round(w * 0.054), objectFit: "contain", display: "block", flexShrink: 0 }}
                       />
-                      <span style={{
-                        fontSize: Math.round(w * 0.013),
-                        color: "white",
-                        textAlign: "center",
-                        lineHeight: 1.2,
-                        wordBreak: "break-all",
-                        maxWidth: "100%",
-                        textShadow: "0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6)",
-                        padding: `1px ${Math.round(w * 0.005)}px`,
-                        borderRadius: 3,
-                        background: item.selected ? "rgba(10,132,255,0.5)" : "transparent",
-                      }}>
-                        {item.name}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          ref={desktopRenameInputRef}
+                          value={editingDesktopName}
+                          onChange={e => setEditingDesktopName(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          onMouseDown={e => e.stopPropagation()}
+                          onBlur={() => commitDesktopRename(item.id)}
+                          onKeyDown={e => {
+                            e.stopPropagation()
+                            if (e.key === "Enter") commitDesktopRename(item.id)
+                            if (e.key === "Escape") cancelDesktopRename()
+                          }}
+                          style={{
+                            width: "100%",
+                            fontSize: Math.round(w * 0.013),
+                            color: "white",
+                            textAlign: "center",
+                            lineHeight: 1.2,
+                            padding: `2px ${Math.round(w * 0.005)}px`,
+                            borderRadius: 4,
+                            border: "1px solid rgba(255,255,255,0.75)",
+                            background: "rgba(10,132,255,0.65)",
+                            outline: "none",
+                            boxShadow: "0 0 0 1px rgba(255,255,255,0.2)",
+                            textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                            fontFamily: "-apple-system,'SF Pro Text',sans-serif",
+                          }}
+                        />
+                      ) : (
+                        <span style={{
+                          width: "100%",
+                          fontSize: Math.round(w * 0.013),
+                          color: "white",
+                          textAlign: "center",
+                          lineHeight: 1.2,
+                          wordBreak: "break-all",
+                          maxWidth: "100%",
+                          textShadow: "0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6)",
+                          padding: `1px ${Math.round(w * 0.005)}px`,
+                          borderRadius: 3,
+                          background: item.selected ? "rgba(10,132,255,0.5)" : "transparent",
+                        }}>
+                          {item.name}
+                        </span>
+                      )}
                     </div>
                   )
                 })
@@ -1486,6 +1941,92 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   pointerEvents: "none",
                   animation: "mbFade 0.3s ease",
                 }} />
+              )}
+
+              {appSwitcherVisible && switchableWindows.length > 0 && (
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 14,
+                    padding: `${Math.round(h * 0.02)}px ${Math.round(w * 0.02)}px`,
+                    borderRadius: 24,
+                    background: isDark ? "rgba(20,20,24,0.82)" : "rgba(245,247,250,0.82)",
+                    border: `0.5px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(148,163,184,0.18)"}`,
+                    backdropFilter: "blur(24px) saturate(1.2)",
+                    WebkitBackdropFilter: "blur(24px) saturate(1.2)",
+                    boxShadow: isDark ? "0 28px 80px rgba(0,0,0,0.45)" : "0 28px 80px rgba(15,23,42,0.14)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: Math.round(w * 0.018),
+                    maxWidth: Math.round(w * 0.76),
+                  }}
+                >
+                  {switchableWindows.map((item, idx) => {
+                    const active = idx === appSwitcherIndex
+                    return (
+                      <div
+                        key={`${item.label}-${String(item.key)}`}
+                        style={{
+                          width: Math.round(w * 0.112),
+                          padding: `${Math.round(h * 0.012)}px ${Math.round(w * 0.008)}px`,
+                          borderRadius: 18,
+                          background: active
+                            ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)")
+                            : (isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.42)"),
+                          border: `0.5px solid ${active
+                            ? (isDark ? "rgba(255,255,255,0.18)" : "rgba(148,163,184,0.2)")
+                            : (isDark ? "rgba(255,255,255,0.06)" : "rgba(148,163,184,0.12)")}`,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: Math.round(h * 0.01),
+                          boxShadow: active
+                            ? (isDark ? "0 14px 30px rgba(0,0,0,0.26)" : "0 14px 30px rgba(15,23,42,0.08)")
+                            : "none",
+                          transform: active ? "translateY(-2px) scale(1.03)" : "scale(1)",
+                          transition: "transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease",
+                        }}
+                      >
+                        <div style={{
+                          width: Math.round(w * 0.055),
+                          height: Math.round(w * 0.055),
+                          borderRadius: 16,
+                          background: item.icon ? "transparent" : item.tone,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                          boxShadow: "0 10px 24px rgba(0,0,0,0.18)",
+                        }}>
+                          {item.icon ? (
+                            <img src={item.icon} alt={item.label} draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          ) : (
+                            <span style={{ color: "#fff", fontSize: Math.round(w * 0.016), fontWeight: 800, fontFamily: "-apple-system,'SF Pro Display',sans-serif" }}>
+                              {item.label.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{
+                          width: "100%",
+                          textAlign: "center",
+                          fontSize: Math.round(w * 0.014),
+                          fontWeight: active ? 700 : 600,
+                          color: isDark ? "rgba(255,255,255,0.92)" : "rgba(15,23,42,0.92)",
+                          fontFamily: "-apple-system,'SF Pro Text',sans-serif",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}>
+                          {item.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
 
               {/* macOS menu bar */}
@@ -2455,6 +2996,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const bubbleBlue = "#0a84ff"
                 const myAvatar = "Z"
                 const zIdx = 3 + (windowOrder.indexOf("messages") >= 0 ? windowOrder.indexOf("messages") : 0)
+                const latestMessage = messagesConversation[messagesConversation.length - 1]
+                const availablePrompts = messagePrompts.filter(prompt => !messagesConversation.some(message => message.sender === "visitor" && message.text === prompt.question))
 
                 return (
                   <div
@@ -2550,7 +3093,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>Now</span>
                               </div>
                               <div style={{ fontSize: Math.round(w * 0.014), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                Last message from Zakaria
+                                {messagesTyping ? "Zakaria is typing..." : latestMessage?.text ?? "Start a conversation"}
                               </div>
                             </div>
                           </div>
@@ -2566,29 +3109,76 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.032)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.024)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.022), background: isDark ? "radial-gradient(circle at top, rgba(10,132,255,0.08), transparent 28%), #17181c" : "linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)" }}>
+                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.032)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.024)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.022), background: isDark ? "radial-gradient(circle at top, rgba(10,132,255,0.08), transparent 28%), #17181c" : "linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)" }}>
                           <div style={{ alignSelf: "center", fontSize: Math.round(w * 0.013), fontWeight: 700, color: textSecondary as string, fontFamily: ff, letterSpacing: 0.3 }}>
                             Today
                           </div>
-                          {messagesThread.map(message => (
-                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                              <div style={{ maxWidth: "76%", borderRadius: 22, borderTopRightRadius: 8, padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`, background: bubbleBlue, color: "#fff", fontSize: Math.round(w * 0.017), lineHeight: 1.45, fontFamily: ff, boxShadow: "0 12px 30px rgba(10,132,255,0.24)" }}>
+                          {messagesConversation.map(message => (
+                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: message.sender === "zakaria" ? "flex-start" : "flex-end", gap: 6 }}>
+                              <div style={{
+                                maxWidth: "76%",
+                                borderRadius: 22,
+                                ...(message.sender === "zakaria" ? { borderTopLeftRadius: 8, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(226,232,240,0.78)", color: textPrimary as string, boxShadow: "none" } : { borderTopRightRadius: 8, background: bubbleBlue, color: "#fff", boxShadow: "0 12px 30px rgba(10,132,255,0.24)" }),
+                                padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`,
+                                fontSize: Math.round(w * 0.017),
+                                lineHeight: 1.45,
+                                fontFamily: ff,
+                              }}>
                                 {message.text}
                               </div>
                               <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>{message.time}</span>
                             </div>
                           ))}
+                          {messagesTyping && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+                              <div style={{ borderRadius: 22, borderTopLeftRadius: 8, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(226,232,240,0.78)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`, display: "flex", alignItems: "center", gap: 6 }}>
+                                {[0, 1, 2].map(dot => (
+                                  <span key={dot} style={{ width: 6, height: 6, borderRadius: "50%", background: textSecondary as string, opacity: 0.7 }} />
+                                ))}
+                              </div>
+                              <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>Zakaria is typing...</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div style={{ padding: `${Math.round(mh * 0.02)}px ${Math.round(mw * 0.03)}px`, borderTop: `0.5px solid ${divider}`, background: titleBg, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
-                          <div style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.018), fontFamily: ff, flexShrink: 0 }}>+</div>
-                          <div style={{ flex: 1, height: Math.round(titleH * 0.82), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.94)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.02)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
-                            iMessage
+                        <div style={{ padding: `${Math.round(mh * 0.02)}px ${Math.round(mw * 0.03)}px`, borderTop: `0.5px solid ${divider}`, background: titleBg, display: "flex", flexDirection: "column", alignItems: "stretch", gap: Math.round(mh * 0.014) }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: Math.round(mw * 0.012) }}>
+                            {availablePrompts.map(prompt => (
+                              <button
+                                key={prompt.id}
+                                type="button"
+                                onClick={() => sendPromptToMessages(prompt)}
+                                disabled={messagesTyping}
+                                style={{
+                                  border: "none",
+                                  borderRadius: 999,
+                                  padding: `${Math.round(mh * 0.01)}px ${Math.round(mw * 0.016)}px`,
+                                  background: activePromptId === prompt.id ? bubbleBlue : (isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.96)"),
+                                  color: activePromptId === prompt.id ? "#fff" : textPrimary as string,
+                                  borderColor: divider,
+                                  boxShadow: activePromptId === prompt.id ? "0 10px 24px rgba(10,132,255,0.24)" : "none",
+                                  outline: "none",
+                                  cursor: messagesTyping ? "default" : "pointer",
+                                  opacity: messagesTyping ? 0.6 : 1,
+                                  fontSize: Math.round(w * 0.014),
+                                  fontWeight: 600,
+                                  fontFamily: ff,
+                                }}
+                              >
+                                {prompt.question}
+                              </button>
+                            ))}
                           </div>
-                          <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.26)", flexShrink: 0 }}>
-                            <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none">
-                              <path d="M5 12h12M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
+                            <div style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.018), fontFamily: ff, flexShrink: 0 }}>+</div>
+                            <div style={{ flex: 1, height: Math.round(titleH * 0.82), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.94)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.02)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
+                              {messagesTyping ? "Zakaria is replying..." : availablePrompts.length > 0 ? "Choose a question above" : "All ready questions answered"}
+                            </div>
+                            <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.26)", flexShrink: 0 }}>
+                              <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12h12M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -3109,7 +3699,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                 return (
                   <div
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); bringToFront("finder"); setFocusedWinId(null) }}
                     style={{
                       position: "absolute",
                       ...(finderMaximized
@@ -3120,7 +3710,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             left: Math.round((w - 20 - fw) / 2) + finderPos.x,
                             top: mbH + Math.round((h - mbH - fh) * 0.08) + finderPos.y,
                           }),
-                      zIndex: 25,
+                      zIndex: 3 + (windowOrder.indexOf("finder") >= 0 ? windowOrder.indexOf("finder") : 0),
                       borderRadius: finderMaximized ? 0 : 10,
                       overflow: "hidden",
                       display: "flex", flexDirection: "column",
@@ -3159,7 +3749,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, zIndex: 1 }}>
                           {[
-                            { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804", fn: () => { setFinderOpen(false); setFinderMinimized(false); setFinderMaximized(false); setFinderPos({ x: 0, y: 0 }) } },
+                            { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804", fn: () => { setFinderOpen(false); setFinderMinimized(false); setFinderMaximized(false); setFinderPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "finder")) } },
                             { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d", fn: () => { setFinderMinimizing(true); setTimeout(() => { setFinderMinimized(true); setFinderMinimizing(false) }, 340) } },
                             { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218", fn: () => setFinderMaximized(v => !v) },
                           ].map((btn, i) => (
@@ -3440,13 +4030,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       onMouseLeave={() => setHoveredSlot(null)}
                       onClick={(e) => {
                         e.stopPropagation()
+                        const isOnTop = windowOrder[windowOrder.length - 1] === "finder"
                         if (!finderOpen || finderMinimized) {
                           setFinderOpen(true)
                           setFinderMinimized(false)
                           setFinderMinimizing(false)
-                        } else {
+                          setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
+                        } else if (isOnTop) {
                           setFinderMinimizing(true)
                           setTimeout(() => { setFinderMinimized(true); setFinderMinimizing(false) }, 340)
+                        } else {
+                          setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
                         }
                       }}
                       style={{
@@ -3852,98 +4446,97 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
               {/* Context Menu */}
               {contextMenu && (
-                <div
-                  style={{
-                    position: "absolute",
-                    left: contextMenu.x,
-                    top: contextMenu.y,
-                    zIndex: 1000,
-                  }}
-                  onContextMenu={e => e.preventDefault()}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div
-                    style={{
-                      background: isDark 
-                        ? "rgba(55, 55, 55, 0.88)" 
-                        : "rgba(255, 255, 255, 0.88)",
-                      backdropFilter: "blur(30px)",
-                      WebkitBackdropFilter: "blur(30px)",
-                      borderRadius: 10,
-                      border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)"}`,
-                      boxShadow: isDark
-                        ? "0 16px 48px rgba(0,0,0,0.6), inset 1px 1px 0 rgba(255,255,255,0.08)"
-                        : "0 16px 48px rgba(0,0,0,0.15), inset 1px 1px 0 rgba(255,255,255,0.8)",
-                      minWidth: 200,
-                      maxWidth: 280,
-                      overflow: "hidden",
-                      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                      fontSize: 13,
-                      lineHeight: 1.4,
-                      animation: "menuFadeIn 0.15s ease-out",
-                    }}
-                  >
-                    {[
-                      { label: "Back", disabled: true },
-                      { label: "Forward", disabled: true },
-                      { label: "Reload", disabled: false },
-                      null,
-                      { label: "Save Image As...", disabled: false },
-                      { label: "Print", disabled: false },
-                      null,
-                      { label: "Copy Image Address", disabled: true },
-                      null,
-                      { label: "Inspect Element", disabled: false },
-                    ].map((item, idx) => 
-                      item === null ? (
-                        <div
-                          key={`sep-${idx}`}
-                          style={{
-                            height: 1,
-                            background: isDark 
-                              ? "rgba(255,255,255,0.08)" 
-                              : "rgba(0,0,0,0.08)",
-                            margin: "6px 0",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          key={idx}
-                          onMouseEnter={() => !item.disabled && setContextMenuHovered(idx)}
-                          onMouseLeave={() => setContextMenuHovered(null)}
-                          onClick={(e) => {
-                            if (!item.disabled) {
-                              e.stopPropagation()
-                              setContextMenu(null)
-                            }
-                          }}
-                          style={{
-                            padding: "8px 16px",
-                            color: item.disabled 
-                              ? isDark
-                                ? "rgba(255,255,255,0.35)"
-                                : "rgba(0,0,0,0.35)"
-                              : isDark 
-                              ? "rgba(255,255,255,0.9)" 
-                              : "rgba(0,0,0,0.85)",
-                            background: contextMenuHovered === idx && !item.disabled
-                              ? isDark
-                                ? "rgba(255,255,255,0.12)"
-                                : "rgba(0,120,215,0.15)"
-                              : "transparent",
-                            cursor: item.disabled ? "default" : "pointer",
-                            transition: "background 0.12s cubic-bezier(0.4, 0, 0.2, 1)",
-                            userSelect: "none",
-                            fontSize: 13,
-                            fontWeight: 400,
-                          }}
-                        >
-                          {item.label}
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
+                (() => {
+                  const menuItems = [
+                    { label: "New Folder", action: () => createDesktopEntry("folder") },
+                    { label: "New File", action: () => createDesktopEntry("file") },
+                    null,
+                    { label: "Open Terminal", action: openTerminalWindow },
+                    null,
+                    { label: "Refresh Desktop", action: () => setDesktopItems(prev => [...prev]) },
+                  ] as const
+                  const menuW = Math.round(w * 0.245)
+                  const clampedX = Math.min(contextMenu.x, Math.max(12, w - 20 - menuW - 12))
+                  const clampedY = Math.min(contextMenu.y, Math.max(12, h - Math.round(h * 0.26)))
+                  const rowPadY = Math.round(h * 0.008)
+                  const rowPadX = Math.round(w * 0.013)
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: clampedX,
+                        top: clampedY,
+                        zIndex: 1000,
+                      }}
+                      onContextMenu={e => e.preventDefault()}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div
+                        style={{
+                          background: isDark
+                            ? "linear-gradient(180deg, rgba(62,62,68,0.72) 0%, rgba(34,34,38,0.8) 100%)"
+                            : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
+                          backdropFilter: "blur(30px) saturate(1.5)",
+                          WebkitBackdropFilter: "blur(30px) saturate(1.5)",
+                          borderRadius: 10,
+                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
+                          boxShadow: isDark
+                            ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
+                            : "0 24px 60px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(148,163,184,0.12)",
+                          minWidth: menuW,
+                          overflow: "hidden",
+                          fontFamily: "-apple-system,'SF Pro Text','SF Pro Display',BlinkMacSystemFont,sans-serif",
+                          fontSize: Math.round(w * 0.0135),
+                          lineHeight: 1.35,
+                          animation: "menuFadeIn 0.14s ease-out",
+                          padding: 5,
+                        }}
+                      >
+                        {menuItems.map((item, idx) =>
+                          item === null ? (
+                            <div
+                              key={`sep-${idx}`}
+                              style={{
+                                height: 1,
+                                background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                                margin: `${Math.round(h * 0.004)}px ${Math.round(w * 0.008)}px`,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              key={idx}
+                              onMouseEnter={() => setContextMenuHovered(idx)}
+                              onMouseLeave={() => setContextMenuHovered(null)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                item.action()
+                                setContextMenu(null)
+                                setContextMenuHovered(null)
+                              }}
+                              style={{
+                                padding: `${rowPadY}px ${rowPadX}px`,
+                                color: contextMenuHovered === idx ? "#fff" : (isDark ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.92)"),
+                                background: contextMenuHovered === idx
+                                  ? "linear-gradient(180deg, #0a84ff 0%, #007aff 100%)"
+                                  : "transparent",
+                                cursor: "pointer",
+                                transition: "background 0.12s ease, color 0.12s ease",
+                                userSelect: "none",
+                                fontWeight: 500,
+                                borderRadius: 7,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: Math.round(w * 0.006),
+                              }}
+                            >
+                              <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()
               )}
             </div>
           </div>
