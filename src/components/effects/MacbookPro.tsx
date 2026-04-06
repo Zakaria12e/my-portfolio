@@ -45,6 +45,51 @@ interface WinState {
   activeImg: number
 }
 
+function TrafficLightSymbol({
+  kind,
+  color,
+  size,
+  visible,
+}: {
+  kind: "close" | "minimize" | "maximize"
+  color: string
+  size: number
+  visible: boolean
+}) {
+  const strokeWidth = kind === "maximize" ? 1.75 : 1.9
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 14 14"
+      aria-hidden="true"
+      style={{
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.1s",
+        overflow: "visible",
+      }}
+    >
+      {kind === "close" && (
+        <>
+          <path d="M4.4 4.4 9.6 9.6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+          <path d="M9.6 4.4 4.4 9.6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+        </>
+      )}
+      {kind === "minimize" && (
+        <path d="M4.1 7h5.8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      )}
+      {kind === "maximize" && (
+        <>
+          <path d="M4.2 9.8 9.8 4.2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+          <path d="M7.9 4.2h1.9v1.9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <path d="M6.1 9.8H4.2V7.9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 function resolvePath(cwd: string, target: string): string {
   if (!target || target === "~") return "~"
   if (target === "..") {
@@ -116,6 +161,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
   const [finderOpen, setFinderOpen] = useState(false)
+  const [finderMinimized, setFinderMinimized] = useState(false)
+  const [finderMinimizing, setFinderMinimizing] = useState(false)
+  const [finderMaximized, setFinderMaximized] = useState(false)
+  const [finderPos, setFinderPos] = useState({ x: 0, y: 0 })
+  const [hoveredFinderTl, setHoveredFinderTl] = useState(-1)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
@@ -130,6 +180,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
   const folderWinIdRef  = useRef(0)
   const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const finderDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const itemClickRef     = useRef<{ path: string; time: number }>({ path: "", time: 0 })
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
@@ -193,14 +244,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
-  const dockSleeping =
-    openWindows.some(w => !w.minimized) ||
-    (terminalOpen && !termMinimized) ||
-    (itunesOpen && !itunesMinimized) ||
-    (safariOpen && !safariMinimized) ||
-    finderOpen ||
-    folderWins.length > 0 ||
-    fileEditorWins.length > 0
+  const hasFullscreenWindow =
+    openWindows.some(w => w.maximized && !w.minimized) ||
+    termMaximized ||
+    safariMaximized ||
+    (finderOpen && finderMaximized && !finderMinimized)
+
+  const dockForcedSleep = hasFullscreenWindow
+
+  const dockSleeping = dockForcedSleep
+
+  useEffect(() => {
+    if (hasFullscreenWindow) setControlCenterOpen(false)
+  }, [hasFullscreenWindow])
+
+  useEffect(() => {
+    if (dockForcedSleep) setDockPeek(false)
+  }, [dockForcedSleep])
 
   useEffect(() => {
     if (!hovered) {
@@ -386,7 +446,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (!name) {
         setTermLines(l => [...l, echo, { text: "  usage: mkdir <name>", color: "#ff453a" }])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  mkdir: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: "  mkdir: invalid name - use letters, numbers, _ . -", color: "#ff453a" }])
       } else {
         const fs = termFsRef.current
         if ((fs[cwd] ?? []).some(e => e.name === name)) {
@@ -407,7 +467,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (!name) {
         setTermLines(l => [...l, echo, { text: "  usage: touch <filename>", color: "#ff453a" }])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  touch: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: "  touch: invalid name - use letters, numbers, _ . -", color: "#ff453a" }])
       } else {
         const fs = termFsRef.current
         if ((fs[cwd] ?? []).some(e => e.name === name)) {
@@ -430,7 +490,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else if (cmd === "stack") {
       setTermLines(l => [...l, echo,
         ...(tags && tags.length > 0
-          ? tags.map(t => ({ text: `  · ${t}`, color: "#64d2ff" }))
+          ? tags.map(t => ({ text: `  - ${t}`, color: "#64d2ff" }))
           : [{ text: "  No stack info available.", color: "#e2e8f0" }]
         ),
       ])
@@ -443,14 +503,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ])
     } else if (cmd === "github") {
       if (githubUrl && githubUrl !== "#") {
-        setTermLines(l => [...l, echo, { text: `  Opening GitHub…`, color: "#30d158" }])
+        setTermLines(l => [...l, echo, { text: "  Opening GitHub...", color: "#30d158" }])
         window.open(githubUrl, "_blank", "noopener,noreferrer")
       } else {
         setTermLines(l => [...l, echo, { text: "  No GitHub repo available.", color: "#ff453a" }])
       }
     } else if (cmd === "live") {
       if (liveUrl && liveUrl !== "#") {
-        setTermLines(l => [...l, echo, { text: `  Opening live demo…`, color: "#30d158" }])
+        setTermLines(l => [...l, echo, { text: "  Opening live demo...", color: "#30d158" }])
         openSafariUrl(liveUrl)
       } else {
         setTermLines(l => [...l, echo, { text: "  No live demo available.", color: "#ff453a" }])
@@ -467,7 +527,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           { text: "<filename> <text>", color: "#ffd60a" },
         ]}])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  write: invalid filename — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: "  write: invalid filename - use letters, numbers, _ . -", color: "#ff453a" }])
       } else {
         const fs     = termFsRef.current
         const path   = cwd === "~" ? `~/${name}` : `${cwd}/${name}`
@@ -618,7 +678,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     startSpring()
   }, [startSpring])
 
-  // All navigable dock items in order — defined after computeTargets
+  // All navigable dock items in order - defined after computeTargets
   const dockItems = useMemo(() => [
     { type: "finder" as const, refIdx: 0 },
     ...(projects
@@ -649,7 +709,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (!dockSleeping && dockPeek) setDockPeek(false)
   }, [dockSleeping, dockPeek])
 
-  // Keyboard shortcuts — only active while MacBook is hovered
+  // Keyboard shortcuts - only active while MacBook is hovered
   useEffect(() => {
     if (!hovered) return
     const onKey = (e: KeyboardEvent) => {
@@ -932,7 +992,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     },
   }
 
-  // Fixed slot size — icons scale via CSS transform, no layout reflow
+  // Fixed slot size - icons scale via CSS transform, no layout reflow
   const slotSize = ICON_BASE
   // Reserve enough vertical room for the tallest possible scaled icon
   const dockH = Math.round(ICON_BASE * MAX_SCALE) + DOCK_PAD_Y * 2 + 4
@@ -1024,7 +1084,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               setContextMenu(null)
             }}>
 
-              {/* Desktop icons — folders/files created via terminal */}
+              {/* Desktop icons - folders/files created via terminal */}
               {desktopItems.length > 0 && (() => {
                 const mbH      = Math.round(h * 0.036)
                 const dockH    = Math.round(w * 0.13)
@@ -1128,7 +1188,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })
               })()}
 
-              {/* Folder windows — opened by double-clicking a desktop folder */}
+              {/* Folder windows - opened by double-clicking a desktop folder */}
               {folderWins.map(fw => {
                 const fwW = Math.round(w * 0.62)
                 const fwH = Math.round(h * 0.58)
@@ -1343,7 +1403,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onMouseDown={e => e.stopPropagation()}
                         onKeyDown={e => e.stopPropagation()}
                         spellCheck={false}
-                        placeholder="Start typing…"
+                        placeholder="Start typing..."
                         style={{
                           flex: 1,
                           background: "transparent",
@@ -1370,7 +1430,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })}
 
-              {/* Screen scrim — dims wallpaper when a window is open */}
+              {/* Screen scrim - dims wallpaper when a window is open */}
               {(openWindows.some(w => !w.minimized) || (itunesOpen && !itunesMinimized)) && (
                 <div style={{
                   position: "absolute", inset: 0, zIndex: 2,
@@ -1389,13 +1449,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   <div style={{
                     position: "absolute", top: 0, left: 0, right: 0,
                     height: mbH,
-                    background: "transparent",
+                    background: isDark ? "rgba(30,30,32,0.28)" : "rgba(255,255,255,0.16)",
+                    backdropFilter: "blur(18px) saturate(1.45)",
+                    WebkitBackdropFilter: "blur(18px) saturate(1.45)",
+                    borderBottom: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                    boxShadow: isDark
+                      ? "inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 24px rgba(0,0,0,0.16)"
+                      : "0 8px 24px rgba(148,163,184,0.08)",
                     display: "flex", alignItems: "center",
                     justifyContent: "space-between",
                     padding: `${Math.round(mbH * 0.18)}px ${Math.round(w * 0.015)}px 0`,
                     zIndex: 15, pointerEvents: "none",
                     fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                     fontSize: fs,
+                    opacity: 1,
+                    transform: "translateY(0) scaleY(1)",
+                    filter: "blur(0px)",
+                    transition: "background 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease",
                   }}>
                     {/* Left: logo + app name */}
                     <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
@@ -1529,7 +1599,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ))}
                     </div>
 
-                    {/* Row 2: Notch — compact horizontal tile */}
+                    {/* Row 2: Notch - compact horizontal tile */}
                     <div
                       onClick={() => setShowNotch(n => !n)}
                       style={{
@@ -1632,13 +1702,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3" }}>Wallpaper</div>
                         <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>Click to change</div>
                       </div>
-                      <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>›</div>
+                      <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>{">"}</div>
                     </div>
                   </div>
                 )
               })()}
 
-              {/* App Windows — one per open project */}
+              {/* App Windows - one per open project */}
               {(() => {
                 const mbH    = Math.round(h * 0.036)
                 const availH = h - mbH
@@ -1693,11 +1763,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const tlGap  = Math.round(titleH * 0.45)
                   const tlLeft = Math.round(titleH * 0.64)
                   const tl = [
-                    { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                    { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804",
                       fn: () => closeWindow(win.id) },
-                    { fill: "#f6be50", border: "#e1a73e", sym: "-", symClr: "#90591d",
+                    { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d",
                       fn: () => { updateWin(win.id, { minimizing: true }); setTimeout(() => updateWin(win.id, { minimized: true, minimizing: false }), 340) } },
-                    { fill: "#61c555", border: "#2dac2f", sym: "?", symClr: "#2a6218",
+                    { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218",
                       fn: () => updateWin(win.id, { maximized: !win.maximized }) },
                   ]
                   const winBg   = isDark ? "#1c1c1e" : "#f4f4f6"
@@ -1777,11 +1847,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               cursor: "pointer", flexShrink: 0,
                             }}
                           >
-                            <span style={{
-                              fontSize: Math.round(tlSz * 0.58), lineHeight: 1, fontWeight: 900,
-                              color: btn.symClr, opacity: win.hoveredTl === i ? 1 : 0,
-                              transition: "opacity 0.08s", userSelect: "none",
-                            }}>{btn.sym}</span>
+                            <TrafficLightSymbol
+                              kind={btn.kind}
+                              color={btn.symClr}
+                              size={Math.round(tlSz * 0.84)}
+                              visible={win.hoveredTl === i}
+                            />
                           </div>
                         ))}
                       </div>
@@ -1923,7 +1994,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })
               })()}
 
-              {/* Terminal — standalone macOS window, same chrome as project windows */}
+              {/* Terminal - standalone macOS window, same chrome as project windows */}
               {terminalOpen && !termMinimized && (() => {
                 const mbH2    = Math.round(h * 0.036)
                 const availH2 = h - mbH2
@@ -1997,11 +2068,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap2, paddingLeft: tlLeft2 }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804",
                             fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal")) } },
-                          { fill: "#f6be50", border: "#e1a73e", sym: "-", symClr: "#90591d",
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d",
                             fn: () => { setTermMinimizing(true); setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340) } },
-                          { fill: "#61c555", border: "#2dac2f", sym: "?", symClr: "#2a6218",
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218",
                             fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i}
@@ -2015,17 +2086,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               cursor: "pointer", flexShrink: 0,
                             }}
                           >
-                            <span style={{
-                              fontSize: Math.round(tlSz2 * 0.58), lineHeight: 1, fontWeight: 900,
-                              color: btn.symClr, opacity: hoveredTermTl === i ? 1 : 0,
-                              transition: "opacity 0.08s", userSelect: "none",
-                            }}>{btn.sym}</span>
+                            <TrafficLightSymbol
+                              kind={btn.kind}
+                              color={btn.symClr}
+                              size={Math.round(tlSz2 * 0.84)}
+                              visible={hoveredTermTl === i}
+                            />
                           </div>
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
                         <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)", letterSpacing: -0.1, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
-                          {proj?.title ? `${proj.title} — zsh` : "Terminal — zsh"}
+                          {proj?.title ? `${proj.title} - zsh` : "Terminal - zsh"}
                         </span>
                       </div>
                     </div>
@@ -2117,7 +2189,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* Closing animation — exit layer over wallpaper */}
+              {/* Closing animation - exit layer over wallpaper */}
               {closingSrc && (
                 <img
                   key={`close-${closingSrc}`}
@@ -2371,19 +2443,24 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onMouseLeave={() => setSafariHoveredTl(-1)}
                       >
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
-                          { fill: "#f6be50", border: "#e1a73e", sym: "-", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
-                          { fill: "#61c555", border: "#2dac2f", sym: "?", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }}
                             style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontSize: tlSz * 0.72, color: "rgba(0,0,0,0.55)", lineHeight: 1, fontWeight: 700, opacity: safariHoveredTl >= 0 ? 1 : 0, transition: "opacity 0.1s" }}>{btn.sym}</span>
+                            <TrafficLightSymbol
+                              kind={btn.kind}
+                              color={btn.symClr}
+                              size={Math.round(tlSz * 0.84)}
+                              visible={safariHoveredTl >= 0}
+                            />
                           </div>
                         ))}
                       </div>
                       {/* Back / Forward */}
                       <div style={{ display: "flex", gap: 6, marginLeft: Math.round(sw2 * 0.01), flexShrink: 0 }}>
-                        {["‹", "›"].map((ch, i) => (
+                        {["<", ">"].map((ch, i) => (
                           <div key={i} style={{ width: Math.round(sw2 * 0.03), height: Math.round(sw2 * 0.03), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 999, background: panelBg, cursor: "default", color: textSec, fontSize: Math.round(sw2 * 0.022), fontWeight: 500, fontFamily: ff, border: `0.5px solid ${divClr}` }}>{ch}</div>
                         ))}
                       </div>
@@ -2402,7 +2479,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
                         />
                         {safariInput && (
-                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>×</div>
+                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>x</div>
                         )}
                       </div>
                       <div style={{ padding: `0 ${Math.round(sw2 * 0.012)}px`, height: Math.round(toolbarH * 0.46), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: isDark ? "#a5f3fc" : "#0369a1", fontSize: Math.round(sw2 * 0.0135), fontWeight: 600, fontFamily: ff }}>
@@ -2446,7 +2523,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div style={{ height: Math.round(tabH * 0.74), paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.012), background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.76)", borderRadius: Math.round(tabH * 0.34), display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.008), minWidth: Math.round(sw2 * 0.16), maxWidth: Math.round(sw2 * 0.25), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.82)" }}>
                         <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
                         <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{safariHost || "New Tab"}</span>
-                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>×</span>
+                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>x</span>
                       </div>
                       <div style={{ width: Math.round(tabH * 0.72), height: Math.round(tabH * 0.72), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.018), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}` }}>+</div>
                     </div>
@@ -2513,11 +2590,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               })()}
 
               {/* Finder overlay */}
-              {finderOpen && (() => {
+              {finderOpen && !finderMinimized && (() => {
                 const fw = Math.round(w * 0.94)
                 const fh = Math.round(h * 0.82)
                 const sideW = Math.round(fw * 0.28)
                 const fs = Math.round(w * 0.021)
+                const mbH = Math.round(h * 0.036)
+                const titleH = Math.round(fh * 0.075)
+                const tlSz = Math.round(titleH * 0.38)
+                const tlGap = Math.round(titleH * 0.2)
+                const tlLeft = Math.round(titleH * 0.3)
                 const finderBg   = isDark ? "rgba(30,30,32,0.98)"  : "rgba(236,236,238,0.98)"
                 const sidebarBg  = isDark ? "rgba(22,22,24,0.98)"  : "rgba(220,220,224,0.98)"
                 const titleBg    = isDark ? "rgba(40,40,42,0.98)"  : "rgba(230,230,232,0.98)"
@@ -2540,7 +2622,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 ]
 
                 const stackFolders = (tags ?? []).map((t, i) => ({ name: t, type: "folder", id: `tag-${i}` }))
-                const featureFiles = (features ?? []).map((f, i) => ({ name: f.slice(0, 22) + (f.length > 22 ? "…" : ""), type: "file", id: `feat-${i}` }))
+                const featureFiles = (features ?? []).map((f, i) => ({ name: f.slice(0, 22) + (f.length > 22 ? "..." : ""), type: "file", id: `feat-${i}` }))
                 const mainItems = [
                   { name: "src", type: "folder", id: "src" },
                   { name: "public", type: "folder", id: "public" },
@@ -2584,46 +2666,76 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
-                      position: "absolute", inset: 0, zIndex: 25,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(0,0,0,0.45)",
-                      backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
-                      animation: "mbFade 0.12s ease",
-                    }}
-                  >
-                    <div style={{
-                      width: fw, height: fh,
-                      borderRadius: 10,
+                      position: "absolute",
+                      ...(finderMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : {
+                            width: fw,
+                            height: fh,
+                            left: Math.round((w - 20 - fw) / 2) + finderPos.x,
+                            top: mbH + Math.round((h - mbH - fh) * 0.08) + finderPos.y,
+                          }),
+                      zIndex: 25,
+                      borderRadius: finderMaximized ? 0 : 10,
                       overflow: "hidden",
                       display: "flex", flexDirection: "column",
                       boxShadow: "0 24px 60px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.1)",
-                      animation: "mbPaper 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      animation: finderMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      transition: finderDragRef.current ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                       fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                     }}>
                       {/* Title bar */}
                       <div style={{
-                        height: Math.round(fh * 0.075), background: titleBg,
+                        height: titleH, background: titleBg,
                         borderBottom: `0.5px solid ${borderCol}`,
                         display: "flex", alignItems: "center",
                         padding: `0 ${Math.round(fw * 0.018)}px`,
                         gap: Math.round(fw * 0.008), flexShrink: 0, position: "relative",
+                        cursor: finderMaximized ? "default" : "grab",
+                      }}
+                      onMouseDown={e => {
+                        if (finderMaximized) return
+                        e.preventDefault()
+                        finderDragRef.current = { startX: e.clientX, startY: e.clientY, ox: finderPos.x, oy: finderPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = finderDragRef.current
+                          if (!drag) return
+                          setFinderPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
+                        }
+                        const onUp = () => {
+                          finderDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
                       }}>
-                        {[
-                          { bg: "#ff5f57", fn: () => setFinderOpen(false) },
-                          { bg: "#febc2e", fn: () => setFinderOpen(false) },
-                          { bg: "#28c840", fn: () => {} },
-                        ].map((btn, i) => (
-                          <div key={i} onClick={(e) => { e.stopPropagation(); btn.fn() }} style={{
-                            width: Math.round(fw * 0.028), height: Math.round(fw * 0.028),
-                            borderRadius: "50%", background: btn.bg, cursor: "pointer", flexShrink: 0,
-                            boxShadow: "0 0 0 0.5px rgba(0,0,0,0.3)",
-                          }} />
-                        ))}
+                        <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, zIndex: 1 }}>
+                          {[
+                            { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "#460804", fn: () => { setFinderOpen(false); setFinderMinimized(false); setFinderMaximized(false); setFinderPos({ x: 0, y: 0 }) } },
+                            { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "#90591d", fn: () => { setFinderMinimizing(true); setTimeout(() => { setFinderMinimized(true); setFinderMinimizing(false) }, 340) } },
+                            { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "#2a6218", fn: () => setFinderMaximized(v => !v) },
+                          ].map((btn, i) => (
+                            <div key={i}
+                              onClick={(e) => { e.stopPropagation(); btn.fn() }}
+                              onMouseEnter={() => setHoveredFinderTl(i)}
+                              onMouseLeave={() => setHoveredFinderTl(-1)}
+                              style={{
+                                width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, cursor: "pointer", flexShrink: 0,
+                                border: `0.5px solid ${btn.border}`, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.18)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}>
+                              <TrafficLightSymbol kind={btn.kind} color={btn.symClr} size={Math.round(tlSz * 0.84)} visible={hoveredFinderTl === i} />
+                            </div>
+                          ))}
+                        </div>
                         {/* Toolbar icons */}
                         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: Math.round(fw * 0.025) }}>
                           {/* Back/Forward */}
                           <div style={{ display: "flex", gap: 2 }}>
-                            {["‹","›"].map((ch, i) => (
+                            {["<", ">"].map((ch, i) => (
                               <div key={i} style={{ fontSize: Math.round(w * 0.032), color: textSec as string, cursor: "default", lineHeight: 1, paddingBottom: 1 }}>{ch}</div>
                             ))}
                           </div>
@@ -2742,12 +2854,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }}>
                         {mainItems.length} items
                       </div>
-                    </div>
                   </div>
                 )
               })()}
 
-              {/* Dock — show when multiple images OR description OR github exists */}
+              {/* Dock - show when multiple images OR description OR github exists */}
               {(hasDock || showTerminalIcon || showGithubIcon) && (
                 <div
                   onMouseLeave={() => {
@@ -2773,7 +2884,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 >
                   {dockSleeping && !dockPeek && (
                     <div
-                      onMouseEnter={() => setDockPeek(true)}
+                      onMouseEnter={() => {
+                        setDockPeek(true)
+                      }}
                       style={{
                         position: "absolute",
                         left: "50%",
@@ -2875,12 +2988,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       transition: "opacity 0.22s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
-                    {/* App icon — always first */}
+                    {/* App icon - always first */}
                     <div
                       ref={(el) => { iconRefs.current[0] = el }}
                       onMouseEnter={() => setHoveredSlot("app")}
                       onMouseLeave={() => setHoveredSlot(null)}
-                      onClick={(e) => { e.stopPropagation(); setFinderOpen(o => !o) }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (!finderOpen || finderMinimized) {
+                          setFinderOpen(true)
+                          setFinderMinimized(false)
+                          setFinderMinimizing(false)
+                        } else {
+                          setFinderMinimizing(true)
+                          setTimeout(() => { setFinderMinimized(true); setFinderMinimizing(false) }, 340)
+                        }
+                      }}
                       style={{
                         width: slotSize, height: slotSize, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
@@ -2908,6 +3031,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         draggable={false}
                         style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
                       />
+                      <div style={{
+                        position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%",
+                        transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                        borderRadius: "50%",
+                        background: finderOpen && !finderMinimized ? "rgba(255,255,255,0.9)" : "transparent",
+                        transition: "background 0.2s", pointerEvents: "none",
+                      }} />
                     </div>
 
                     {/* Separator between app icon and thumbnails */}
