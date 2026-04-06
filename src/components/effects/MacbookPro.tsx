@@ -151,6 +151,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
+  const [dockPeek, setDockPeek] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
   const macRef      = useRef<HTMLDivElement>(null)
@@ -192,6 +193,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
+  const dockSleeping =
+    openWindows.some(w => !w.minimized) ||
+    (terminalOpen && !termMinimized) ||
+    (itunesOpen && !itunesMinimized) ||
+    (safariOpen && !safariMinimized) ||
+    finderOpen ||
+    folderWins.length > 0 ||
+    fileEditorWins.length > 0
 
   useEffect(() => {
     if (!hovered) {
@@ -617,6 +626,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     if (!hovered) focusedDockIdxRef.current = -1
   }, [hovered])
+
+  useEffect(() => {
+    if (!dockSleeping) return
+    setHoveredSlot(null)
+    resetTargets()
+  }, [dockSleeping, resetTargets])
+
+  useEffect(() => {
+    if (!dockSleeping && dockPeek) setDockPeek(false)
+  }, [dockSleeping, dockPeek])
 
   // Keyboard shortcuts — only active while MacBook is hovered
   useEffect(() => {
@@ -2671,6 +2690,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {/* Dock — show when multiple images OR description OR github exists */}
               {(hasDock || showTerminalIcon || showGithubIcon) && (
                 <div
+                  onMouseLeave={() => {
+                    if (dockSleeping) {
+                      setDockPeek(false)
+                      setHoveredSlot(null)
+                      resetTargets()
+                    }
+                  }}
                   style={{
                     position: "absolute",
                     bottom: 0, left: 0, right: 0,
@@ -2685,7 +2711,84 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     pointerEvents: hovered ? "auto" : "none",
                   }}
                 >
+                  {dockSleeping && !dockPeek && (
+                    <div
+                      onMouseEnter={() => setDockPeek(true)}
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        bottom: 1,
+                        transform: "translateX(-50%)",
+                        width: Math.round(ICON_BASE * 2.1),
+                        height: Math.round(ICON_BASE * 0.22),
+                        borderRadius: 999,
+                        background: isDark
+                          ? "linear-gradient(180deg, rgba(56,56,61,0.82) 0%, rgba(18,18,21,0.94) 100%)"
+                          : "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 100%)",
+                        border: isDark ? "0.5px solid rgba(255,255,255,0.12)" : "0.5px solid rgba(255,255,255,0.48)",
+                        boxShadow: isDark
+                          ? "0 10px 24px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)"
+                          : "0 8px 22px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.65)",
+                        backdropFilter: "blur(20px) saturate(1.35)",
+                        WebkitBackdropFilter: "blur(20px) saturate(1.35)",
+                        pointerEvents: "auto",
+                        transition: "transform 0.18s ease, opacity 0.18s ease",
+                      }}
+                    >
+                      <div style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: 1,
+                        transform: "translateX(-50%)",
+                        width: "76%",
+                        height: "34%",
+                        borderRadius: 999,
+                        background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.38)",
+                        filter: "blur(0.5px)",
+                      }} />
+                      <div style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "52%",
+                        height: "130%",
+                        borderRadius: 999,
+                        background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.2)",
+                        filter: "blur(10px)",
+                        opacity: 0.75,
+                      }} />
+                      <div style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "28%",
+                        height: 1.5,
+                        borderRadius: 999,
+                        background: isDark ? "rgba(255,255,255,0.2)" : "rgba(71,85,105,0.12)",
+                      }} />
+                      <div style={{
+                        position: "absolute",
+                        left: "50%",
+                        bottom: -5,
+                        transform: "translateX(-50%)",
+                        width: "54%",
+                        height: 9,
+                        borderRadius: 999,
+                        background: isDark ? "rgba(0,0,0,0.28)" : "rgba(148,163,184,0.12)",
+                        filter: "blur(10px)",
+                        opacity: 0.85,
+                      }} />
+                    </div>
+                  )}
                   <div
+                    onMouseEnter={() => {
+                      if (dockSleeping) setDockPeek(true)
+                    }}
+                    onMouseLeave={() => {
+                      if (dockSleeping) resetTargets()
+                    }}
                     ref={dockRef}
                     data-dock
                     onMouseMove={(e) => { computeTargets(e.clientX) }}
@@ -2707,6 +2810,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? "0 4px 24px rgba(0,0,0,0.5)"
                         : "0 4px 20px rgba(0,0,0,0.1)",
                       overflow: "visible",
+                      pointerEvents: hovered && (!dockSleeping || dockPeek) ? "auto" : "none",
+                      opacity: dockSleeping && !dockPeek ? 0 : 1,
+                      transform: dockSleeping && !dockPeek ? "translateY(18px) scale(0.96)" : "translateY(0) scale(1)",
+                      transition: "opacity 0.22s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
                     {/* App icon — always first */}

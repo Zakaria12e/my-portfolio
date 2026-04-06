@@ -16,7 +16,10 @@
       "WebFetch(domain:gist.github.com)",
       "WebFetch(domain:mackuba.eu)",
       "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"macOS control center glassmorphism dark system UI\" --design-system)",
-      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"macOS control center glassmorphism dark system UI\" --design-system)"
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"macOS control center glassmorphism dark system UI\" --design-system)",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"portfolio project showcase window macOS dark minimal\" --design-system -p \"Portfolio MacOS Window\")",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"portfolio project showcase window macOS dark minimal\" --design-system -p \"Portfolio MacOS Window\")",
+      "Bash(npm run:*)"
     ]
   }
 }
