@@ -222,9 +222,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const termFsRef = useRef<TermFs>({})
   const [desktopItems, setDesktopItems] = useState<DesktopItem[]>([
     { id: 0, name: "Projects", type: "folder", slot: 0, dx: 0, dy: 0, selected: false, locked: true, path: "~/projects" },
+    { id: 1, name: "shortcuts", type: "file", slot: 1, dx: 0, dy: 0, selected: false, locked: true, path: "~/shortcuts" },
   ])
   const desktopItemsRef = useRef<DesktopItem[]>([])
-  const desktopItemIdRef = useRef(1)
+  const desktopItemIdRef = useRef(2)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
   const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
@@ -232,7 +233,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const finderDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const itemClickRef     = useRef<{ path: string; time: number }>({ path: "", time: 0 })
-  const [fileContents, setFileContents] = useState<Record<string, string>>({})
+  const [fileContents, setFileContents] = useState<Record<string, string>>({
+    "~/shortcuts": [
+      "Mac Mockup Shortcuts",
+      "",
+      "Click anywhere inside the Mac mockup first to focus it.",
+      "",
+      "Global",
+      "- Q + Tab: open the Mac app switcher and move forward",
+      "- Ctrl + Q or Cmd + Q: close the topmost open Mac window",
+      "- Ctrl + Enter or Cmd + Enter: open or toggle Terminal",
+      "- Escape: close Terminal, close Finder, and exit Quick Look",
+    ].join("\n"),
+  })
   const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
@@ -1864,12 +1877,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const padR     = Math.round(w * 0.022)
                 const padT     = Math.round(w * 0.018)
                 const screenW  = w - 20
-                const minLeft  = Math.round(w * 0.018)
+                const padL     = Math.round(w * 0.018)
+                const minLeft  = padL
                 const maxLeft  = screenW - padR - iw
                 const minTop   = mbH + padT
                 const maxTop   = mbH + availH - ih - Math.round(w * 0.01)
                 const perCol   = Math.max(1, Math.floor((availH - padT) / (ih + gap)))
-                const totalCols = Math.max(1, Math.floor((screenW - minLeft - padR) / (iw + gap)))
+                const totalCols = Math.max(1, Math.floor((screenW - padL - padR - iw) / (iw + gap)) + 1)
                 return desktopItems.map(item => {
                   const col  = Math.floor(item.slot / perCol)
                   const row  = item.slot % perCol
@@ -1912,7 +1926,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }
                         desktopClickRef.current = { id: item.id, time: now }
                         setDesktopItems(prev => prev.map(d => ({ ...d, selected: d.id === item.id })))
-                        if (item.locked) return
                         desktopDragRef.current = { id: item.id, startX: e.clientX, startY: e.clientY, ox: item.dx, oy: item.dy }
                         const onMove = (ev: MouseEvent) => {
                           const drag = desktopDragRef.current
@@ -4945,7 +4958,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
                           backdropFilter: "blur(30px) saturate(1.5)",
                           WebkitBackdropFilter: "blur(30px) saturate(1.5)",
-                          borderRadius: 10,
+                          borderRadius: 6,
                           border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
                           boxShadow: isDark
                             ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
@@ -4990,7 +5003,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 transition: "background 0.12s ease, color 0.12s ease",
                                 userSelect: "none",
                                 fontWeight: 500,
-                                borderRadius: 7,
+                                borderRadius: 4,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: Math.round(w * 0.006),
@@ -5061,7 +5074,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
                           backdropFilter: "blur(30px) saturate(1.5)",
                           WebkitBackdropFilter: "blur(30px) saturate(1.5)",
-                          borderRadius: 10,
+                          borderRadius: 6,
                           border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
                           boxShadow: isDark
                             ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
@@ -5106,7 +5119,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 transition: "background 0.12s ease, color 0.12s ease",
                                 userSelect: "none",
                                 fontWeight: 500,
-                                borderRadius: 7,
+                                borderRadius: 4,
                                 display: "flex",
                                 alignItems: "center",
                               }}
