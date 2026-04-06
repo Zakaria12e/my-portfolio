@@ -2743,7 +2743,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     zIndex: 10,
                     // allow scaled icons to overflow dock container upward
                     overflow: "visible",
-                    pointerEvents: hovered ? "auto" : "none",
+                    pointerEvents: "none",
                   }}
                 >
                   {dockSleeping && !dockPeek && (
