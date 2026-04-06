@@ -724,9 +724,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const existing = fileEditorWins.find(f => f.path === itemPath)
     if (!existing) {
       const eid = fileEditorIdRef.current++
-      const ex = Math.round((width - 20) * 0.12) + eid * 22
-      const ey = Math.round(Math.round(width * 0.609) * 0.09) + eid * 18
-      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: Math.round(width * 0.66), h: Math.round(Math.round(width * 0.609) * 0.62) }, maximized: false, minimized: false, minimizing: false, hoveredTl: -1 }])
+      const screenW = width - 20
+      const screenH = Math.round(width * 0.609)
+      const winW = Math.round(width * 0.66)
+      const winH = Math.round(screenH * 0.62)
+      const cascade = fileEditorWins.filter(win => !win.minimized).length
+      const ex = Math.round((screenW - winW) / 2) + cascade * 22
+      const ey = Math.round((screenH - winH) / 2) + cascade * 18
+      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: winW, h: winH }, maximized: false, minimized: false, minimizing: false, hoveredTl: -1 }])
       setWindowOrder(o => [...o.filter(k => k !== fileOrderKey(eid)), fileOrderKey(eid)])
     } else {
       focusFileEditorWin(existing.id)
@@ -735,19 +740,24 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const openFolderWindowAtPath = useCallback((itemPath: string, itemName: string) => {
     const fid = folderWinIdRef.current++
+    const screenW = width - 20
+    const screenH = Math.round(width * 0.609)
+    const winW = Math.round(width * 0.62)
+    const winH = Math.round(screenH * 0.58)
+    const cascade = folderWins.filter(win => !win.minimized).length
     setFolderWins(prev => [...prev, {
       id: fid,
       name: itemName,
       path: itemPath,
-      pos: { x: Math.round((width - 20) * 0.15) + fid * 24, y: Math.round(Math.round(width * 0.609) * 0.1) + fid * 20 },
-      size: { w: Math.round(width * 0.62), h: Math.round(Math.round(width * 0.609) * 0.58) },
+      pos: { x: Math.round((screenW - winW) / 2) + cascade * 24, y: Math.round((screenH - winH) / 2) + cascade * 20 },
+      size: { w: winW, h: winH },
       maximized: false,
       minimized: false,
       minimizing: false,
       hoveredTl: -1,
     }])
     setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
-  }, [width, folderOrderKey])
+  }, [width, folderOrderKey, folderWins])
 
   const startFolderRename = useCallback((winId: number, path: string, name: string, type: "folder" | "file") => {
     setEditingFolderItem({ winId, path, originalName: name, type })
