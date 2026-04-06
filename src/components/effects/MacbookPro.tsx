@@ -132,7 +132,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
-  const [windowOrder, setWindowOrder] = useState<(number | "itunes" | "terminal" | "safari")[]>([])
+  const [windowOrder, setWindowOrder] = useState<(number | "itunes" | "terminal" | "safari" | "messages")[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -195,10 +195,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [safariMinimizing, setSafariMinimizing] = useState(false)
   const [safariMaximized, setSafariMaximized] = useState(false)
   const [safariPos, setSafariPos] = useState({ x: 0, y: 0 })
-  const [safariUrl, setSafariUrl] = useState("")
+  const [safariTabs, setSafariTabs] = useState<{ id: number; url: string }[]>([{ id: 1, url: "" }])
+  const [activeSafariTabId, setActiveSafariTabId] = useState(1)
   const [safariInput, setSafariInput] = useState("")
+  const [safariInputFocused, setSafariInputFocused] = useState(false)
   const [safariHoveredTl, setSafariHoveredTl] = useState(-1)
   const safariDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const safariTabIdRef = useRef(1)
+  const [messagesOpen, setMessagesOpen] = useState(false)
+  const [messagesMinimized, setMessagesMinimized] = useState(false)
+  const [messagesMinimizing, setMessagesMinimizing] = useState(false)
+  const [messagesMaximized, setMessagesMaximized] = useState(false)
+  const [messagesPos, setMessagesPos] = useState({ x: 0, y: 0 })
+  const [hoveredMessagesTl, setHoveredMessagesTl] = useState(-1)
+  const messagesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -209,6 +219,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const screenRef   = useRef<HTMLDivElement>(null)
   const dockRef     = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
+  const safariInputRef = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -244,10 +255,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
+  const messagesThread = useMemo(() => ([
+    { id: 1, text: "Hey, I am Zakaria. Thanks for checking out my portfolio.", time: "9:18 AM" },
+    { id: 2, text: "I design and build polished web experiences with strong frontend detail and real product thinking.", time: "9:19 AM" },
+    { id: 3, text: "Open any project here and you can explore the live demo, the code, and the stack without leaving the Mac view.", time: "9:20 AM" },
+    { id: 4, text: "If you want to work together, the best next step is to reach out and tell me what you are building.", time: "9:21 AM" },
+  ]), [])
   const hasFullscreenWindow =
     openWindows.some(w => w.maximized && !w.minimized) ||
     termMaximized ||
     safariMaximized ||
+    messagesMaximized ||
     (finderOpen && finderMaximized && !finderMinimized)
 
   const dockForcedSleep = hasFullscreenWindow
@@ -312,7 +330,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
 
-  const bringToFront = useCallback((key: number | "itunes" | "safari") => {
+  const bringToFront = useCallback((key: number | "itunes" | "safari" | "messages") => {
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
@@ -374,13 +392,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     let url = raw.trim()
     if (!url || url === "#") return
     if (!/^https?:\/\//i.test(url)) url = "https://" + url
-    setSafariUrl(url)
+    setSafariTabs(tabs => tabs.map(tab => tab.id === activeSafariTabId ? { ...tab, url } : tab))
     setSafariInput(url)
     setSafariMinimized(false)
     setSafariMinimizing(false)
+    setSafariInputFocused(false)
     setSafariOpen(true)
     setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
-  }, [])
+  }, [activeSafariTabId])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -403,7 +422,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const cmd = raw.trim().toLowerCase()
     const dimColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"
     const cwdDisplay = cwd.replace("~", "~")
-    const echo = { text: `?  ${cwdDisplay} $ ${raw}`, color: dimColor }
+    const echo = { text: `${cwdDisplay} $ ${raw}`, color: dimColor }
 
     if (cmd.startsWith("cd")) {
       const target = raw.trim().slice(2).trim()
@@ -453,7 +472,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           setTermLines(l => [...l, echo, { text: `  mkdir: ${name}: already exists`, color: "#ff9f0a" }])
         } else {
           setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "folder" }] }))
-          setTermLines(l => [...l, echo, { text: `  ? Created folder: ${name}`, color: "#30d158" }])
+          setTermLines(l => [...l, echo, { text: `  Created folder: ${name}`, color: "#30d158" }])
           // place on desktop when created at root
           if (cwd === "~") {
             const slot = desktopItemIdRef.current
@@ -474,7 +493,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           setTermLines(l => [...l, echo, { text: `  ${name}: already exists`, color: "#ff9f0a" }])
         } else {
           setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "file" }] }))
-          setTermLines(l => [...l, echo, { text: `  ? Created file: ${name}`, color: "#30d158" }])
+          setTermLines(l => [...l, echo, { text: `  Created file: ${name}`, color: "#30d158" }])
           // place on desktop when created at root
           if (cwd === "~") {
             const slot = desktopItemIdRef.current
@@ -497,7 +516,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else if (cmd === "features") {
       setTermLines(l => [...l, echo,
         ...(features && features.length > 0
-          ? features.map(f => ({ text: `  ? ${f}`, color: "#e2e8f0" }))
+          ? features.map(f => ({ text: `  - ${f}`, color: "#e2e8f0" }))
           : [{ text: "  No features listed.", color: "#e2e8f0" }]
         ),
       ])
@@ -542,7 +561,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
         setFileContents(prev => ({ ...prev, [path]: content }))
         setTermLines(l => [...l, echo, { parts: [
-          { text: "  ? ", color: "#30d158" },
+          { text: "  Saved ", color: "#30d158" },
           { text: name, color: "#64d2ff" },
           { text: " written  ", color: "#30d158" },
           { text: `(${content.length} chars)`, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" },
@@ -599,7 +618,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       }))
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
-        { text: "Tip   ? Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
+        { text: "Tip   Tab to autocomplete commands and paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
         ...(!proj ? [{ text: "Tip   cd projects  to browse projects.", color: "#0a84ff" }] : []),
       ])
       setTermMinimized(false)
@@ -621,6 +640,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     if (termBodyRef.current) termBodyRef.current.scrollTop = termBodyRef.current.scrollHeight
   }, [termLines])
+
+  const safariUrl = safariTabs.find(tab => tab.id === activeSafariTabId)?.url ?? ""
+
+  useEffect(() => {
+    setSafariInput(safariUrl)
+  }, [safariUrl, activeSafariTabId])
+
+  useEffect(() => {
+    if (!safariOpen || !safariInputFocused) return
+    const timer = setTimeout(() => {
+      safariInputRef.current?.focus()
+      safariInputRef.current?.select()
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [safariOpen, safariInputFocused, activeSafariTabId])
 
   useEffect(() => {
     const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
@@ -718,6 +752,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         // close the topmost window in the unified stack
         const top = [...windowOrder].reverse().find(k => {
           if (k === "itunes") return itunesOpen && !itunesMinimized
+          if (k === "messages") return messagesOpen && !messagesMinimized
           if (k === "terminal") return terminalOpen && !termMinimized
           if (k === "safari") return safariOpen && !safariMinimized
           return openWindows.some(w => w.id === k && !w.minimized)
@@ -807,6 +842,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             setTimeout(() => inputRef.current?.focus(), 50)
           }
         }
+        if (item.type === "messages") {
+          const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
+          if (!messagesOpen || messagesMinimized) {
+            setMessagesMinimized(false); setMessagesMinimizing(false); setMessagesOpen(true)
+            setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+          } else if (isOnTop) {
+            setMessagesMinimizing(true)
+            setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340)
+          } else {
+            setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+          }
+        }
         if (item.type === "safari") {
           if (safariOpen && safariMinimized) { setSafariMinimized(false); bringToFront("safari") }
           else { setSafariOpen(o => !o); bringToFront("safari") }
@@ -834,7 +881,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     window.addEventListener("keydown", onKey, { capture: true })
     return () => window.removeEventListener("keydown", onKey, { capture: true })
-  }, [hovered, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront])
+  }, [hovered, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -1467,14 +1514,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     filter: "blur(0px)",
                     transition: "background 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease",
                   }}>
-                    {/* Left: logo + app name */}
+                    {/* Left: logo + app/menu labels */}
                     <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
                       <img
                         src="/moon-purple.png"
                         alt="logo"
-                        style={{ height: Math.round(w * 0.023), width: "auto", display: "block" }}
+                        style={{ height: Math.round(w * 0.0195), width: "auto", display: "block" }}
                       />
-                      <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.88)", fontSize: Math.round(w * 0.013), fontFamily: "'Playwrite IE', cursive", letterSpacing: "0.02em" }}>{proj?.title ?? "Zakaria"}</span>
+                      <span style={{ fontWeight: 700, color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.92)", fontSize: Math.round(w * 0.013), fontFamily: "'Iosevka Charon', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>Zakaria</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
+                        {["File", "Edit", "View", "Go", "Window", "Help"].map((item) => (
+                          <span
+                            key={item}
+                            style={{
+                              fontWeight: 400,
+                              color: isDark ? "rgba(255,255,255,0.84)" : "rgba(0,0,0,0.82)",
+                              fontSize: Math.round(w * 0.0125),
+                              letterSpacing: "-0.01em",
+                            }}
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                     {/* Right: control center + clock */}
                     <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.01), pointerEvents: "auto" }}>
@@ -1484,7 +1546,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       >
                         <img src={isDark ? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423308/control_centerfor_darkmode_yywvs0.gif" : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775422540/controle_center_fzldo2.png"} alt="Control Center" draggable={false} style={{ width: Math.round(w * 0.023), height: Math.round(w * 0.023), objectFit: "contain", display: "block" }} />
                       </div>
-                      <span style={{ color: "rgba(255,255,255,0.82)", fontWeight: 400, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
+                      <span style={{ color: isDark ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.82)", fontWeight: 500, letterSpacing: 0.1, fontSize: Math.round(w * 0.013) }}>{clock}</span>
                     </div>
                   </div>
                 )
@@ -2371,6 +2433,170 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
+              {/* Messages Window */}
+              {messagesOpen && !messagesMinimized && (() => {
+                const mbH = Math.round(h * 0.036)
+                const mw = Math.round(w * 0.78)
+                const mh = Math.round(h * 0.74)
+                const baseTop = mbH + Math.round((h - mbH - mh) * 0.12)
+                const baseLeft = Math.round((w - mw) / 2)
+                const tlSz = Math.round(22 * 0.54)
+                const tlGap = Math.round(22 * 0.45)
+                const tlLeft = Math.round(22 * 0.64)
+                const titleH = Math.round(mh * 0.09)
+                const sideW = Math.round(mw * 0.31)
+                const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
+                const sidebarBg = isDark ? "rgba(36,36,40,0.94)" : "rgba(244,246,250,0.96)"
+                const bodyBg = isDark ? "#17181c" : "#ffffff"
+                const titleBg = isDark ? "rgba(44,44,48,0.9)" : "rgba(250,251,253,0.94)"
+                const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.18)"
+                const textPrimary = isDark ? "rgba(255,255,255,0.92)" : "rgba(15,23,42,0.92)"
+                const textSecondary = isDark ? "rgba(255,255,255,0.46)" : "rgba(71,85,105,0.8)"
+                const bubbleBlue = "#0a84ff"
+                const myAvatar = "Z"
+                const zIdx = 3 + (windowOrder.indexOf("messages") >= 0 ? windowOrder.indexOf("messages") : 0)
+
+                return (
+                  <div
+                    onClick={e => { e.stopPropagation(); bringToFront("messages"); setFocusedWinId(null) }}
+                    style={{
+                      position: "absolute",
+                      ...(messagesMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { top: baseTop + messagesPos.y, left: baseLeft + messagesPos.x, width: mw, height: mh }),
+                      borderRadius: messagesMaximized ? 0 : 16,
+                      overflow: "hidden",
+                      background: bodyBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.72)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 18px 48px rgba(0,0,0,0.62), 0 32px 80px rgba(0,0,0,0.52)"
+                        : "0 0 0 0.5px rgba(148,163,184,0.16), 0 18px 48px rgba(15,23,42,0.12), 0 32px 80px rgba(15,23,42,0.08)",
+                      display: "flex",
+                      flexDirection: "column",
+                      zIndex: zIdx,
+                      animation: messagesMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                    }}
+                  >
+                    <div
+                      onMouseDown={e => {
+                        if (messagesMaximized) return
+                        e.preventDefault()
+                        messagesDragRef.current = { startX: e.clientX, startY: e.clientY, ox: messagesPos.x, oy: messagesPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const d = messagesDragRef.current
+                          if (!d) return
+                          setMessagesPos({ x: d.ox + ev.clientX - d.startX, y: d.oy + ev.clientY - d.startY })
+                        }
+                        const onUp = () => {
+                          messagesDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        height: titleH,
+                        flexShrink: 0,
+                        background: titleBg,
+                        borderBottom: `0.5px solid ${divider}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        userSelect: "none",
+                        cursor: messagesMaximized ? "default" : "grab",
+                        backdropFilter: "blur(18px) saturate(1.25)",
+                        WebkitBackdropFilter: "blur(18px) saturate(1.25)",
+                      }}
+                    >
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}
+                        onMouseEnter={() => setHoveredMessagesTl(0)}
+                        onMouseLeave={() => setHoveredMessagesTl(-1)}
+                      >
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, fn: () => { setMessagesOpen(false); setMessagesMinimized(false); setMessagesMaximized(false); setMessagesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "messages")) } },
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, fn: () => { setMessagesMinimizing(true); setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, fn: () => { setMessagesMaximized(m => !m); setMessagesMinimized(false) } },
+                        ].map((btn, i) => (
+                          <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }} style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <TrafficLightSymbol kind={btn.kind} color="rgba(0,0,0,0.55)" size={Math.round(tlSz * 0.84)} visible={hoveredMessagesTl >= 0} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transform: "translateX(-14px)" }}>
+                        <span style={{ fontSize: Math.round(w * 0.018), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Portfolio Visitor</span>
+                        <span style={{ fontSize: Math.round(w * 0.014), color: "#34c759", fontFamily: ff }}>Active now</span>
+                      </div>
+                      <div style={{ width: Math.round(w * 0.1) }} />
+                    </div>
+
+                    <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+                      <div style={{ width: sideW, flexShrink: 0, background: sidebarBg, borderRight: `0.5px solid ${divider}`, display: "flex", flexDirection: "column" }}>
+                        <div style={{ padding: `${Math.round(mh * 0.03)}px ${Math.round(mw * 0.024)}px ${Math.round(mh * 0.018)}px`, borderBottom: `0.5px solid ${divider}` }}>
+                          <div style={{ fontSize: Math.round(w * 0.026), fontWeight: 800, color: textPrimary as string, fontFamily: ff, marginBottom: Math.round(mh * 0.008) }}>Messages</div>
+                          <div style={{ height: Math.round(titleH * 0.7), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.86)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.016)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
+                            Search
+                          </div>
+                        </div>
+                        <div style={{ padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.016)}px`, overflowY: "auto" }}>
+                          <div style={{ borderRadius: 18, background: isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.12)", border: `0.5px solid ${isDark ? "rgba(10,132,255,0.28)" : "rgba(10,132,255,0.16)"}`, padding: `${Math.round(mh * 0.015)}px ${Math.round(mw * 0.018)}px`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014), boxShadow: isDark ? "0 10px 30px rgba(0,0,0,0.18)" : "0 10px 24px rgba(15,23,42,0.06)" }}>
+                            <div style={{ width: Math.round(mw * 0.056), height: Math.round(mw * 0.056), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.016), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>PV</div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: Math.round(w * 0.016), fontWeight: 700, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Portfolio Visitor</span>
+                                <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>Now</span>
+                              </div>
+                              <div style={{ fontSize: Math.round(w * 0.014), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                Last message from Zakaria
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: bodyBg }}>
+                        <div style={{ padding: `${Math.round(mh * 0.034)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.018)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.018) }}>
+                          <div style={{ width: Math.round(mw * 0.06), height: Math.round(mw * 0.06), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.017), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>{myAvatar}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: Math.round(w * 0.022), fontWeight: 800, color: textPrimary as string, fontFamily: ff }}>Zakaria</div>
+                            <div style={{ fontSize: Math.round(w * 0.014), color: textSecondary as string, fontFamily: ff }}>Product-minded frontend developer</div>
+                          </div>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.032)}px ${Math.round(mw * 0.034)}px ${Math.round(mh * 0.024)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.022), background: isDark ? "radial-gradient(circle at top, rgba(10,132,255,0.08), transparent 28%), #17181c" : "linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)" }}>
+                          <div style={{ alignSelf: "center", fontSize: Math.round(w * 0.013), fontWeight: 700, color: textSecondary as string, fontFamily: ff, letterSpacing: 0.3 }}>
+                            Today
+                          </div>
+                          {messagesThread.map(message => (
+                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                              <div style={{ maxWidth: "76%", borderRadius: 22, borderTopRightRadius: 8, padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.022)}px`, background: bubbleBlue, color: "#fff", fontSize: Math.round(w * 0.017), lineHeight: 1.45, fontFamily: ff, boxShadow: "0 12px 30px rgba(10,132,255,0.24)" }}>
+                                {message.text}
+                              </div>
+                              <span style={{ fontSize: Math.round(w * 0.0125), color: textSecondary as string, fontFamily: ff }}>{message.time}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{ padding: `${Math.round(mh * 0.02)}px ${Math.round(mw * 0.03)}px`, borderTop: `0.5px solid ${divider}`, background: titleBg, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
+                          <div style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.018), fontFamily: ff, flexShrink: 0 }}>+</div>
+                          <div style={{ flex: 1, height: Math.round(titleH * 0.82), borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.94)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `0 ${Math.round(mw * 0.02)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.015), fontFamily: ff }}>
+                            iMessage
+                          </div>
+                          <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.26)", flexShrink: 0 }}>
+                            <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none">
+                              <path d="M5 12h12M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Safari Window */}
               {safariOpen && !safariMinimized && (() => {
                 const mbH   = Math.round(h * 0.036)
@@ -2383,7 +2609,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tlGap = Math.round(22 * 0.45)
                 const tlLeft = Math.round(22 * 0.64)
                 const toolbarH = Math.round(sh2 * 0.068)
-                const tabH     = Math.round(sh2 * 0.042)
+                const tabH     = Math.round(sh2 * 0.062)
                 const bg    = isDark ? "#2b2b2f" : "#eef2f7"
                 const toolBg = isDark ? "rgba(36,36,40,0.9)" : "rgba(246,248,251,0.88)"
                 const inputBg = isDark ? "rgba(22,22,24,0.9)" : "rgba(255,255,255,0.94)"
@@ -2396,6 +2622,35 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const safariHost = safariUrl
                   ? (() => { try { return new URL(safariUrl.startsWith("http") ? safariUrl : "https://" + safariUrl).hostname } catch { return safariUrl } })()
                   : ""
+                const projectSuggestions = (projects ?? []).flatMap((project) => {
+                  const entries: { label: string; url: string; meta: string; icon: string }[] = []
+                  if (project.liveUrl && project.liveUrl !== "#") {
+                    entries.push({
+                      label: project.title ?? "Project",
+                      url: project.liveUrl,
+                      meta: "Live",
+                      icon: "↗",
+                    })
+                  }
+                  if (project.githubUrl && project.githubUrl !== "#") {
+                    entries.push({
+                      label: `${project.title ?? "Project"} GitHub`,
+                      url: project.githubUrl,
+                      meta: "GitHub",
+                      icon: "GH",
+                    })
+                  }
+                  return entries
+                })
+                const safariQuery = safariInput.trim().toLowerCase()
+                const safariSuggestions = (safariQuery
+                  ? projectSuggestions.filter((entry) => (
+                      entry.label.toLowerCase().includes(safariQuery) ||
+                      entry.url.toLowerCase().includes(safariQuery) ||
+                      entry.meta.toLowerCase().includes(safariQuery)
+                    ))
+                  : projectSuggestions
+                ).slice(0, 6)
                 const navigate = (raw: string) => {
                   openSafariUrl(raw)
                 }
@@ -2435,7 +2690,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         const onUp = () => { safariDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
                         window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp)
                       }}
-                      style={{ height: toolbarH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.01), paddingRight: Math.round(sw2 * 0.015), userSelect: "none", cursor: "grab", backdropFilter: "blur(18px) saturate(1.25)", WebkitBackdropFilter: "blur(18px) saturate(1.25)" }}
+                      style={{ height: toolbarH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.01), paddingRight: Math.round(sw2 * 0.015), userSelect: "none", cursor: "grab", backdropFilter: "blur(18px) saturate(1.25)", WebkitBackdropFilter: "blur(18px) saturate(1.25)", overflow: "visible", zIndex: 6 }}
                     >
                       {/* Traffic lights */}
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}
@@ -2443,7 +2698,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onMouseLeave={() => setSafariHoveredTl(-1)}
                       >
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setSafariInputFocused(false); setWindowOrder(o => o.filter(k => k !== "safari")) } },
                           { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
                           { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
                         ].map((btn, i) => (
@@ -2458,29 +2713,120 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         ))}
                       </div>
-                      {/* Back / Forward */}
-                      <div style={{ display: "flex", gap: 6, marginLeft: Math.round(sw2 * 0.01), flexShrink: 0 }}>
-                        {["<", ">"].map((ch, i) => (
-                          <div key={i} style={{ width: Math.round(sw2 * 0.03), height: Math.round(sw2 * 0.03), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 999, background: panelBg, cursor: "default", color: textSec, fontSize: Math.round(sw2 * 0.022), fontWeight: 500, fontFamily: ff, border: `0.5px solid ${divClr}` }}>{ch}</div>
-                        ))}
-                      </div>
                       {/* URL bar */}
-                      <div style={{ flex: 1, height: Math.round(toolbarH * 0.56), background: inputBg, borderRadius: Math.round(toolbarH * 0.34), display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.008), gap: Math.round(sw2 * 0.006), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.85)" }}>
+                      <div style={{ flex: 1, position: "relative", zIndex: 12 }} onMouseDown={e => { e.stopPropagation(); setSafariInputFocused(true) }}>
+                      <div style={{ height: Math.round(toolbarH * 0.7), background: inputBg, borderRadius: Math.round(toolbarH * 0.38), display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.013), paddingRight: Math.round(sw2 * 0.01), gap: Math.round(sw2 * 0.007), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.85)" }} onMouseDown={e => e.stopPropagation()}>
                         <svg width={Math.round(sw2 * 0.014)} height={Math.round(sw2 * 0.014)} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill={textSec as string} />
                         </svg>
                         <input
+                          ref={safariInputRef}
                           value={safariInput}
                           onChange={e => setSafariInput(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter") navigate(safariInput) }}
-                          onFocus={e => e.target.select()}
+                          onFocus={e => { setSafariInputFocused(true); e.target.select() }}
+                          onBlur={() => setTimeout(() => setSafariInputFocused(false), 120)}
                           onClick={e => e.stopPropagation()}
+                          onMouseDown={e => e.stopPropagation()}
                           placeholder="Search or enter website name"
                           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
                         />
                         {safariInput && (
-                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>x</div>
+                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} onMouseDown={e => e.stopPropagation()} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>x</div>
                         )}
+                      </div>
+                      {safariInputFocused && safariSuggestions.length > 0 && (
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            position: "absolute",
+                            top: `calc(100% + ${Math.round(sw2 * 0.008)}px)`,
+                            left: 0,
+                            right: 0,
+                            background: isDark ? "rgba(28,28,30,0.94)" : "rgba(255,255,255,0.94)",
+                            backdropFilter: "blur(18px) saturate(1.3)",
+                            WebkitBackdropFilter: "blur(18px) saturate(1.3)",
+                            border: `0.5px solid ${divClr}`,
+                            borderRadius: Math.round(sw2 * 0.016),
+                            boxShadow: isDark
+                              ? "0 18px 42px rgba(0,0,0,0.42)"
+                              : "0 18px 42px rgba(15,23,42,0.12)",
+                            overflow: "hidden",
+                            maxHeight: Math.round(sh2 * 0.26),
+                            overflowY: "auto",
+                            zIndex: 40,
+                          }}
+                        >
+                          <div style={{
+                            padding: `${Math.round(sh2 * 0.01)}px ${Math.round(sw2 * 0.016)}px ${Math.round(sh2 * 0.008)}px`,
+                            fontSize: Math.round(sw2 * 0.0115),
+                            fontWeight: 700,
+                            letterSpacing: 0.5,
+                            textTransform: "uppercase",
+                            color: textSec as string,
+                            fontFamily: ff,
+                            background: isDark ? "rgba(255,255,255,0.03)" : "rgba(248,250,252,0.92)",
+                            borderBottom: `0.5px solid ${divClr}`,
+                          }}>
+                            Suggested Results
+                          </div>
+                          {safariSuggestions.map((entry, idx) => (
+                            <div
+                              key={`${entry.meta}-${entry.url}-${idx}`}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setSafariInput(entry.url)
+                                setSafariInputFocused(false)
+                                navigate(entry.url)
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: Math.round(sw2 * 0.012),
+                                padding: `${Math.round(sh2 * 0.013)}px ${Math.round(sw2 * 0.016)}px`,
+                                cursor: "pointer",
+                                borderTop: idx === 0 ? "none" : `0.5px solid ${divClr}`,
+                              }}
+                            >
+                              <div style={{
+                                width: Math.round(sw2 * 0.028),
+                                height: Math.round(sw2 * 0.028),
+                                borderRadius: 8,
+                                flexShrink: 0,
+                                background: entry.meta === "GitHub"
+                                  ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)")
+                                  : "rgba(10,132,255,0.12)",
+                                border: `0.5px solid ${entry.meta === "GitHub"
+                                  ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)")
+                                  : "rgba(10,132,255,0.18)"}`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: entry.meta === "GitHub"
+                                  ? (isDark ? "rgba(255,255,255,0.86)" : "rgba(15,23,42,0.82)")
+                                  : "#0a84ff",
+                                fontSize: Math.round(sw2 * 0.0125),
+                                fontWeight: 700,
+                                fontFamily: ff,
+                              }}>
+                                {entry.icon}
+                              </div>
+                              <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span style={{ fontSize: Math.round(sw2 * 0.015), fontWeight: 600, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {entry.label}
+                                </span>
+                                <span style={{ fontSize: Math.round(sw2 * 0.0125), color: textSec as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {entry.url}
+                                </span>
+                              </div>
+                              <span style={{ flexShrink: 0, fontSize: Math.round(sw2 * 0.0125), fontWeight: 700, color: isDark ? "#a5f3fc" : "#0369a1", fontFamily: ff }}>
+                                {entry.meta}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       </div>
                       <div style={{ padding: `0 ${Math.round(sw2 * 0.012)}px`, height: Math.round(toolbarH * 0.46), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: isDark ? "#a5f3fc" : "#0369a1", fontSize: Math.round(sw2 * 0.0135), fontWeight: 600, fontFamily: ff }}>
                         {safariHost || "Start Page"}
@@ -2519,71 +2865,170 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
 
                     {/* Tab bar */}
-                    <div style={{ height: tabH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.012), gap: Math.round(sw2 * 0.008), backdropFilter: "blur(18px) saturate(1.15)", WebkitBackdropFilter: "blur(18px) saturate(1.15)" }}>
-                      <div style={{ height: Math.round(tabH * 0.74), paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.012), background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.76)", borderRadius: Math.round(tabH * 0.34), display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.008), minWidth: Math.round(sw2 * 0.16), maxWidth: Math.round(sw2 * 0.25), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.82)" }}>
-                        <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
-                        <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{safariHost || "New Tab"}</span>
-                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>x</span>
+                    <div style={{ height: Math.round(tabH * 1.18), flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.014), paddingRight: Math.round(sw2 * 0.014), gap: Math.round(sw2 * 0.009), backdropFilter: "blur(18px) saturate(1.15)", WebkitBackdropFilter: "blur(18px) saturate(1.15)" }}>
+                      {safariTabs.map(tab => {
+                        const isActiveTab = tab.id === activeSafariTabId
+                        return (
+                          <div
+                            key={tab.id}
+                            onClick={e => {
+                              e.stopPropagation()
+                              setActiveSafariTabId(tab.id)
+                              setSafariInputFocused(!tab.url)
+                            }}
+                            style={{
+                              height: Math.round(tabH * 0.92),
+                              paddingLeft: Math.round(sw2 * 0.014),
+                              paddingRight: Math.round(sw2 * 0.01),
+                              background: isActiveTab
+                                ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.92)")
+                                : (isDark ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.56)"),
+                              borderRadius: Math.round(tabH * 0.4),
+                              display: "flex",
+                              alignItems: "center",
+                              gap: Math.round(sw2 * 0.01),
+                              minWidth: Math.round(sw2 * 0.19),
+                              maxWidth: Math.round(sw2 * 0.28),
+                              border: `0.5px solid ${isActiveTab ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(148,163,184,0.18)") : divClr}`,
+                              boxShadow: isActiveTab
+                                ? (isDark ? "inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 18px rgba(0,0,0,0.18)" : "inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 18px rgba(15,23,42,0.06)")
+                                : (isDark ? "inset 0 1px 0 rgba(255,255,255,0.02)" : "inset 0 1px 0 rgba(255,255,255,0.6)"),
+                              cursor: "pointer",
+                              transition: "background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+                            }}
+                          >
+                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.42), height: Math.round(tabH * 0.42), borderRadius: 4, flexShrink: 0 }} draggable={false} />
+                            <span style={{ fontSize: fs(0.0155), fontWeight: 600, fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: -0.1 }}>{tab.url || "New Tab"}</span>
+                            <button
+                              type="button"
+                              aria-label="Close tab"
+                              style={{ width: Math.round(tabH * 0.5), height: Math.round(tabH * 0.5), minWidth: Math.round(tabH * 0.5), borderRadius: "50%", border: "none", background: isActiveTab ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)") : "transparent", color: textSec as string, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0, transition: "background 0.18s ease, color 0.18s ease" }}
+                              onClick={e => {
+                                e.stopPropagation()
+                                setSafariTabs(currentTabs => {
+                                  if (currentTabs.length === 1) {
+                                    setSafariOpen(false)
+                                    setSafariMinimized(false)
+                                    setSafariMaximized(false)
+                                    setSafariInputFocused(false)
+                                    setWindowOrder(o => o.filter(k => k !== "safari"))
+                                    return currentTabs
+                                  }
+                                  const nextTabs = currentTabs.filter(currentTab => currentTab.id !== tab.id)
+                                  if (tab.id === activeSafariTabId) {
+                                    const nextActiveTab = nextTabs[Math.max(0, currentTabs.findIndex(currentTab => currentTab.id === tab.id) - 1)] ?? nextTabs[0]
+                                    if (nextActiveTab) {
+                                      setActiveSafariTabId(nextActiveTab.id)
+                                      setSafariInputFocused(!nextActiveTab.url)
+                                    }
+                                  }
+                                  return nextTabs
+                                })
+                              }}
+                            >
+                              <svg width={Math.round(tabH * 0.24)} height={Math.round(tabH * 0.24)} viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                <path d="M3 3l6 6M9 3L3 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                      <div
+                        onClick={e => {
+                          e.stopPropagation()
+                          const nextTabId = ++safariTabIdRef.current
+                          setSafariTabs(currentTabs => [...currentTabs, { id: nextTabId, url: "" }])
+                          setActiveSafariTabId(nextTabId)
+                          setSafariInputFocused(false)
+                        }}
+                        style={{ width: Math.round(tabH * 0.88), height: Math.round(tabH * 0.88), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.02), fontWeight: 600, borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, flexShrink: 0 }}
+                      >
+                        +
                       </div>
-                      <div style={{ width: Math.round(tabH * 0.72), height: Math.round(tabH * 0.72), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.018), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}` }}>+</div>
                     </div>
 
                     {/* Content area */}
                     <div style={{ flex: 1, position: "relative", overflow: "hidden", background: isDark ? "#111215" : "#f8fafc" }}>
-                      {safariUrl ? (
-                        <>
-                          <div style={{ position: "absolute", top: 14, left: 14, right: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, zIndex: 2, pointerEvents: "none" }}>
-                            <div style={{ padding: "8px 10px", borderRadius: 12, background: isDark ? "rgba(15,15,18,0.56)" : "rgba(255,255,255,0.76)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.7)"}`, color: textPrimary as string, fontSize: fs(0.014), fontWeight: 600, fontFamily: ff, maxWidth: "70%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {safariHost}
-                            </div>
-                            <div style={{ padding: "8px 10px", borderRadius: 999, background: isDark ? "rgba(15,15,18,0.56)" : "rgba(255,255,255,0.76)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.7)"}`, color: isDark ? "#86efac" : "#15803d", fontSize: fs(0.013), fontWeight: 700, fontFamily: ff }}>
-                              Live Preview
-                            </div>
-                          </div>
-                          <iframe
-                            key={safariUrl}
-                            src={safariUrl}
-                            style={{ width: "100%", height: "100%", border: "none", display: "block", background: "#fff" }}
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            title="Safari"
-                          />
-                        </>
-                      ) : (
-                        /* Start page */
-                        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.1), gap: Math.round(sh2 * 0.03), background: isDark ? "radial-gradient(circle at top, rgba(14,165,233,0.16), transparent 24%), #111215" : "radial-gradient(circle at top, rgba(14,165,233,0.14), transparent 26%), #f8fafc", overflow: "auto" }}>
-                          {/* Safari compass icon */}
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
-                          <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
-                          <div style={{ width: Math.round(sw2 * 0.72), padding: `${Math.round(sh2 * 0.03)}px ${Math.round(sw2 * 0.03)}px`, borderRadius: 24, background: panelBg, border: `0.5px solid ${divClr}`, boxShadow: isDark ? "0 24px 50px rgba(0,0,0,0.3)" : "0 24px 50px rgba(15,23,42,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: Math.round(sw2 * 0.02) }}>
-                            <div>
-                              <div style={{ fontSize: fs(0.014), letterSpacing: 0.6, textTransform: "uppercase", color: textSec as string, fontWeight: 700, fontFamily: ff, marginBottom: 6 }}>Browse Projects</div>
-                              <div style={{ fontSize: fs(0.024), color: textPrimary as string, fontWeight: 700, fontFamily: ff, marginBottom: 6 }}>Open any live project inside Safari</div>
-                              <div style={{ fontSize: fs(0.015), color: textSec as string, fontFamily: ff, maxWidth: Math.round(sw2 * 0.34), lineHeight: 1.5 }}>Use the Live button from a project window or open a site below to preview it without leaving the MacBook screen.</div>
-                            </div>
-                            <div onClick={() => projects?.[0]?.liveUrl && openSafariUrl(projects[0].liveUrl)} style={{ padding: `${Math.round(sh2 * 0.012)}px ${Math.round(sw2 * 0.018)}px`, borderRadius: 999, background: "#0a84ff", color: "#fff", fontSize: fs(0.014), fontWeight: 700, fontFamily: ff, cursor: projects?.[0]?.liveUrl ? "pointer" : "default", boxShadow: "0 12px 24px rgba(10,132,255,0.24)", flexShrink: 0 }}>
-                              {projects?.[0]?.liveUrl ? "Open Featured Live" : "Ready to Browse"}
-                            </div>
-                          </div>
-                          {/* Favorites */}
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: Math.round(sw2 * 0.018), width: Math.round(sw2 * 0.72) }}>
-                            {[
-                              { label: "GitHub", url: "https://github.com", color: "#24292e", icon: "G" },
-                              { label: "Google", url: "https://google.com", color: "#4285f4", icon: "G" },
-                              { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "?" },
-                              { label: "MDN", url: "https://developer.mozilla.org", color: "#0065a2", icon: "M" },
-                              { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "?" },
-                              { label: "NPM", url: "https://npmjs.com", color: "#cb3837", icon: "N" },
-                              { label: "Tailwind", url: "https://tailwindcss.com", color: "#38bdf8", icon: "T" },
-                              { label: "TypeScript", url: "https://typescriptlang.org", color: "#3178c6", icon: "TS" },
-                            ].map(fav => (
-                              <div key={fav.label} onClick={() => navigate(fav.url)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: Math.round(sh2 * 0.014), cursor: "pointer" }}>
-                                <div style={{ width: Math.round(sw2 * 0.065), height: Math.round(sw2 * 0.065), borderRadius: Math.round(sw2 * 0.014), background: fav.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs(0.022), fontWeight: 700, color: "#fff", fontFamily: ff, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>{fav.icon}</div>
-                                <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textSec as string }}>{fav.label}</span>
+                      {safariTabs.map(tab => {
+                        const tabUrl = tab.url
+                        const tabHost = tabUrl
+                          ? (() => { try { return new URL(tabUrl.startsWith("http") ? tabUrl : "https://" + tabUrl).hostname } catch { return tabUrl } })()
+                          : ""
+                        const tabPath = tabUrl
+                          ? (() => { try { return new URL(tabUrl.startsWith("http") ? tabUrl : "https://" + tabUrl).pathname } catch { return "/" } })()
+                          : "/"
+                        const tabIsGithubUrl = tabHost.includes("github.com")
+                        const tabGithubPathParts = tabPath.split("/").filter(Boolean)
+                        const tabGithubOwner = tabGithubPathParts[0] ?? "github"
+                        const tabGithubRepo = tabGithubPathParts[1] ?? ""
+                        const isActiveTab = tab.id === activeSafariTabId
+
+                        return (
+                          <div
+                            key={tab.id}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              display: isActiveTab ? "block" : "none",
+                            }}
+                          >
+                            {tabUrl ? (
+                              tabIsGithubUrl ? (
+                                <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: Math.round(sh2 * 0.026), background: isDark ? "linear-gradient(180deg,#0f1115 0%, #111827 100%)" : "linear-gradient(180deg,#f8fafc 0%, #eef2ff 100%)", padding: Math.round(sw2 * 0.05) }}>
+                                  <div style={{ width: Math.round(sw2 * 0.1), height: Math.round(sw2 * 0.1), borderRadius: Math.round(sw2 * 0.028), background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)", border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center", color: textPrimary as string, fontSize: fs(0.038), fontWeight: 800, fontFamily: ff, boxShadow: isDark ? "0 20px 50px rgba(0,0,0,0.35)" : "0 18px 42px rgba(15,23,42,0.08)" }}>
+                                    GH
+                                  </div>
+                                  <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: Math.round(sh2 * 0.01), maxWidth: Math.round(sw2 * 0.6) }}>
+                                    <div style={{ fontSize: fs(0.03), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>
+                                      {tabGithubRepo ? `${tabGithubOwner}/${tabGithubRepo}` : "GitHub"}
+                                    </div>
+                                    <div style={{ fontSize: fs(0.015), lineHeight: 1.6, color: textSec as string, fontFamily: ff }}>
+                                      GitHub blocks embedded page previews, so this Safari mock shows a native fallback card instead of an iframe.
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.014) }}>
+                                    <div onClick={() => window.open(tabUrl, "_blank", "noopener,noreferrer")} style={{ padding: `${Math.round(sh2 * 0.012)}px ${Math.round(sw2 * 0.02)}px`, borderRadius: 999, background: "#0a84ff", color: "#fff", fontSize: fs(0.014), fontWeight: 700, fontFamily: ff, cursor: "pointer", boxShadow: "0 12px 24px rgba(10,132,255,0.24)" }}>
+                                      Open GitHub
+                                    </div>
+                                    <div style={{ padding: `${Math.round(sh2 * 0.012)}px ${Math.round(sw2 * 0.02)}px`, borderRadius: 999, background: panelBg, color: textSec as string, fontSize: fs(0.014), fontWeight: 600, fontFamily: ff, border: `0.5px solid ${divClr}` }}>
+                                      github.com
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <iframe
+                                  src={tabUrl}
+                                  style={{ width: "100%", height: "100%", border: "none", display: "block", background: "#fff" }}
+                                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                                  title={`Safari Tab ${tab.id}`}
+                                />
+                              )
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.1), gap: Math.round(sh2 * 0.03), background: isDark ? "radial-gradient(circle at top, rgba(14,165,233,0.16), transparent 24%), #111215" : "radial-gradient(circle at top, rgba(14,165,233,0.14), transparent 26%), #f8fafc", overflow: "auto" }}>
+                                <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
+                                <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: Math.round(sw2 * 0.018), width: Math.round(sw2 * 0.72) }}>
+                                  {[
+                                    { label: "GitHub", url: "https://github.com", color: "#24292e", icon: "G" },
+                                    { label: "Google", url: "https://google.com", color: "#4285f4", icon: "G" },
+                                    { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "?" },
+                                    { label: "MDN", url: "https://developer.mozilla.org", color: "#0065a2", icon: "M" },
+                                    { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "?" },
+                                    { label: "NPM", url: "https://npmjs.com", color: "#cb3837", icon: "N" },
+                                    { label: "Tailwind", url: "https://tailwindcss.com", color: "#38bdf8", icon: "T" },
+                                    { label: "TypeScript", url: "https://typescriptlang.org", color: "#3178c6", icon: "TS" },
+                                  ].map(fav => (
+                                    <div key={fav.label} onClick={() => navigate(fav.url)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: Math.round(sh2 * 0.014), cursor: "pointer" }}>
+                                      <div style={{ width: Math.round(sw2 * 0.065), height: Math.round(sw2 * 0.065), borderRadius: Math.round(sw2 * 0.014), background: fav.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs(0.022), fontWeight: 700, color: "#fff", fontFamily: ff, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>{fav.icon}</div>
+                                      <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textSec as string }}>{fav.label}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })}
                     </div>
                   </div>
                 )
@@ -3194,13 +3639,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           opacity: hoveredSlot === "terminal" ? 1 : 0,
                           transition: "opacity 0.12s ease",
                           boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
-                          display: "flex", alignItems: "center", gap: Math.round(w * 0.007),
+                          display: "flex", alignItems: "center",
                         }}>
                           Terminal
-                          <span style={{
-                            fontSize: Math.round(w * 0.014), color: "rgba(255,255,255,0.4)",
-                            fontWeight: 400,
-                          }}>??</span>
+                          <span>
+                            {["ctrl", "↵"].map((key) => (
+                              <span
+                                key={key}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minWidth: key === "↵" ? Math.round(w * 0.016) : Math.round(w * 0.03),
+                                  height: Math.round(w * 0.02),
+                                  
+                                  color: "rgba(255,255,255,0.7)",
+                                  fontSize: Math.round(w * 0.0115),
+                                  fontWeight: 500,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {key}
+                              </span>
+                            ))}
+                          </span>
                         </div>
                         <img
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png"
@@ -3306,10 +3768,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onMouseEnter={() => setHoveredSlot("messages")}
                           onMouseLeave={() => setHoveredSlot(null)}
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
-                          onClick={e => { e.stopPropagation() }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
+                            if (!messagesOpen || messagesMinimized) {
+                              setMessagesMinimized(false); setMessagesMinimizing(false); setMessagesOpen(true)
+                              setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+                            } else if (isOnTop) {
+                              setMessagesMinimizing(true)
+                              setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340)
+                            } else {
+                              setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+                            }
+                          }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Messages</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                          <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y + 1), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
                     })()}
