@@ -38,6 +38,7 @@ interface WinState {
   id: number
   projectIdx: number
   pos: { x: number; y: number }
+  size: { w: number; h: number }
   maximized: boolean
   minimized: boolean
   minimizing: boolean
@@ -133,6 +134,40 @@ function TrafficLightSymbol({
   )
 }
 
+function ResizeHandle({
+  onMouseDown,
+}: {
+  onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void
+}) {
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      style={{
+        position: "absolute",
+        right: 0,
+        bottom: 0,
+        width: 18,
+        height: 18,
+        cursor: "nwse-resize",
+        zIndex: 30,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          right: 4,
+          bottom: 4,
+          width: 8,
+          height: 8,
+          borderRight: "1.5px solid rgba(255,255,255,0.34)",
+          borderBottom: "1.5px solid rgba(255,255,255,0.34)",
+          opacity: 0.85,
+        }}
+      />
+    </div>
+  )
+}
+
 function resolvePath(cwd: string, target: string): string {
   if (!target || target === "~") return "~"
   if (target === "..") {
@@ -197,6 +232,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termMinimizing, setTermMinimizing] = useState(false)
   const [termMaximized, setTermMaximized] = useState(false)
   const [termPos, setTermPos] = useState({ x: 0, y: 0 })
+  const [termSize, setTermSize] = useState({ w: 0, h: 0 })
   const [hoveredTermTl, setHoveredTermTl] = useState(-1)
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [itunesOpen, setItunesOpen] = useState(false)
@@ -212,6 +248,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [finderMinimizing, setFinderMinimizing] = useState(false)
   const [finderMaximized, setFinderMaximized] = useState(false)
   const [finderPos, setFinderPos] = useState({ x: 0, y: 0 })
+  const [finderSize, setFinderSize] = useState({ w: 0, h: 0 })
   const [hoveredFinderTl, setHoveredFinderTl] = useState(-1)
   const [finderSel, setFinderSel] = useState<string | null>(null)
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
@@ -228,7 +265,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const desktopItemIdRef = useRef(2)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
-  const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
+  const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number } }[]>([])
   const folderWinIdRef  = useRef(0)
   const folderWinDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const finderDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
@@ -246,7 +283,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       "- Escape: close Terminal, close Finder, and exit Quick Look",
     ].join("\n"),
   })
-  const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
+  const [fileEditorWins, setFileEditorWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number }; size: { w: number; h: number } }[]>([])
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [controlCenterOpen, setControlCenterOpen] = useState(false)
@@ -258,6 +295,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [safariMinimizing, setSafariMinimizing] = useState(false)
   const [safariMaximized, setSafariMaximized] = useState(false)
   const [safariPos, setSafariPos] = useState({ x: 0, y: 0 })
+  const [safariSize, setSafariSize] = useState({ w: 0, h: 0 })
   const [safariTabs, setSafariTabs] = useState<{ id: number; url: string }[]>([{ id: 1, url: "" }])
   const [activeSafariTabId, setActiveSafariTabId] = useState(1)
   const [safariInput, setSafariInput] = useState("")
@@ -270,6 +308,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [messagesMinimizing, setMessagesMinimizing] = useState(false)
   const [messagesMaximized, setMessagesMaximized] = useState(false)
   const [messagesPos, setMessagesPos] = useState({ x: 0, y: 0 })
+  const [messagesSize, setMessagesSize] = useState({ w: 0, h: 0 })
   const [hoveredMessagesTl, setHoveredMessagesTl] = useState(-1)
   const messagesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const messagesReplyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -565,15 +604,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     const id = ++winIdRef.current
     const cascadeN = openWindowsRef.current.filter(w => !w.minimized).length
+    const localH = Math.round(width * 0.609)
+    const mbH = Math.round(localH * 0.036)
+    const availH = localH - mbH
     setOpenWindows(ws => [...ws, {
       id, projectIdx,
       pos: { x: cascadeN * 24, y: cascadeN * 24 },
+      size: { w: Math.round(width * 0.88), h: Math.round(availH * 0.8) },
       maximized: false, minimized: false, minimizing: false,
       hoveredTl: -1, activeImg: 0,
     }])
     setFocusedWinId(id)
     setWindowOrder(o => [...o.filter(k => k !== id), id])
-  }, [])
+  }, [width])
 
   const openSafariUrl = useCallback((raw: string) => {
     let url = raw.trim()
@@ -683,7 +726,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       const eid = fileEditorIdRef.current++
       const ex = Math.round((width - 20) * 0.12) + eid * 22
       const ey = Math.round(Math.round(width * 0.609) * 0.09) + eid * 18
-      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey } }])
+      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: Math.round(width * 0.66), h: Math.round(Math.round(width * 0.609) * 0.62) } }])
       setWindowOrder(o => [...o.filter(k => k !== fileOrderKey(eid)), fileOrderKey(eid)])
     } else {
       focusFileEditorWin(existing.id)
@@ -697,6 +740,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       name: itemName,
       path: itemPath,
       pos: { x: Math.round((width - 20) * 0.15) + fid * 24, y: Math.round(Math.round(width * 0.609) * 0.1) + fid * 20 },
+      size: { w: Math.round(width * 0.62), h: Math.round(Math.round(width * 0.609) * 0.58) },
     }])
     setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
   }, [width, folderOrderKey])
@@ -1769,6 +1813,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   return (
     <div
       ref={macRef}
+      data-mac-root
       className={className}
       style={s.scene}
       onMouseDownCapture={() => setMacKeyboardActive(true)}
@@ -2080,8 +2125,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
               {/* Folder windows - opened by double-clicking a desktop folder */}
               {folderWins.map(fw => {
-                const fwW = Math.round(w * 0.62)
-                const fwH = Math.round(h * 0.58)
+                const fwW = fw.size.w
+                const fwH = fw.size.h
                 const titleH = 22
                 const tlSz2  = Math.round(titleH * 0.54)
                 const tlGap2 = Math.round(titleH * 0.45)
@@ -2274,14 +2319,43 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         })
                       )}
                     </div>
+                    <ResizeHandle
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        const startX = e.clientX
+                        const startY = e.clientY
+                        const startW = fwW
+                        const startH = fwH
+                        const minW = Math.round(w * 0.42)
+                        const minH = Math.round(h * 0.34)
+                        const maxW = Math.max(minW, (w - 20) - fw.pos.x)
+                        const maxH = Math.max(minH, h - fw.pos.y)
+                        const onMove = (ev: MouseEvent) => {
+                          setFolderWins(prev => prev.map(f => f.id === fw.id ? {
+                            ...f,
+                            size: {
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            },
+                          } : f))
+                        }
+                        const onUp = () => {
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                    />
                   </div>
                 )
               })}
 
               {/* File editor windows */}
               {fileEditorWins.map(fe => {
-                const feW = Math.round(w * 0.66)
-                const feH = Math.round(h * 0.62)
+                const feW = fe.size.w
+                const feH = fe.size.h
                 const titleH = 22
                 const tlSz3   = Math.round(titleH * 0.54)
                 const tlGap3  = Math.round(titleH * 0.45)
@@ -2392,6 +2466,35 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>Ln {lineCount}</span>
                       <span style={{ fontSize: Math.round(w * 0.016), color: edSub, fontFamily: "-apple-system,sans-serif" }}>{content.length} chars</span>
                     </div>
+                    <ResizeHandle
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        const startX = e.clientX
+                        const startY = e.clientY
+                        const startW = feW
+                        const startH = feH
+                        const minW = Math.round(w * 0.46)
+                        const minH = Math.round(h * 0.36)
+                        const maxW = Math.max(minW, (w - 20) - fe.pos.x)
+                        const maxH = Math.max(minH, h - fe.pos.y)
+                        const onMove = (ev: MouseEvent) => {
+                          setFileEditorWins(prev => prev.map(f => f.id === fe.id ? {
+                            ...f,
+                            size: {
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            },
+                          } : f))
+                        }
+                        const onUp = () => {
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                    />
                   </div>
                 )
               })}
@@ -2821,8 +2924,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const pHasGit  = !!pGitUrl && pGitUrl !== "#"
                   const isFocused = win.id === focusedWinId
                   const zIdx = 3 + (windowOrder.indexOf(win.id) >= 0 ? windowOrder.indexOf(win.id) : winIndex)
-                  const winW   = baseWinW
-                  const winH   = baseWinH
+                  const winW   = win.size.w || baseWinW
+                  const winH   = win.size.h || baseWinH
                   const winTop  = baseWinTop  + win.pos.y
                   const winLeft = baseWinLeft + win.pos.x
                   // const btnSz  = Math.round(winW * 0.046)
@@ -3056,6 +3159,36 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         )}
                       </div>
                     </div>
+                    {!win.maximized && (
+                      <ResizeHandle
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          const startX = e.clientX
+                          const startY = e.clientY
+                          const startW = winW
+                          const startH = winH
+                          const minW = Math.round(w * 0.56)
+                          const minH = Math.round(h * 0.42)
+                          const maxW = Math.max(minW, (w - 20) - winLeft)
+                          const maxH = Math.max(minH, h - winTop)
+                          const onMove = (ev: MouseEvent) => {
+                            updateWin(win.id, {
+                              size: {
+                                w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                                h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                              },
+                            })
+                          }
+                          const onUp = () => {
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                          }
+                          window.addEventListener("mousemove", onMove)
+                          window.addEventListener("mouseup", onUp)
+                        }}
+                      />
+                    )}
                   </div>
                   )
                 })
@@ -3065,8 +3198,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {terminalOpen && !termMinimized && (() => {
                 const mbH2    = Math.round(h * 0.036)
                 const availH2 = h - mbH2
-                const tw      = Math.round(w * 0.68)
-                const th      = Math.round(availH2 * 0.62)
+                const tw      = termSize.w || Math.round(w * 0.68)
+                const th      = termSize.h || Math.round(availH2 * 0.62)
                 const tTop    = mbH2 + Math.round((availH2 - th) * 0.28)
                 const tLeft   = Math.round((w - 20 - tw) / 2)
                 const winBg   = isDark ? "#1e1e1e" : "#ffffff"
@@ -3252,6 +3385,36 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         />
                       </div>
                     </div>
+                    {!termMaximized && (
+                      <ResizeHandle
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          const startX = e.clientX
+                          const startY = e.clientY
+                          const startW = tw
+                          const startH = th
+                          const termLeft = tLeft + termPos.x
+                          const termTop = tTop + termPos.y
+                          const minW = Math.round(w * 0.44)
+                          const minH = Math.round(h * 0.3)
+                          const maxW = Math.max(minW, (w - 20) - termLeft)
+                          const maxH = Math.max(minH, h - termTop)
+                          const onMove = (ev: MouseEvent) => {
+                            setTermSize({
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            })
+                          }
+                          const onUp = () => {
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                          }
+                          window.addEventListener("mousemove", onMove)
+                          window.addEventListener("mouseup", onUp)
+                        }}
+                      />
+                    )}
                   </div>
                 )
               })()}
@@ -3441,8 +3604,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {/* Messages Window */}
               {messagesOpen && !messagesMinimized && (() => {
                 const mbH = Math.round(h * 0.036)
-                const mw = Math.round(w * 0.78)
-                const mh = Math.round(h * 0.74)
+                const mw = messagesSize.w || Math.round(w * 0.78)
+                const mh = messagesSize.h || Math.round(h * 0.74)
                 const baseTop = mbH + Math.round((h - mbH - mh) * 0.12)
                 const baseLeft = Math.round((w - mw) / 2)
                 const tlSz = Math.round(22 * 0.54)
@@ -3647,6 +3810,36 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       </div>
                     </div>
+                    {!messagesMaximized && (
+                      <ResizeHandle
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          const startX = e.clientX
+                          const startY = e.clientY
+                          const startW = mw
+                          const startH = mh
+                          const winLeft = baseLeft + messagesPos.x
+                          const winTop = baseTop + messagesPos.y
+                          const minW = Math.round(w * 0.5)
+                          const minH = Math.round(h * 0.42)
+                          const maxW = Math.max(minW, (w - 20) - winLeft)
+                          const maxH = Math.max(minH, h - winTop)
+                          const onMove = (ev: MouseEvent) => {
+                            setMessagesSize({
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            })
+                          }
+                          const onUp = () => {
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                          }
+                          window.addEventListener("mousemove", onMove)
+                          window.addEventListener("mouseup", onUp)
+                        }}
+                      />
+                    )}
                   </div>
                 )
               })()}
@@ -3654,8 +3847,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {/* Safari Window */}
               {safariOpen && !safariMinimized && (() => {
                 const mbH   = Math.round(h * 0.036)
-                const sw2   = Math.round(w * 0.9)
-                const sh2   = Math.round(h * 0.82)
+                const sw2   = safariSize.w || Math.round(w * 0.9)
+                const sh2   = safariSize.h || Math.round(h * 0.82)
                 const baseTop  = mbH + Math.round((h - mbH - sh2) * 0.1)
                 const screenW2 = w - 20
                 const baseLeft = Math.round((screenW2 - sw2) / 2)
@@ -4084,14 +4277,44 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         )
                       })}
                     </div>
+                    {!safariMaximized && (
+                      <ResizeHandle
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          const startX = e.clientX
+                          const startY = e.clientY
+                          const startW = sw2
+                          const startH = sh2
+                          const winLeft = baseLeft + safariPos.x
+                          const winTop = baseTop + safariPos.y
+                          const minW = Math.round(w * 0.58)
+                          const minH = Math.round(h * 0.44)
+                          const maxW = Math.max(minW, (w - 20) - winLeft)
+                          const maxH = Math.max(minH, h - winTop)
+                          const onMove = (ev: MouseEvent) => {
+                            setSafariSize({
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            })
+                          }
+                          const onUp = () => {
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                          }
+                          window.addEventListener("mousemove", onMove)
+                          window.addEventListener("mouseup", onUp)
+                        }}
+                      />
+                    )}
                   </div>
                 )
               })()}
 
               {/* Finder overlay */}
               {finderOpen && !finderMinimized && (() => {
-                const fw = Math.round(w * 0.94)
-                const fh = Math.round(h * 0.82)
+                const fw = finderSize.w || Math.round(w * 0.94)
+                const fh = finderSize.h || Math.round(h * 0.82)
                 const sideW = Math.round(fw * 0.28)
                 const fs = Math.round(w * 0.021)
                 const mbH = Math.round(h * 0.036)
@@ -4353,7 +4576,37 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }}>
                         {mainItems.length} items
                       </div>
-                  </div>
+                      {!finderMaximized && (
+                        <ResizeHandle
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            e.preventDefault()
+                            const startX = e.clientX
+                            const startY = e.clientY
+                            const startW = fw
+                            const startH = fh
+                            const winLeft = Math.round((w - 20 - fw) / 2) + finderPos.x
+                            const winTop = mbH + Math.round((h - mbH - fh) * 0.08) + finderPos.y
+                            const minW = Math.round(w * 0.58)
+                            const minH = Math.round(h * 0.46)
+                            const maxW = Math.max(minW, (w - 20) - winLeft)
+                            const maxH = Math.max(minH, h - winTop)
+                            const onMove = (ev: MouseEvent) => {
+                              setFinderSize({
+                                w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                                h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                              })
+                            }
+                            const onUp = () => {
+                              window.removeEventListener("mousemove", onMove)
+                              window.removeEventListener("mouseup", onUp)
+                            }
+                            window.addEventListener("mousemove", onMove)
+                            window.addEventListener("mouseup", onUp)
+                          }}
+                        />
+                      )}
+                    </div>
                 )
               })()}
 
@@ -5144,8 +5397,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       <div style={s.shadow} />
 
       <style>{`
-        [data-mac-screen] [style*="cursor: pointer"],
-        [data-mac-screen] *[style*="cursor:pointer"] {
+        [data-mac-root],
+        [data-mac-root] * {
+          cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, default !important;
+        }
+        [data-mac-root] [style*="cursor: pointer"],
+        [data-mac-root] *[style*="cursor:pointer"] {
           cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, pointer !important;
         }
         [data-dock], [data-dock] * {
