@@ -45,7 +45,17 @@ interface WinState {
   activeImg: number
 }
 
-type SwitchableKey = number | "finder" | "terminal" | "messages" | "safari" | "itunes"
+type MacWindowKey =
+  | number
+  | "finder"
+  | "terminal"
+  | "messages"
+  | "safari"
+  | "itunes"
+  | `folder:${number}`
+  | `file:${number}`
+
+type SwitchableKey = MacWindowKey
 type SwitchableItem = {
   key: SwitchableKey
   label: string
@@ -64,6 +74,18 @@ type MessagePrompt = {
   id: string
   question: string
   answer: string
+}
+
+type DesktopItem = {
+  id: number
+  name: string
+  type: "folder" | "file"
+  slot: number
+  dx: number
+  dy: number
+  selected: boolean
+  locked?: boolean
+  path?: string
 }
 
 function TrafficLightSymbol({
@@ -153,7 +175,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const [openWindows, setOpenWindows] = useState<WinState[]>([])
   const [focusedWinId, setFocusedWinId] = useState<number | null>(null)
-  const [windowOrder, setWindowOrder] = useState<(number | "finder" | "itunes" | "terminal" | "safari" | "messages")[]>([])
+  const [windowOrder, setWindowOrder] = useState<MacWindowKey[]>([])
   const winIdRef = useRef(0)
   const winDragRef = useRef<{ winId: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const openWindowsRef = useRef<WinState[]>([])
@@ -198,9 +220,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termLines, setTermLines] = useState<{ text?: string; color?: string; items?: FsEntry[]; parts?: { text: string; color?: string }[] }[]>([])
   const [termFs, setTermFs] = useState<TermFs>({})
   const termFsRef = useRef<TermFs>({})
-  const [desktopItems, setDesktopItems] = useState<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
-  const desktopItemsRef = useRef<{ id: number; name: string; type: "folder"|"file"; slot: number; dx: number; dy: number; selected: boolean }[]>([])
-  const desktopItemIdRef = useRef(0)
+  const [desktopItems, setDesktopItems] = useState<DesktopItem[]>([
+    { id: 0, name: "Projects", type: "folder", slot: 0, dx: 0, dy: 0, selected: false, locked: true, path: "~/projects" },
+  ])
+  const desktopItemsRef = useRef<DesktopItem[]>([])
+  const desktopItemIdRef = useRef(1)
   const desktopDragRef   = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const desktopClickRef  = useRef<{ id: number; time: number }>({ id: -1, time: 0 })
   const [folderWins, setFolderWins] = useState<{ id: number; name: string; path: string; pos: { x: number; y: number } }[]>([])
@@ -242,8 +266,25 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
   const [dockPeek, setDockPeek] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId: number | null } | null>(null)
   const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
+  const [folderContextMenu, setFolderContextMenu] = useState<{
+    x: number
+    y: number
+    winId: number
+    path: string
+    targetName: string | null
+    targetType: "folder" | "file" | null
+    mutable: boolean
+  } | null>(null)
+  const [folderContextMenuHovered, setFolderContextMenuHovered] = useState<number | null>(null)
+  const [editingFolderItem, setEditingFolderItem] = useState<{
+    winId: number
+    path: string
+    originalName: string
+    type: "folder" | "file"
+  } | null>(null)
+  const [editingFolderName, setEditingFolderName] = useState("")
   const [editingDesktopItemId, setEditingDesktopItemId] = useState<number | null>(null)
   const [editingDesktopName, setEditingDesktopName] = useState("")
   const macRef      = useRef<HTMLDivElement>(null)
@@ -252,6 +293,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const inputRef    = useRef<HTMLInputElement>(null)
   const safariInputRef = useRef<HTMLInputElement>(null)
   const desktopRenameInputRef = useRef<HTMLInputElement>(null)
+  const folderRenameInputRef = useRef<HTMLInputElement>(null)
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -310,6 +352,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       answer: "Yes. If the product is thoughtful and the team cares about quality, I am open to freelance collaborations and strong full-time opportunities.",
     },
   ]), [])
+  const folderOrderKey = useCallback((id: number) => `folder:${id}` as const, [])
+  const fileOrderKey = useCallback((id: number) => `file:${id}` as const, [])
   const [messagesConversation, setMessagesConversation] = useState<MessageBubble[]>([
     { id: 1, sender: "zakaria", text: "Hey, I am Zakaria. Pick one of the questions below and I will answer here.", time: "9:18 AM" },
     { id: 2, sender: "zakaria", text: "This Messages window works like a small guided chat so you can learn about my work quickly.", time: "9:19 AM" },
@@ -318,6 +362,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [activePromptId, setActivePromptId] = useState<string | null>(null)
   const switchableWindows = useMemo<SwitchableItem[]>(() => {
     const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
+      if (typeof key === "string" && key.startsWith("folder:")) {
+        const id = Number(key.slice(7))
+        const win = folderWins.find(w => w.id === id)
+        return win ? [{ key, label: win.name, icon: FOLDER_ICON, tone: "#60a5fa" }] : []
+      }
+      if (typeof key === "string" && key.startsWith("file:")) {
+        const id = Number(key.slice(5))
+        const win = fileEditorWins.find(w => w.id === id)
+        return win ? [{ key, label: win.name, icon: FILE_ICON, tone: "#94a3b8" }] : []
+      }
       if (key === "finder") {
         return finderOpen && !finderMinimized
           ? [{ key, label: "Finder", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429274/128_u1g2xr.webp", tone: "#60a5fa" }]
@@ -325,7 +379,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       }
       if (key === "terminal") {
         return terminalOpen && !termMinimized
-          ? [{ key, label: "Terminal", icon: null, tone: "#111827" }]
+          ? [{ key, label: "Terminal", icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png", tone: "#111827" }]
           : []
       }
       if (key === "messages") {
@@ -354,7 +408,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       }]
     })
     return entries
-  }, [windowOrder, finderOpen, finderMinimized, terminalOpen, termMinimized, messagesOpen, messagesMinimized, safariOpen, safariMinimized, itunesOpen, itunesMinimized, openWindows, projects])
+  }, [windowOrder, folderWins, fileEditorWins, finderOpen, finderMinimized, terminalOpen, termMinimized, messagesOpen, messagesMinimized, safariOpen, safariMinimized, itunesOpen, itunesMinimized, openWindows, projects])
   const hasFullscreenWindow =
     openWindows.some(w => w.maximized && !w.minimized) ||
     termMaximized ||
@@ -363,6 +417,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     (finderOpen && finderMaximized && !finderMinimized)
 
   const dockForcedSleep = hasFullscreenWindow
+  const hasBlockingWindowOpen =
+    openWindows.some(win => !win.minimized) ||
+    (finderOpen && !finderMinimized) ||
+    (terminalOpen && !termMinimized) ||
+    (safariOpen && !safariMinimized) ||
+    (messagesOpen && !messagesMinimized) ||
+    (itunesOpen && !itunesMinimized) ||
+    folderWins.length > 0 ||
+    fileEditorWins.length > 0
 
   const dockSleeping = dockForcedSleep
 
@@ -441,7 +504,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
 
-  const bringToFront = useCallback((key: number | "finder" | "itunes" | "terminal" | "safari" | "messages") => {
+  const bringToFront = useCallback((key: MacWindowKey) => {
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
@@ -540,6 +603,223 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setEditingDesktopName(candidate)
   }, [desktopItems])
 
+  const sanitizeEntryName = useCallback((type: "folder" | "file", rawName: string) => {
+    const fallbackName = type === "folder" ? "New Folder" : "New File.txt"
+    return rawName.replace(/[\\/:*?"<>|]/g, "").trim() || fallbackName
+  }, [])
+
+  const focusFolderWin = useCallback((id: number) => {
+    const key = `folder:${id}` as const
+    setFolderWins(ws => {
+      const win = ws.find(w => w.id === id)
+      if (!win) return ws
+      return [...ws.filter(w => w.id !== id), win]
+    })
+    setWindowOrder(o => [...o.filter(k => k !== key), key])
+  }, [])
+
+  const focusFileEditorWin = useCallback((id: number) => {
+    const key = `file:${id}` as const
+    setFileEditorWins(ws => {
+      const win = ws.find(w => w.id === id)
+      if (!win) return ws
+      return [...ws.filter(w => w.id !== id), win]
+    })
+    setWindowOrder(o => [...o.filter(k => k !== key), key])
+  }, [])
+
+  const getFolderUniqueName = useCallback((parentPath: string, type: "folder" | "file", requestedName: string, excludeName?: string) => {
+    const sanitized = sanitizeEntryName(type, requestedName)
+    const projectSlugs = (projects ?? []).map((p, i) => {
+      const raw = p.title ?? `project-${i + 1}`
+      return raw.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "")
+    })
+    const allEntries = [...getStaticItems(parentPath, projectSlugs), ...(termFsRef.current[parentPath] ?? [])]
+    const usedNames = new Set(
+      allEntries
+        .filter(entry => entry.name !== excludeName)
+        .map(entry => entry.name.toLowerCase())
+    )
+    let finalName = sanitized
+    let suffix = 2
+    while (usedNames.has(finalName.toLowerCase())) {
+      finalName = type === "folder"
+        ? `${sanitized} ${suffix}`
+        : sanitized.includes(".")
+          ? sanitized.replace(/(\.[^.]*)?$/, ` ${suffix}$1`)
+          : `${sanitized} ${suffix}`
+      suffix += 1
+    }
+    return finalName
+  }, [projects, sanitizeEntryName])
+
+  const openFolderPathInTerminal = useCallback((folderPath: string) => {
+    setTermMinimized(false)
+    setTermMinimizing(false)
+    setTerminalOpen(true)
+    setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+    setTimeout(() => {
+      setTermCwd(folderPath)
+      inputRef.current?.focus()
+    }, 80)
+  }, [])
+
+  const openFileEditorAtPath = useCallback((itemPath: string, itemName: string) => {
+    const existing = fileEditorWins.find(f => f.path === itemPath)
+    if (!existing) {
+      const eid = fileEditorIdRef.current++
+      const ex = Math.round((width - 20) * 0.12) + eid * 22
+      const ey = Math.round(Math.round(width * 0.609) * 0.09) + eid * 18
+      setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey } }])
+      setWindowOrder(o => [...o.filter(k => k !== fileOrderKey(eid)), fileOrderKey(eid)])
+    } else {
+      focusFileEditorWin(existing.id)
+    }
+  }, [fileEditorWins, width, fileOrderKey, focusFileEditorWin])
+
+  const openFolderWindowAtPath = useCallback((itemPath: string, itemName: string) => {
+    const fid = folderWinIdRef.current++
+    setFolderWins(prev => [...prev, {
+      id: fid,
+      name: itemName,
+      path: itemPath,
+      pos: { x: Math.round((width - 20) * 0.15) + fid * 24, y: Math.round(Math.round(width * 0.609) * 0.1) + fid * 20 },
+    }])
+    setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
+  }, [width, folderOrderKey])
+
+  const startFolderRename = useCallback((winId: number, path: string, name: string, type: "folder" | "file") => {
+    setEditingFolderItem({ winId, path, originalName: name, type })
+    setEditingFolderName(name)
+    setFolderContextMenu(null)
+    setFolderContextMenuHovered(null)
+  }, [])
+
+  const cancelFolderRename = useCallback(() => {
+    setEditingFolderItem(null)
+    setEditingFolderName("")
+    folderRenameInputRef.current?.blur()
+  }, [])
+
+  const createFolderWindowEntry = useCallback((winId: number, parentPath: string, type: "folder" | "file") => {
+    const finalName = getFolderUniqueName(parentPath, type, type === "folder" ? "New Folder" : "New File.txt")
+    setTermFs(prev => ({
+      ...prev,
+      [parentPath]: [...(prev[parentPath] ?? []), { name: finalName, type }],
+    }))
+    if (type === "file") {
+      setFileContents(prev => ({ ...prev, [`${parentPath}/${finalName}`]: prev[`${parentPath}/${finalName}`] ?? "" }))
+    }
+    setEditingFolderItem({ winId, path: parentPath, originalName: finalName, type })
+    setEditingFolderName(finalName)
+    setFolderContextMenu(null)
+    setFolderContextMenuHovered(null)
+  }, [getFolderUniqueName])
+
+  const commitFolderRename = useCallback(() => {
+    if (!editingFolderItem) return
+    const { path: parentPath, originalName, type } = editingFolderItem
+    const dynamicEntries = termFsRef.current[parentPath] ?? []
+    const exists = dynamicEntries.some(entry => entry.name === originalName && entry.type === type)
+    if (!exists) {
+      cancelFolderRename()
+      return
+    }
+    const finalName = getFolderUniqueName(parentPath, type, editingFolderName, originalName)
+    if (finalName === originalName) {
+      cancelFolderRename()
+      return
+    }
+    const oldPath = `${parentPath}/${originalName}`
+    const newPath = `${parentPath}/${finalName}`
+    setTermFs(prev => {
+      const next: TermFs = {}
+      Object.entries(prev).forEach(([key, entries]) => {
+        const mappedKey = key === oldPath
+          ? newPath
+          : key.startsWith(`${oldPath}/`)
+            ? `${newPath}${key.slice(oldPath.length)}`
+            : key
+        next[mappedKey] = key === parentPath
+          ? entries.map(entry => entry.name === originalName && entry.type === type ? { ...entry, name: finalName } : entry)
+          : entries
+      })
+      return next
+    })
+    if (type === "file") {
+      setFileContents(prev => {
+        if (!(oldPath in prev)) return prev
+        const next = { ...prev, [newPath]: prev[oldPath] }
+        delete next[oldPath]
+        return next
+      })
+    } else {
+      setFileContents(prev => {
+        const next = { ...prev }
+        Object.keys(prev).forEach(key => {
+          if (key === oldPath || key.startsWith(`${oldPath}/`)) {
+            const mappedKey = key === oldPath ? newPath : `${newPath}${key.slice(oldPath.length)}`
+            next[mappedKey] = prev[key]
+            delete next[key]
+          }
+        })
+        return next
+      })
+      setFolderWins(prev => prev.map(win => {
+        if (win.path === oldPath) return { ...win, path: newPath, name: finalName }
+        if (win.path.startsWith(`${oldPath}/`)) return { ...win, path: `${newPath}${win.path.slice(oldPath.length)}` }
+        return win
+      }))
+    }
+    setFileEditorWins(prev => prev.map(win => {
+      if (win.path === oldPath) return { ...win, path: newPath, name: finalName }
+      if (win.path.startsWith(`${oldPath}/`)) return { ...win, path: `${newPath}${win.path.slice(oldPath.length)}` }
+      return win
+    }))
+    cancelFolderRename()
+  }, [cancelFolderRename, editingFolderItem, editingFolderName, getFolderUniqueName])
+
+  const deleteFolderWindowEntry = useCallback((parentPath: string, name: string, type: "folder" | "file") => {
+    const targetPath = `${parentPath}/${name}`
+    setTermFs(prev => {
+      const next: TermFs = {}
+      Object.entries(prev).forEach(([key, entries]) => {
+        if (key === targetPath || key.startsWith(`${targetPath}/`)) return
+        next[key] = key === parentPath
+          ? entries.filter(entry => !(entry.name === name && entry.type === type))
+          : entries
+      })
+      return next
+    })
+    setFileContents(prev => {
+      const next = { ...prev }
+      Object.keys(next).forEach(key => {
+        if (key === targetPath || key.startsWith(`${targetPath}/`)) delete next[key]
+      })
+      return next
+    })
+    setFolderWins(prev => prev.filter(win => win.path !== targetPath && !win.path.startsWith(`${targetPath}/`)))
+    setFileEditorWins(prev => prev.filter(win => win.path !== targetPath && !win.path.startsWith(`${targetPath}/`)))
+    setWindowOrder(prev => prev.filter(key => {
+      if (typeof key === "string" && key.startsWith("folder:")) {
+        const id = Number(key.slice(7))
+        const win = folderWins.find(entry => entry.id === id)
+        return !win || (win.path !== targetPath && !win.path.startsWith(`${targetPath}/`))
+      }
+      if (typeof key === "string" && key.startsWith("file:")) {
+        const id = Number(key.slice(5))
+        const win = fileEditorWins.find(entry => entry.id === id)
+        return !win || (win.path !== targetPath && !win.path.startsWith(`${targetPath}/`))
+      }
+      return true
+    }))
+    if (editingFolderItem && editingFolderItem.path === parentPath && editingFolderItem.originalName === name && editingFolderItem.type === type) {
+      cancelFolderRename()
+    }
+    setFolderContextMenu(null)
+    setFolderContextMenuHovered(null)
+  }, [cancelFolderRename, editingFolderItem, fileEditorWins, folderWins])
+
   const commitDesktopRename = useCallback((id: number) => {
     const target = desktopItems.find(item => item.id === id)
     if (!target) return
@@ -572,6 +852,56 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setEditingDesktopName("")
     desktopRenameInputRef.current?.blur()
   }, [editingDesktopItemId])
+
+  const openDesktopItem = useCallback((item: DesktopItem) => {
+    const itemPath = item.path ?? `~/${item.name}`
+    if (item.type === "folder") {
+      openFolderWindowAtPath(itemPath, item.name)
+      return
+    }
+    openFileEditorAtPath(itemPath, item.name)
+  }, [openFileEditorAtPath, openFolderWindowAtPath])
+
+  const openDesktopFolderInTerminal = useCallback((item: DesktopItem) => {
+    const folderPath = item.path ?? `~/${item.name}`
+    openFolderPathInTerminal(folderPath)
+  }, [openFolderPathInTerminal])
+
+  const deleteDesktopItem = useCallback((item: DesktopItem) => {
+    if (item.locked) return
+    const itemPath = item.path ?? `~/${item.name}`
+    setDesktopItems(prev => prev.filter(entry => entry.id !== item.id).map(entry => ({ ...entry, selected: false })))
+    setFolderWins(prev => prev.filter(win => win.path !== itemPath && !win.path.startsWith(`${itemPath}/`)))
+    setFileEditorWins(prev => prev.filter(win => win.path !== itemPath && !win.path.startsWith(`${itemPath}/`)))
+    setWindowOrder(prev => prev.filter(key => {
+      if (typeof key === "string" && key.startsWith("folder:")) {
+        const id = Number(key.slice(7))
+        const win = folderWins.find(entry => entry.id === id)
+        return !win || (win.path !== itemPath && !win.path.startsWith(`${itemPath}/`))
+      }
+      if (typeof key === "string" && key.startsWith("file:")) {
+        const id = Number(key.slice(5))
+        const win = fileEditorWins.find(entry => entry.id === id)
+        return !win || (win.path !== itemPath && !win.path.startsWith(`${itemPath}/`))
+      }
+      return true
+    }))
+    setFileContents(prev => {
+      const next = { ...prev }
+      Object.keys(next).forEach(path => {
+        if (path === itemPath || path.startsWith(`${itemPath}/`)) delete next[path]
+      })
+      return next
+    })
+    setTermFs(prev => {
+      const next: TermFs = {}
+      Object.entries(prev).forEach(([path, entries]) => {
+        if (path === itemPath || path.startsWith(`${itemPath}/`)) return
+        next[path] = entries.filter(entry => !(path === "~" && entry.name === item.name))
+      })
+      return next
+    })
+  }, [fileEditorWins, folderWins])
 
   const moveDesktopItemToFolder = useCallback((draggedId: number, targetFolderId: number) => {
     const draggedItem = desktopItems.find(item => item.id === draggedId)
@@ -875,7 +1205,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       // sync desktop items back into termFs["~"] so ls reflects the screen
       setTermFs(prev => ({
         ...prev,
-        "~": desktopItems.map(d => ({ name: d.name, type: d.type })),
+        "~": desktopItems.filter(d => !d.locked).map(d => ({ name: d.name, type: d.type })),
       }))
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
@@ -931,6 +1261,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }, 30)
     return () => clearTimeout(timer)
   }, [editingDesktopItemId])
+
+  useEffect(() => {
+    if (!editingFolderItem) return
+    const timer = setTimeout(() => {
+      folderRenameInputRef.current?.focus()
+      folderRenameInputRef.current?.select()
+    }, 30)
+    return () => clearTimeout(timer)
+  }, [editingFolderItem])
 
   useEffect(() => () => {
     if (messagesReplyTimeoutRef.current) clearTimeout(messagesReplyTimeoutRef.current)
@@ -1027,6 +1366,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     if (!hovered || !macKeyboardActive) return
     const activateSwitchTarget = (target: SwitchableKey) => {
+      if (typeof target === "string" && target.startsWith("folder:")) {
+        focusFolderWin(Number(target.slice(7)))
+        return
+      }
+      if (typeof target === "string" && target.startsWith("file:")) {
+        focusFileEditorWin(Number(target.slice(5)))
+        return
+      }
       if (target === "finder") {
         bringToFront("finder")
       } else if (target === "terminal") {
@@ -1038,7 +1385,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         bringToFront("safari")
       } else if (target === "itunes") {
         bringToFront("itunes")
-      } else {
+      } else if (typeof target === "number") {
         focusWin(target)
       }
     }
@@ -1067,6 +1414,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         e.preventDefault()
         // close the topmost window in the unified stack
         const top = [...windowOrder].reverse().find(k => {
+          if (typeof k === "string" && k.startsWith("folder:")) {
+            const id = Number(k.slice(7))
+            return folderWins.some(w => w.id === id)
+          }
+          if (typeof k === "string" && k.startsWith("file:")) {
+            const id = Number(k.slice(5))
+            return fileEditorWins.some(w => w.id === id)
+          }
           if (k === "finder") return finderOpen && !finderMinimized
           if (k === "itunes") return itunesOpen && !itunesMinimized
           if (k === "messages") return messagesOpen && !messagesMinimized
@@ -1074,7 +1429,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           if (k === "safari") return safariOpen && !safariMinimized
           return openWindows.some(w => w.id === k && !w.minimized)
         })
-        if (top === "finder") {
+        if (typeof top === "string" && top.startsWith("folder:")) {
+          const id = Number(top.slice(7))
+          setFolderWins(prev => prev.filter(win => win.id !== id))
+          setWindowOrder(o => o.filter(k => k !== top))
+        } else if (typeof top === "string" && top.startsWith("file:")) {
+          const id = Number(top.slice(5))
+          setFileEditorWins(prev => prev.filter(win => win.id !== id))
+          setWindowOrder(o => o.filter(k => k !== top))
+        } else if (top === "finder") {
           setFinderOpen(false); setFinderMinimized(false); setFinderMaximized(false); setFinderPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "finder"))
         } else if (top === "itunes") {
           setItunesOpen(false); setWindowOrder(o => o.filter(k => k !== "itunes"))
@@ -1227,7 +1590,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       window.removeEventListener("keydown", onKey, { capture: true })
       window.removeEventListener("keyup", onKeyUp, { capture: true })
     }
-  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, switchableWindows, appSwitcherVisible, appSwitcherIndex])
+  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, focusFolderWin, focusFileEditorWin, switchableWindows, appSwitcherVisible, appSwitcherIndex, folderWins, fileEditorWins])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -1395,7 +1758,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ref={macRef}
       className={className}
       style={s.scene}
-      onMouseDown={() => setMacKeyboardActive(true)}
+      onMouseDownCapture={() => setMacKeyboardActive(true)}
     >
       <audio ref={vscodeAudioRef} src="/sounds/trum-vscode-cmt.mp3" preload="auto" />
       <div style={s.lid}>
@@ -1466,21 +1829,28 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             setMacKeyboardActive(true)
             setControlCenterOpen(false)
             setContextMenu(null)
+            setFolderContextMenu(null)
             cancelDesktopRename()
+            cancelFolderRename()
           }} onContextMenu={e => {
             e.preventDefault()
+            if (hasBlockingWindowOpen) return
             const rect = screenRef.current?.getBoundingClientRect()
             if (rect) {
               setContextMenuHovered(null)
+              setFolderContextMenu(null)
               cancelDesktopRename()
-              setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+              cancelFolderRename()
+              setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, targetId: null })
             }
           }}>
             <div style={s.screenOff} />
             <div style={s.screenOn} onClick={() => {
               setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))
               setContextMenu(null)
+              setFolderContextMenu(null)
               cancelDesktopRename()
+              cancelFolderRename()
             }}>
 
               {/* Desktop icons - folders/files created via terminal */}
@@ -1512,32 +1882,37 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   return (
                     <div
                       key={item.id}
+                      onContextMenu={e => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (hasBlockingWindowOpen) return
+                        const rect = screenRef.current?.getBoundingClientRect()
+                        if (!rect) return
+                        setDesktopItems(prev => prev.map(d => ({ ...d, selected: d.id === item.id })))
+                        setContextMenuHovered(null)
+                        setFolderContextMenu(null)
+                        cancelDesktopRename()
+                        cancelFolderRename()
+                        setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, targetId: item.id })
+                      }}
                       onMouseDown={e => {
                         e.stopPropagation()
                         // double-click detection
                         const now = Date.now()
                         const last = desktopClickRef.current
                         if (last.id === item.id && now - last.time < 350) {
-                          const ipath = `~/${item.name}`
+                          const ipath = item.path ?? `~/${item.name}`
                           if (item.type === "folder") {
-                            const fid = folderWinIdRef.current++
-                            const fx = Math.round((w - 20) * 0.15) + fid * 24
-                            const fy = Math.round(h * 0.1) + fid * 20
-                            setFolderWins(prev => [...prev, { id: fid, name: item.name, path: ipath, pos: { x: fx, y: fy } }])
+                            openFolderWindowAtPath(ipath, item.name)
                           } else {
-                            const existing = fileEditorWins.find(f => f.path === ipath)
-                            if (!existing) {
-                              const eid = fileEditorIdRef.current++
-                              const ex = Math.round((w - 20) * 0.12) + eid * 22
-                              const ey = Math.round(h * 0.09) + eid * 18
-                              setFileEditorWins(prev => [...prev, { id: eid, name: item.name, path: ipath, pos: { x: ex, y: ey } }])
-                            }
+                            openFileEditorAtPath(ipath, item.name)
                           }
                           desktopClickRef.current = { id: -1, time: 0 }
                           return
                         }
                         desktopClickRef.current = { id: item.id, time: now }
                         setDesktopItems(prev => prev.map(d => ({ ...d, selected: d.id === item.id })))
+                        if (item.locked) return
                         desktopDragRef.current = { id: item.id, startX: e.clientX, startY: e.clientY, ox: item.dx, oy: item.dy }
                         const onMove = (ev: MouseEvent) => {
                           const drag = desktopDragRef.current
@@ -1702,11 +2077,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const fwDiv  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"
                 const fwText = isDark ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.8)"
                 const fwSub  = isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.35)"
-                const contents = termFsRef.current[fw.path] ?? []
+                const contents = [...getStaticItems(fw.path, allProjectSlugs), ...(termFsRef.current[fw.path] ?? [])]
+                const fwKey = folderOrderKey(fw.id)
+                const zIdx = 3 + (windowOrder.indexOf(fwKey) >= 0 ? windowOrder.indexOf(fwKey) : windowOrder.length + fw.id)
                 return (
                   <div
                     key={fw.id}
-                    onClick={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); focusFolderWin(fw.id) }}
                     style={{
                       position: "absolute",
                       left: fw.pos.x, top: fw.pos.y,
@@ -1719,7 +2096,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.14)",
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
-                      zIndex: 50 + fw.id,
+                      zIndex: zIdx,
                       animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
@@ -1749,7 +2126,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           { fill: "#61c555", border: "#2dac2f" },
                         ].map((btn, i) => (
                           <div key={i}
-                            onClick={e => { e.stopPropagation(); if (i === 0) setFolderWins(prev => prev.filter(f => f.id !== fw.id)) }}
+                            onClick={e => { e.stopPropagation(); if (i === 0) { setFolderWins(prev => prev.filter(f => f.id !== fw.id)); setWindowOrder(o => o.filter(k => k !== fwKey)) } }}
                             style={{ width: tlSz2, height: tlSz2, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
                           />
                         ))}
@@ -1765,7 +2142,32 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
 
                     {/* Content */}
-                    <div style={{ flex: 1, overflowY: "auto", padding: Math.round(fwW * 0.04), display: "flex", flexWrap: "wrap", gap: Math.round(fwW * 0.03), alignContent: "flex-start" }}>
+                    <div
+                      onClick={() => {
+                        setFolderContextMenu(null)
+                        setFolderContextMenuHovered(null)
+                      }}
+                      onContextMenu={e => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const rect = screenRef.current?.getBoundingClientRect()
+                        if (!rect) return
+                        setContextMenu(null)
+                        setContextMenuHovered(null)
+                        cancelDesktopRename()
+                        cancelFolderRename()
+                        setFolderContextMenu({
+                          x: e.clientX - rect.left,
+                          y: e.clientY - rect.top,
+                          winId: fw.id,
+                          path: fw.path,
+                          targetName: null,
+                          targetType: null,
+                          mutable: true,
+                        })
+                      }}
+                      style={{ flex: 1, overflowY: "auto", padding: Math.round(fwW * 0.04), display: "flex", flexWrap: "wrap", gap: Math.round(fwW * 0.03), alignContent: "flex-start" }}
+                    >
                       {contents.length === 0 ? (
                         <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, opacity: 0.4 }}>
                           <img src={FOLDER_ICON} width={Math.round(w * 0.06)} height={Math.round(w * 0.06)} style={{ objectFit: "contain", opacity: 0.4 }} draggable={false} />
@@ -1775,25 +2177,42 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ) : (
                         contents.map((item, ci) => {
                           const ipath = `${fw.path}/${item.name}`
+                          const isMutable = (termFsRef.current[fw.path] ?? []).some(entry => entry.name === item.name && entry.type === item.type)
+                          const isEditing = editingFolderItem?.winId === fw.id
+                            && editingFolderItem.path === fw.path
+                            && editingFolderItem.originalName === item.name
+                            && editingFolderItem.type === item.type
                           return (
                             <div
                               key={ci}
+                              onContextMenu={e => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                const rect = screenRef.current?.getBoundingClientRect()
+                                if (!rect) return
+                                setContextMenu(null)
+                                setContextMenuHovered(null)
+                                cancelDesktopRename()
+                                cancelFolderRename()
+                                setFolderContextMenu({
+                                  x: e.clientX - rect.left,
+                                  y: e.clientY - rect.top,
+                                  winId: fw.id,
+                                  path: fw.path,
+                                  targetName: item.name,
+                                  targetType: item.type,
+                                  mutable: isMutable,
+                                })
+                              }}
                               onMouseDown={() => {
                                 const now = Date.now()
                                 const last = itemClickRef.current
                                 if (last.path === ipath && now - last.time < 350) {
                                   itemClickRef.current = { path: "", time: 0 }
                                   if (item.type === "file") {
-                                    const existing = fileEditorWins.find(f => f.path === ipath)
-                                    if (!existing) {
-                                      const eid = fileEditorIdRef.current++
-                                      const ex = Math.round((w - 20) * 0.12) + eid * 22
-                                      const ey = Math.round(h * 0.09) + eid * 18
-                                      setFileEditorWins(prev => [...prev, { id: eid, name: item.name, path: ipath, pos: { x: ex, y: ey } }])
-                                    }
+                                    openFileEditorAtPath(ipath, item.name)
                                   } else {
-                                    const fid = folderWinIdRef.current++
-                                    setFolderWins(prev => [...prev, { id: fid, name: item.name, path: ipath, pos: { x: Math.round((w-20)*0.15) + fid*24, y: Math.round(h*0.1) + fid*20 } }])
+                                    openFolderWindowAtPath(ipath, item.name)
                                   }
                                 } else {
                                   itemClickRef.current = { path: ipath, time: now }
@@ -1806,7 +2225,37 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 draggable={false}
                                 style={{ width: Math.round(fwW * 0.08), height: Math.round(fwW * 0.08), objectFit: "contain", display: "block" }}
                               />
-                              <span style={{ fontSize: Math.round(w * 0.016), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.2, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
+                              {isEditing ? (
+                                <input
+                                  ref={folderRenameInputRef}
+                                  value={editingFolderName}
+                                  onChange={e => setEditingFolderName(e.target.value)}
+                                  onClick={e => e.stopPropagation()}
+                                  onMouseDown={e => e.stopPropagation()}
+                                  onBlur={commitFolderRename}
+                                  onKeyDown={e => {
+                                    e.stopPropagation()
+                                    if (e.key === "Enter") commitFolderRename()
+                                    if (e.key === "Escape") cancelFolderRename()
+                                  }}
+                                  style={{
+                                    width: "100%",
+                                    fontSize: Math.round(w * 0.016),
+                                    color: fwText,
+                                    textAlign: "center",
+                                    lineHeight: 1.2,
+                                    padding: `2px ${Math.round(w * 0.004)}px`,
+                                    borderRadius: 4,
+                                    border: `1px solid ${isDark ? "rgba(255,255,255,0.32)" : "rgba(10,132,255,0.42)"}`,
+                                    background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.94)",
+                                    outline: "none",
+                                    boxShadow: isDark ? "0 0 0 1px rgba(255,255,255,0.06)" : "0 0 0 1px rgba(10,132,255,0.12)",
+                                    fontFamily: "-apple-system,sans-serif",
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ fontSize: Math.round(w * 0.016), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.2, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
+                              )}
                             </div>
                           )
                         })
@@ -1831,10 +2280,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const edLine  = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"
                 const content = fileContents[fe.path] ?? ""
                 const lineCount = content.split("\n").length
+                const feKey = fileOrderKey(fe.id)
+                const zIdx = 3 + (windowOrder.indexOf(feKey) >= 0 ? windowOrder.indexOf(feKey) : windowOrder.length + fe.id)
                 return (
                   <div
                     key={fe.id}
-                    onClick={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); focusFileEditorWin(fe.id) }}
                     style={{
                       position: "absolute",
                       left: fe.pos.x, top: fe.pos.y,
@@ -1847,7 +2298,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         : "0 0 0 0.5px rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.16)",
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
-                      zIndex: 60 + fe.id,
+                      zIndex: zIdx,
                       animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
@@ -1877,7 +2328,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           { fill: "#61c555", border: "#2dac2f" },
                         ].map((btn, i) => (
                           <div key={i}
-                            onClick={e => { e.stopPropagation(); if (i === 0) setFileEditorWins(prev => prev.filter(f => f.id !== fe.id)) }}
+                            onClick={e => { e.stopPropagation(); if (i === 0) { setFileEditorWins(prev => prev.filter(f => f.id !== fe.id)); setWindowOrder(o => o.filter(k => k !== feKey)) } }}
                             style={{ width: tlSz3, height: tlSz3, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0 }}
                           />
                         ))}
@@ -4447,14 +4898,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               {/* Context Menu */}
               {contextMenu && (
                 (() => {
-                  const menuItems = [
-                    { label: "New Folder", action: () => createDesktopEntry("folder") },
-                    { label: "New File", action: () => createDesktopEntry("file") },
-                    null,
-                    { label: "Open Terminal", action: openTerminalWindow },
-                    null,
-                    { label: "Refresh Desktop", action: () => setDesktopItems(prev => [...prev]) },
-                  ] as const
+                  const targetItem = contextMenu.targetId !== null
+                    ? desktopItems.find(item => item.id === contextMenu.targetId) ?? null
+                    : null
+                  const menuItems = targetItem
+                    ? (targetItem.type === "folder"
+                        ? [
+                            ...(!targetItem.locked ? [{ label: "Rename", action: () => { setEditingDesktopItemId(targetItem.id); setEditingDesktopName(targetItem.name) } }] : []),
+                            { label: "Open in Terminal", action: () => openDesktopFolderInTerminal(targetItem) },
+                            ...(!targetItem.locked ? [null, { label: "Delete Folder", action: () => deleteDesktopItem(targetItem) }] : []),
+                          ]
+                        : [
+                            { label: "Rename", action: () => { setEditingDesktopItemId(targetItem.id); setEditingDesktopName(targetItem.name) } },
+                            { label: "Edit", action: () => openDesktopItem(targetItem) },
+                            null,
+                            { label: "Delete File", action: () => deleteDesktopItem(targetItem) },
+                          ])
+                    : [
+                        { label: "New Folder", action: () => createDesktopEntry("folder") },
+                        { label: "New File", action: () => createDesktopEntry("file") },
+                        null,
+                        { label: "Open Terminal", action: openTerminalWindow },
+                        null,
+                        { label: "Refresh Desktop", action: () => setDesktopItems(prev => [...prev]) },
+                      ]
                   const menuW = Math.round(w * 0.245)
                   const clampedX = Math.min(contextMenu.x, Math.max(12, w - 20 - menuW - 12))
                   const clampedY = Math.min(contextMenu.y, Math.max(12, h - Math.round(h * 0.26)))
@@ -4527,6 +4994,121 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 display: "flex",
                                 alignItems: "center",
                                 gap: Math.round(w * 0.006),
+                              }}
+                            >
+                              <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()
+              )}
+              {folderContextMenu && (
+                (() => {
+                  const menuItems = folderContextMenu.targetType === null
+                    ? [
+                        { label: "New Folder", action: () => createFolderWindowEntry(folderContextMenu.winId, folderContextMenu.path, "folder") },
+                        { label: "New File", action: () => createFolderWindowEntry(folderContextMenu.winId, folderContextMenu.path, "file") },
+                      ]
+                    : folderContextMenu.targetType === "folder"
+                      ? [
+                          ...(folderContextMenu.mutable ? [{
+                            label: "Rename",
+                            action: () => startFolderRename(folderContextMenu.winId, folderContextMenu.path, folderContextMenu.targetName!, "folder"),
+                          }] : []),
+                          { label: "Open in Terminal", action: () => openFolderPathInTerminal(`${folderContextMenu.path}/${folderContextMenu.targetName}`) },
+                          ...(folderContextMenu.mutable ? [null, {
+                            label: "Delete Folder",
+                            action: () => deleteFolderWindowEntry(folderContextMenu.path, folderContextMenu.targetName!, "folder"),
+                          }] : []),
+                        ]
+                      : [
+                          ...(folderContextMenu.mutable ? [{
+                            label: "Rename",
+                            action: () => startFolderRename(folderContextMenu.winId, folderContextMenu.path, folderContextMenu.targetName!, "file"),
+                          }] : []),
+                          {
+                            label: "Edit",
+                            action: () => openFileEditorAtPath(`${folderContextMenu.path}/${folderContextMenu.targetName}`, folderContextMenu.targetName!),
+                          },
+                          ...(folderContextMenu.mutable ? [null, {
+                            label: "Delete File",
+                            action: () => deleteFolderWindowEntry(folderContextMenu.path, folderContextMenu.targetName!, "file"),
+                          }] : []),
+                        ]
+                  const menuW = Math.round(w * 0.245)
+                  const clampedX = Math.min(folderContextMenu.x, Math.max(12, w - 20 - menuW - 12))
+                  const clampedY = Math.min(folderContextMenu.y, Math.max(12, h - Math.round(h * 0.26)))
+                  const rowPadY = Math.round(h * 0.008)
+                  const rowPadX = Math.round(w * 0.013)
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: clampedX,
+                        top: clampedY,
+                        zIndex: 1001,
+                      }}
+                      onContextMenu={e => e.preventDefault()}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div
+                        style={{
+                          background: isDark
+                            ? "linear-gradient(180deg, rgba(62,62,68,0.72) 0%, rgba(34,34,38,0.8) 100%)"
+                            : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
+                          backdropFilter: "blur(30px) saturate(1.5)",
+                          WebkitBackdropFilter: "blur(30px) saturate(1.5)",
+                          borderRadius: 10,
+                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
+                          boxShadow: isDark
+                            ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
+                            : "0 24px 60px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(148,163,184,0.12)",
+                          minWidth: menuW,
+                          overflow: "hidden",
+                          fontFamily: "-apple-system,'SF Pro Text','SF Pro Display',BlinkMacSystemFont,sans-serif",
+                          fontSize: Math.round(w * 0.0135),
+                          lineHeight: 1.35,
+                          animation: "menuFadeIn 0.14s ease-out",
+                          padding: 5,
+                        }}
+                      >
+                        {menuItems.map((item, idx) =>
+                          item === null ? (
+                            <div
+                              key={`folder-sep-${idx}`}
+                              style={{
+                                height: 1,
+                                background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                                margin: `${Math.round(h * 0.004)}px ${Math.round(w * 0.008)}px`,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              key={idx}
+                              onMouseEnter={() => setFolderContextMenuHovered(idx)}
+                              onMouseLeave={() => setFolderContextMenuHovered(null)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                item.action()
+                                setFolderContextMenu(null)
+                                setFolderContextMenuHovered(null)
+                              }}
+                              style={{
+                                padding: `${rowPadY}px ${rowPadX}px`,
+                                color: folderContextMenuHovered === idx ? "#fff" : (isDark ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.92)"),
+                                background: folderContextMenuHovered === idx
+                                  ? "linear-gradient(180deg, #0a84ff 0%, #007aff 100%)"
+                                  : "transparent",
+                                cursor: "pointer",
+                                transition: "background 0.12s ease, color 0.12s ease",
+                                userSelect: "none",
+                                fontWeight: 500,
+                                borderRadius: 7,
+                                display: "flex",
+                                alignItems: "center",
                               }}
                             >
                               <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
