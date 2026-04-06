@@ -227,7 +227,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const id = setInterval(fmt, 1000)
     return () => clearInterval(id)
   }, [])
-  // ── scroll-based wake/sleep ────────────────────────────────────────────────
+  // -- scroll-based wake/sleep ------------------------------------------------
   useEffect(() => {
     const el = macRef.current
     if (!el) return
@@ -247,7 +247,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     return () => { window.removeEventListener("scroll", check); if (wakeTimer) clearTimeout(wakeTimer) }
   }, [])
 
-  // ── multi-window helpers ───────────────────────────────────────────────────
+  // -- multi-window helpers ---------------------------------------------------
   const updateWin = useCallback((id: number, patch: Partial<WinState>) => {
     setOpenWindows(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w))
   }, [])
@@ -343,7 +343,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const cmd = raw.trim().toLowerCase()
     const dimColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"
     const cwdDisplay = cwd.replace("~", "~")
-    const echo = { text: `➜  ${cwdDisplay} $ ${raw}`, color: dimColor }
+    const echo = { text: `?  ${cwdDisplay} $ ${raw}`, color: dimColor }
 
     if (cmd.startsWith("cd")) {
       const target = raw.trim().slice(2).trim()
@@ -386,14 +386,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (!name) {
         setTermLines(l => [...l, echo, { text: "  usage: mkdir <name>", color: "#ff453a" }])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  mkdir: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: `  mkdir: invalid name � use letters, numbers, _ . -`, color: "#ff453a" }])
       } else {
         const fs = termFsRef.current
         if ((fs[cwd] ?? []).some(e => e.name === name)) {
           setTermLines(l => [...l, echo, { text: `  mkdir: ${name}: already exists`, color: "#ff9f0a" }])
         } else {
           setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "folder" }] }))
-          setTermLines(l => [...l, echo, { text: `  ✓ Created folder: ${name}`, color: "#30d158" }])
+          setTermLines(l => [...l, echo, { text: `  ? Created folder: ${name}`, color: "#30d158" }])
           // place on desktop when created at root
           if (cwd === "~") {
             const slot = desktopItemIdRef.current
@@ -407,14 +407,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       if (!name) {
         setTermLines(l => [...l, echo, { text: "  usage: touch <filename>", color: "#ff453a" }])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  touch: invalid name — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: `  touch: invalid name � use letters, numbers, _ . -`, color: "#ff453a" }])
       } else {
         const fs = termFsRef.current
         if ((fs[cwd] ?? []).some(e => e.name === name)) {
           setTermLines(l => [...l, echo, { text: `  ${name}: already exists`, color: "#ff9f0a" }])
         } else {
           setTermFs(prev => ({ ...prev, [cwd]: [...(prev[cwd] ?? []), { name, type: "file" }] }))
-          setTermLines(l => [...l, echo, { text: `  ✓ Created file: ${name}`, color: "#30d158" }])
+          setTermLines(l => [...l, echo, { text: `  ? Created file: ${name}`, color: "#30d158" }])
           // place on desktop when created at root
           if (cwd === "~") {
             const slot = desktopItemIdRef.current
@@ -430,27 +430,27 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else if (cmd === "stack") {
       setTermLines(l => [...l, echo,
         ...(tags && tags.length > 0
-          ? tags.map(t => ({ text: `  · ${t}`, color: "#64d2ff" }))
+          ? tags.map(t => ({ text: `  � ${t}`, color: "#64d2ff" }))
           : [{ text: "  No stack info available.", color: "#e2e8f0" }]
         ),
       ])
     } else if (cmd === "features") {
       setTermLines(l => [...l, echo,
         ...(features && features.length > 0
-          ? features.map(f => ({ text: `  ✦ ${f}`, color: "#e2e8f0" }))
+          ? features.map(f => ({ text: `  ? ${f}`, color: "#e2e8f0" }))
           : [{ text: "  No features listed.", color: "#e2e8f0" }]
         ),
       ])
     } else if (cmd === "github") {
       if (githubUrl && githubUrl !== "#") {
-        setTermLines(l => [...l, echo, { text: `  Opening GitHub…`, color: "#30d158" }])
+        setTermLines(l => [...l, echo, { text: `  Opening GitHub�`, color: "#30d158" }])
         window.open(githubUrl, "_blank", "noopener,noreferrer")
       } else {
         setTermLines(l => [...l, echo, { text: "  No GitHub repo available.", color: "#ff453a" }])
       }
     } else if (cmd === "live") {
       if (liveUrl && liveUrl !== "#") {
-        setTermLines(l => [...l, echo, { text: `  Opening live demo…`, color: "#30d158" }])
+        setTermLines(l => [...l, echo, { text: `  Opening live demo�`, color: "#30d158" }])
         openSafariUrl(liveUrl)
       } else {
         setTermLines(l => [...l, echo, { text: "  No live demo available.", color: "#ff453a" }])
@@ -467,7 +467,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           { text: "<filename> <text>", color: "#ffd60a" },
         ]}])
       } else if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
-        setTermLines(l => [...l, echo, { text: `  write: invalid filename — use letters, numbers, _ . -`, color: "#ff453a" }])
+        setTermLines(l => [...l, echo, { text: `  write: invalid filename � use letters, numbers, _ . -`, color: "#ff453a" }])
       } else {
         const fs     = termFsRef.current
         const path   = cwd === "~" ? `~/${name}` : `${cwd}/${name}`
@@ -482,7 +482,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
         setFileContents(prev => ({ ...prev, [path]: content }))
         setTermLines(l => [...l, echo, { parts: [
-          { text: "  ✓ ", color: "#30d158" },
+          { text: "  ? ", color: "#30d158" },
           { text: name, color: "#64d2ff" },
           { text: " written  ", color: "#30d158" },
           { text: `(${content.length} chars)`, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" },
@@ -539,7 +539,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       }))
       setTermLines([
         { text: "Type  help  to see available commands.", color: "#ffd60a" },
-        { text: "Tip   ⇥ Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
+        { text: "Tip   ? Tab  to autocomplete commands & paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
         ...(!proj ? [{ text: "Tip   cd projects  to browse projects.", color: "#0a84ff" }] : []),
       ])
       setTermMinimized(false)
@@ -618,7 +618,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     startSpring()
   }, [startSpring])
 
-  // All navigable dock items in order — defined after computeTargets
+  // All navigable dock items in order � defined after computeTargets
   const dockItems = useMemo(() => [
     { type: "finder" as const, refIdx: 0 },
     ...(projects
@@ -649,7 +649,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (!dockSleeping && dockPeek) setDockPeek(false)
   }, [dockSleeping, dockPeek])
 
-  // Keyboard shortcuts — only active while MacBook is hovered
+  // Keyboard shortcuts � only active while MacBook is hovered
   useEffect(() => {
     if (!hovered) return
     const onKey = (e: KeyboardEvent) => {
@@ -932,7 +932,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     },
   }
 
-  // Fixed slot size — icons scale via CSS transform, no layout reflow
+  // Fixed slot size � icons scale via CSS transform, no layout reflow
   const slotSize = ICON_BASE
   // Reserve enough vertical room for the tallest possible scaled icon
   const dockH = Math.round(ICON_BASE * MAX_SCALE) + DOCK_PAD_Y * 2 + 4
@@ -1003,7 +1003,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   fontSize: Math.round(w * 0.019), fontWeight: 400,
                   color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)", lineHeight: 1.3,
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-                }}>Let&apos;s build something great 🤝</span>
+                }}>Let&apos;s build something great ??</span>
               </div>
             </div>
           </div>
@@ -1024,7 +1024,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               setContextMenu(null)
             }}>
 
-              {/* Desktop icons — folders/files created via terminal */}
+              {/* Desktop icons � folders/files created via terminal */}
               {desktopItems.length > 0 && (() => {
                 const mbH      = Math.round(h * 0.036)
                 const dockH    = Math.round(w * 0.13)
@@ -1128,7 +1128,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })
               })()}
 
-              {/* Folder windows — opened by double-clicking a desktop folder */}
+              {/* Folder windows � opened by double-clicking a desktop folder */}
               {folderWins.map(fw => {
                 const fwW = Math.round(w * 0.62)
                 const fwH = Math.round(h * 0.58)
@@ -1343,7 +1343,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onMouseDown={e => e.stopPropagation()}
                         onKeyDown={e => e.stopPropagation()}
                         spellCheck={false}
-                        placeholder="Start typing…"
+                        placeholder="Start typing�"
                         style={{
                           flex: 1,
                           background: "transparent",
@@ -1370,7 +1370,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })}
 
-              {/* Screen scrim — dims wallpaper when a window is open */}
+              {/* Screen scrim � dims wallpaper when a window is open */}
               {(openWindows.some(w => !w.minimized) || (itunesOpen && !itunesMinimized)) && (
                 <div style={{
                   position: "absolute", inset: 0, zIndex: 2,
@@ -1529,7 +1529,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ))}
                     </div>
 
-                    {/* Row 2: Notch — compact horizontal tile */}
+                    {/* Row 2: Notch � compact horizontal tile */}
                     <div
                       onClick={() => setShowNotch(n => !n)}
                       style={{
@@ -1632,13 +1632,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3" }}>Wallpaper</div>
                         <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>Click to change</div>
                       </div>
-                      <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>›</div>
+                      <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>�</div>
                     </div>
                   </div>
                 )
               })()}
 
-              {/* App Windows — one per open project */}
+              {/* App Windows � one per open project */}
               {(() => {
                 const mbH    = Math.round(h * 0.036)
                 const availH = h - mbH
@@ -1693,11 +1693,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   const tlGap  = Math.round(titleH * 0.45)
                   const tlLeft = Math.round(titleH * 0.64)
                   const tl = [
-                    { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                    { fill: "#ed6a5f", border: "#e24b41", sym: "�", symClr: "#460804",
                       fn: () => closeWindow(win.id) },
-                    { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
+                    { fill: "#f6be50", border: "#e1a73e", sym: "-", symClr: "#90591d",
                       fn: () => { updateWin(win.id, { minimizing: true }); setTimeout(() => updateWin(win.id, { minimized: true, minimizing: false }), 340) } },
-                    { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
+                    { fill: "#61c555", border: "#2dac2f", sym: "?", symClr: "#2a6218",
                       fn: () => updateWin(win.id, { maximized: !win.maximized }) },
                   ]
                   const winBg   = isDark ? "#1c1c1e" : "#f4f4f6"
@@ -1842,11 +1842,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{ marginTop: "auto", display: "flex", gap: 8, alignItems: "center" }}>
                           {pLiveUrl && pLiveUrl !== "#" && (
                             <span onClick={e => { e.stopPropagation(); openSafariUrl(pLiveUrl) }}
-                              style={{ fontSize: Math.round(w * 0.019), color: "#0a84ff", cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>↗ Live</span>
+                              style={{ fontSize: Math.round(w * 0.019), color: "#0a84ff", cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>? Live</span>
                           )}
                           {pHasGit && (
                             <span onClick={e => { e.stopPropagation(); window.open(pGitUrl, "_blank", "noopener,noreferrer") }}
-                              style={{ fontSize: Math.round(w * 0.019), color: textSec, cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>↗ GitHub</span>
+                              style={{ fontSize: Math.round(w * 0.019), color: textSec, cursor: "pointer", fontFamily: "-apple-system,sans-serif" }}>? GitHub</span>
                           )}
                         </div>
                       </div>
@@ -1923,7 +1923,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })
               })()}
 
-              {/* Terminal — standalone macOS window, same chrome as project windows */}
+              {/* Terminal � standalone macOS window, same chrome as project windows */}
               {terminalOpen && !termMinimized && (() => {
                 const mbH2    = Math.round(h * 0.036)
                 const availH2 = h - mbH2
@@ -1997,11 +1997,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap2, paddingLeft: tlLeft2 }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", symClr: "#460804",
+                          { fill: "#ed6a5f", border: "#e24b41", sym: "�", symClr: "#460804",
                             fn: () => { setTerminalOpen(false); setTermLines([]); setTermInput(""); setTermPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "terminal")) } },
-                          { fill: "#f6be50", border: "#e1a73e", sym: "−", symClr: "#90591d",
+                          { fill: "#f6be50", border: "#e1a73e", sym: "-", symClr: "#90591d",
                             fn: () => { setTermMinimizing(true); setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340) } },
-                          { fill: "#61c555", border: "#2dac2f", sym: "⤢", symClr: "#2a6218",
+                          { fill: "#61c555", border: "#2dac2f", sym: "?", symClr: "#2a6218",
                             fn: () => { setTermMaximized(m => !m); setTermMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i}
@@ -2025,7 +2025,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
                         <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)", letterSpacing: -0.1, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
-                          {proj?.title ? `${proj.title} — zsh` : "Terminal — zsh"}
+                          {proj?.title ? `${proj.title} � zsh` : "Terminal � zsh"}
                         </span>
                       </div>
                     </div>
@@ -2071,7 +2071,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         )
                       ))}
                       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 0 }}>
-                        <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>➜</span>
+                        <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>?</span>
                         <span style={{ marginRight: 4 }}>
                           {termCwd.split("/").map((seg, si, arr) => (
                             <span key={si}>
@@ -2117,7 +2117,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* Closing animation — exit layer over wallpaper */}
+              {/* Closing animation � exit layer over wallpaper */}
               {closingSrc && (
                 <img
                   key={`close-${closingSrc}`}
@@ -2371,9 +2371,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onMouseLeave={() => setSafariHoveredTl(-1)}
                       >
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", sym: "×", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
-                          { fill: "#f6be50", border: "#e1a73e", sym: "−", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
-                          { fill: "#61c555", border: "#2dac2f", sym: "⤢", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
+                          { fill: "#ed6a5f", border: "#e24b41", sym: "�", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "safari")) } },
+                          { fill: "#f6be50", border: "#e1a73e", sym: "-", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", sym: "?", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }}
                             style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2383,7 +2383,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                       {/* Back / Forward */}
                       <div style={{ display: "flex", gap: 6, marginLeft: Math.round(sw2 * 0.01), flexShrink: 0 }}>
-                        {["‹", "›"].map((ch, i) => (
+                        {["�", "�"].map((ch, i) => (
                           <div key={i} style={{ width: Math.round(sw2 * 0.03), height: Math.round(sw2 * 0.03), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 999, background: panelBg, cursor: "default", color: textSec, fontSize: Math.round(sw2 * 0.022), fontWeight: 500, fontFamily: ff, border: `0.5px solid ${divClr}` }}>{ch}</div>
                         ))}
                       </div>
@@ -2402,11 +2402,36 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
                         />
                         {safariInput && (
-                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>×</div>
+                          <div onClick={e => { e.stopPropagation(); setSafariInput("") }} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>�</div>
                         )}
                       </div>
                       <div style={{ padding: `0 ${Math.round(sw2 * 0.012)}px`, height: Math.round(toolbarH * 0.46), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: isDark ? "#a5f3fc" : "#0369a1", fontSize: Math.round(sw2 * 0.0135), fontWeight: 600, fontFamily: ff }}>
                         {safariHost || "Start Page"}
+                      </div>
+                      <div
+                        onClick={e => {
+                          e.stopPropagation()
+                          if (safariUrl) window.open(safariUrl, "_blank", "noopener,noreferrer")
+                        }}
+                        style={{
+                          padding: `0 ${Math.round(sw2 * 0.012)}px`,
+                          height: Math.round(toolbarH * 0.46),
+                          borderRadius: 999,
+                          background: safariUrl ? "#0a84ff" : panelBg,
+                          border: `0.5px solid ${safariUrl ? "#0a84ff" : divClr}` ,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          color: safariUrl ? "#fff" : textSec as string,
+                          fontSize: Math.round(sw2 * 0.0135),
+                          fontWeight: 700,
+                          fontFamily: ff,
+                          cursor: safariUrl ? "pointer" : "default",
+                          boxShadow: safariUrl ? "0 10px 20px rgba(10,132,255,0.22)" : "none",
+                        }}
+                      >
+                        Open In Browser
                       </div>
                       {/* Share button */}
                       <div style={{ width: Math.round(sw2 * 0.034), height: Math.round(sw2 * 0.034), display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0, borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}` }}>
@@ -2421,7 +2446,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div style={{ height: Math.round(tabH * 0.74), paddingLeft: Math.round(sw2 * 0.012), paddingRight: Math.round(sw2 * 0.012), background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.76)", borderRadius: Math.round(tabH * 0.34), display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.008), minWidth: Math.round(sw2 * 0.16), maxWidth: Math.round(sw2 * 0.25), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.82)" }}>
                         <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.38), height: Math.round(tabH * 0.38), borderRadius: 2 }} draggable={false} />
                         <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{safariHost || "New Tab"}</span>
-                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>×</span>
+                        <span style={{ fontSize: fs(0.014), color: textSec as string, cursor: "pointer" }} onClick={e => { e.stopPropagation(); setSafariOpen(false); setWindowOrder(o => o.filter(k => k !== "safari")) }}>�</span>
                       </div>
                       <div style={{ width: Math.round(tabH * 0.72), height: Math.round(tabH * 0.72), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.018), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}` }}>+</div>
                     </div>
@@ -2467,9 +2492,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             {[
                               { label: "GitHub", url: "https://github.com", color: "#24292e", icon: "G" },
                               { label: "Google", url: "https://google.com", color: "#4285f4", icon: "G" },
-                              { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "▶" },
+                              { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "?" },
                               { label: "MDN", url: "https://developer.mozilla.org", color: "#0065a2", icon: "M" },
-                              { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "▲" },
+                              { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "?" },
                               { label: "NPM", url: "https://npmjs.com", color: "#cb3837", icon: "N" },
                               { label: "Tailwind", url: "https://tailwindcss.com", color: "#38bdf8", icon: "T" },
                               { label: "TypeScript", url: "https://typescriptlang.org", color: "#3178c6", icon: "TS" },
@@ -2515,7 +2540,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 ]
 
                 const stackFolders = (tags ?? []).map((t, i) => ({ name: t, type: "folder", id: `tag-${i}` }))
-                const featureFiles = (features ?? []).map((f, i) => ({ name: f.slice(0, 22) + (f.length > 22 ? "…" : ""), type: "file", id: `feat-${i}` }))
+                const featureFiles = (features ?? []).map((f, i) => ({ name: f.slice(0, 22) + (f.length > 22 ? "�" : ""), type: "file", id: `feat-${i}` }))
                 const mainItems = [
                   { name: "src", type: "folder", id: "src" },
                   { name: "public", type: "folder", id: "public" },
@@ -2598,7 +2623,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: Math.round(fw * 0.025) }}>
                           {/* Back/Forward */}
                           <div style={{ display: "flex", gap: 2 }}>
-                            {["‹","›"].map((ch, i) => (
+                            {["�","�"].map((ch, i) => (
                               <div key={i} style={{ fontSize: Math.round(w * 0.032), color: textSec as string, cursor: "default", lineHeight: 1, paddingBottom: 1 }}>{ch}</div>
                             ))}
                           </div>
@@ -2722,7 +2747,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* Dock — show when multiple images OR description OR github exists */}
+              {/* Dock � show when multiple images OR description OR github exists */}
               {(hasDock || showTerminalIcon || showGithubIcon) && (
                 <div
                   onMouseLeave={() => {
@@ -2850,7 +2875,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       transition: "opacity 0.22s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
-                    {/* App icon — always first */}
+                    {/* App icon � always first */}
                     <div
                       ref={(el) => { iconRefs.current[0] = el }}
                       onMouseEnter={() => setHoveredSlot("app")}
@@ -3045,7 +3070,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           <span style={{
                             fontSize: Math.round(w * 0.014), color: "rgba(255,255,255,0.4)",
                             fontWeight: 400,
-                          }}>⌘↩</span>
+                          }}>??</span>
                         </div>
                         <img
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png"
