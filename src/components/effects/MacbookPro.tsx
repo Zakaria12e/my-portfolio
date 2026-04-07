@@ -4484,9 +4484,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     top: Math.round(sh2 * 0.18),
                                     left: "50%",
                                     transform: "translateX(-50%)",
-                                    width: Math.min(Math.round(sw2 * 0.66), 680),
-                                    padding: `${Math.round(sh2 * 0.015)}px ${Math.round(sw2 * 0.02)}px ${Math.round(sh2 * 0.018)}px`,
-                                    borderRadius: 18,
+                                    width: Math.min(Math.round(sw2 * 0.62), 640),
+                                    padding: `${Math.round(sh2 * 0.008)}px ${Math.round(sw2 * 0.015)}px ${Math.round(sh2 * 0.009)}px`,
+                                    borderRadius: 12,
                                     background: isDark ? "rgba(255,255,255,0.08)" : "transparent",
                                     backdropFilter: isDark ? "blur(14px)" : "none",
                                     WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
@@ -4497,19 +4497,19 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     zIndex: 1,
                                   }}
                                 >
-                                  <div style={{ fontSize: fs(0.0155), fontWeight: 600, color: isDark ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.96)", textAlign: "center", fontFamily: ff, marginBottom: Math.round(sh2 * 0.014), textShadow: "0 1px 8px rgba(0,0,0,0.16)" }}>
+                                  <div style={{ fontSize: fs(0.0145), fontWeight: 600, color: isDark ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.96)", textAlign: "center", fontFamily: ff, marginBottom: Math.round(sh2 * 0.006), textShadow: "0 1px 8px rgba(0,0,0,0.16)" }}>
                                     Favorites
                                   </div>
                                   <div
                                     style={{
                                       display: "grid",
                                       gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                                      gap: Math.round(sw2 * 0.014),
+                                      gap: Math.round(sw2 * 0.009),
                                       justifyItems: "center",
                                     }}
                                   >
                                     {SAFARI_FAVORITES.map((item, index) => {
-                                      const iconSize = Math.round(sw2 * 0.056)
+                                      const iconSize = Math.round(sw2 * 0.05)
                                       const isHovered = hoveredSafariFavorite === index
                                       const isPressed = pressedSafariFavorite === index
                                       return (
@@ -4536,7 +4536,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                             display: "flex",
                                             flexDirection: "column",
                                             alignItems: "center",
-                                            gap: Math.round(sh2 * 0.008),
+                                            gap: Math.round(sh2 * 0.0035),
                                             cursor: "pointer",
                                           }}
                                         >
@@ -4544,7 +4544,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                             style={{
                                               width: iconSize,
                                               height: iconSize,
-                                              borderRadius: 15,
+                                              borderRadius: 11,
                                               overflow: "hidden",
                                               display: "flex",
                                               alignItems: "center",
@@ -4568,7 +4568,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                           </div>
                                           <span
                                             style={{
-                                              fontSize: fs(0.0112),
+                                              fontSize: fs(0.0104),
                                               fontWeight: 500,
                                               color: isDark ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.94)",
                                               fontFamily: ff,
@@ -4596,7 +4596,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                       bottom: Math.round(sh2 * 0.035),
                                       right: Math.round(sw2 * 0.03),
                                       zIndex: 2,
-                                      color: textPrimary as string,
+                                      color: isDark ? textPrimary as string : "#ffffff",
                                       width: Math.round(sw2 * 0.04),
                                       height: Math.round(sw2 * 0.04),
                                       minWidth: 24,
@@ -4624,15 +4624,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                       width: Math.round(sw2 * 0.32),
                                       minWidth: 260,
                                       maxWidth: Math.round(sw2 * 0.4),
-                                      padding: `${Math.round(sh2 * 0.016)}px ${Math.round(sw2 * 0.016)}px`,
-                                      borderRadius: 18,
-                                      background: glassBg,
-                                      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.18)"}`,
+                                      padding: `${Math.round(sh2 * 0.013)}px ${Math.round(sw2 * 0.014)}px`,
+                                      borderRadius: 9,
+                                      background: isDark ? glassBg : "rgba(255,255,255,0.22)",
+                                      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.3)"}`,
                                       boxShadow: isDark
                                         ? "0 14px 34px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.06)"
-                                        : "0 14px 34px rgba(96,120,148,0.12), inset 0 1px 0 rgba(255,255,255,0.42)",
-                                      backdropFilter: "blur(14px)",
-                                      WebkitBackdropFilter: "blur(14px)",
+                                        : "0 14px 34px rgba(96,120,148,0.16), inset 0 1px 0 rgba(255,255,255,0.52)",
+                                      backdropFilter: "blur(18px) saturate(1.15)",
+                                      WebkitBackdropFilter: "blur(18px) saturate(1.15)",
                                       overflow: "hidden",
                                       zIndex: 2,
                                     }}
@@ -4657,7 +4657,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                               style={{
                                                 width: Math.round(sw2 * 0.092),
                                                 height: Math.round(sh2 * 0.084),
-                                                borderRadius: 14,
+                                                borderRadius: 9,
                                                 border: `1px solid ${isActiveWallpaper ? "rgba(64,156,255,0.95)" : (isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.22)")}`,
                                                 padding: 0,
                                                 overflow: "hidden",
