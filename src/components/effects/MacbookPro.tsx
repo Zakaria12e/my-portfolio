@@ -3977,8 +3977,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         </div>
 
-                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", background: isDark ? "linear-gradient(180deg, rgba(24,25,29,0.94), rgba(20,21,25,0.98))" : "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,248,250,0.96))", padding: `${Math.round(mh * 0.026)}px ${Math.round(mw * 0.028)}px` }}>
-                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.018) }}>
+                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", background: isDark ? "linear-gradient(180deg, rgba(24,25,29,0.94), rgba(20,21,25,0.98))" : "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,248,250,0.96))", padding: `${Math.round(mh * 0.026)}px ${Math.round(mw * 0.036)}px` }}>
+                          <div style={{ maxWidth: Math.round(mw * 0.56), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.018) }}>
                             {messagesConversation.messages.map((message) => (
                               <div key={message.id} style={{ display: "flex", justifyContent: message.fromMe ? "flex-end" : "flex-start" }}>
                                 <div style={{ maxWidth: "76%", display: "flex", flexDirection: "column", alignItems: message.fromMe ? "flex-end" : "flex-start", gap: 4 }}>
@@ -3992,8 +3992,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         </div>
 
-                        <div style={{ borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.72)" : "rgba(255,255,255,0.6)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.026)}px`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
-                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
+                        <div style={{ borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.72)" : "rgba(255,255,255,0.6)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.03)}px`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
+                          <div style={{ maxWidth: Math.round(mw * 0.56), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                               {MESSAGE_PRESETS.map((preset) => (
                                 <button
