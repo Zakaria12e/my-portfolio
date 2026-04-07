@@ -263,6 +263,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const termDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [itunesOpen, setItunesOpen] = useState(false)
   const [itunesMinimized, setItunesMinimized] = useState(false)
+  const [itunesMinimizing, setItunesMinimizing] = useState(false)
+  const [itunesMaximized, setItunesMaximized] = useState(false)
+  const [itunesPos, setItunesPos] = useState({ x: 0, y: 0 })
+  const [itunesSize, setItunesSize] = useState({ w: 0, h: 0 })
+  const [hoveredItunesTl, setHoveredItunesTl] = useState(-1)
+  const [itunesSidebarSel, setItunesSidebarSel] = useState("recently-added")
+  const [itunesSearch, setItunesSearch] = useState("")
+  const itunesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const WALLPAPERS = [
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
@@ -1406,6 +1414,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [messagesConversation])
 
   useEffect(() => {
+    if (itunesOpen) {
+      setItunesMinimized(false)
+      setItunesMinimizing(false)
+      setHoveredItunesTl(-1)
+    }
+  }, [itunesOpen])
+
+  useEffect(() => {
     if (!messagesOpen || messagesMinimized) {
       setHoveredMessagesTl(-1)
     }
@@ -1993,7 +2009,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   fontSize: Math.round(w * 0.019), fontWeight: 400,
                   color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)", lineHeight: 1.3,
                   fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
-                }}>Let&apos;s build something great ??</span>
+                }}>Let&apos;s build something great bro</span>
               </div>
             </div>
           </div>
@@ -2287,9 +2303,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ...(fw.maximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { left: fw.pos.x, top: fw.pos.y, width: fwW, height: fwH }),
-                      borderRadius: fw.maximized ? 0 : 10,
-                      borderTopLeftRadius: fw.maximized ? 12 : 10,
-                      borderTopRightRadius: fw.maximized ? 12 : 10,
+                      borderRadius: fw.maximized ? 0 : 8,
+                      borderTopLeftRadius: fw.maximized ? 10 : 8,
+                      borderTopRightRadius: fw.maximized ? 10 : 8,
                       background: fwBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -2535,9 +2551,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ...(fe.maximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { left: fe.pos.x, top: fe.pos.y, width: feW, height: feH }),
-                      borderRadius: fe.maximized ? 0 : 10,
-                      borderTopLeftRadius: fe.maximized ? 12 : 10,
-                      borderTopRightRadius: fe.maximized ? 12 : 10,
+                      borderRadius: fe.maximized ? 0 : 8,
+                      borderTopLeftRadius: fe.maximized ? 10 : 8,
+                      borderTopRightRadius: fe.maximized ? 10 : 8,
                       background: edBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -3135,9 +3151,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { top: winTop, left: winLeft, width: winW, height: winH }
                       ),
-                      borderRadius: win.maximized ? 0 : 10,
-                      borderTopLeftRadius: win.maximized ? 12 : 10,
-                      borderTopRightRadius: win.maximized ? 12 : 10,
+                      borderRadius: win.maximized ? 0 : 8,
+                      borderTopLeftRadius: win.maximized ? 10 : 8,
+                      borderTopRightRadius: win.maximized ? 10 : 8,
                       background: winBg,
                       border: `0.5px solid ${isFocused ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.2)") : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.1)")}`,
                       boxShadow: isFocused
@@ -3414,9 +3430,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             left: tLeft + termPos.x,
                           }
                       ),
-                      borderRadius: termMaximized ? 0 : 10,
-                      borderTopLeftRadius: termMaximized ? 12 : 10,
-                      borderTopRightRadius: termMaximized ? 12 : 10,
+                      borderRadius: termMaximized ? 0 : 8,
+                      borderTopLeftRadius: termMaximized ? 10 : 8,
+                      borderTopRightRadius: termMaximized ? 10 : 8,
                       background: winBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -3821,6 +3837,379 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
+              {/* iTunes Window */}
+              {itunesOpen && !itunesMinimized && (() => {
+                const mbH = Math.round(h * 0.036)
+                const iw = itunesSize.w || Math.round(w * 0.82)
+                const ih = itunesSize.h || Math.round(h * 0.74)
+                const baseTop = mbH + Math.round((h - mbH - ih) * 0.14)
+                const baseLeft = Math.round((w - iw) / 2)
+                const tlSz = Math.round(22 * 0.54)
+                const tlGap = Math.round(22 * 0.45)
+                const tlLeft = Math.round(22 * 0.64)
+                const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
+                const toolbarH = Math.round(ih * 0.094)
+                const sidebarW = Math.round(iw * 0.255)
+                const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.07)"
+                const shellBg = isDark ? "#17181c" : "#f5f5f7"
+                const contentBg = isDark ? "#111317" : "#fbfbfc"
+                const sidebarBg = isDark ? "rgba(30,30,32,0.55)" : "rgba(255,255,255,0.28)"
+                const toolbarBg = isDark ? "rgba(27,29,35,0.86)" : "rgba(250,251,253,0.88)"
+                const searchBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)"
+                const textPrimary = isDark ? "rgba(255,255,255,0.92)" : "rgba(17,24,39,0.96)"
+                const textSecondary = isDark ? "rgba(255,255,255,0.46)" : "rgba(71,85,105,0.78)"
+                const activeBg = isDark ? "rgba(255,255,255,0.11)" : "rgba(15,23,42,0.08)"
+                const activeText = textPrimary
+                const zIdx = 3 + (windowOrder.indexOf("itunes") >= 0 ? windowOrder.indexOf("itunes") : 0)
+                const sidebarSections: { title: string; items: { id: string; label: string; icon: string }[] }[] = [
+                  {
+                    title: "Library",
+                    items: [
+                      { id: "recently-added", label: "Recently Added", icon: "clock" },
+                      { id: "artists", label: "Artists", icon: "artists" },
+                      { id: "albums", label: "Albums", icon: "albums" },
+                      { id: "songs", label: "Songs", icon: "songs" },
+                    ],
+                  },
+                  {
+                    title: "Playlists",
+                    items: [
+                      { id: "back-porch-country", label: "Back Porch Country", icon: "playlist" },
+                      { id: "late-night-coding", label: "Late Night Coding", icon: "playlist" },
+                      { id: "focus-signals", label: "Focus Signals", icon: "playlist" },
+                    ],
+                  },
+                ]
+                const albumCollections = {
+                  "recently-added": [
+                    { title: "Neon Coast", subtitle: "Updated Monday", accent: "linear-gradient(135deg, #7dd3fc 0%, #2563eb 100%)", detail: "NC" },
+                    { title: "Sundown FM", subtitle: "Fresh mix", accent: "linear-gradient(135deg, #fdba74 0%, #ef4444 100%)", detail: "SF" },
+                    { title: "Studio Glass", subtitle: "12 songs", accent: "linear-gradient(135deg, #d8b4fe 0%, #7c3aed 100%)", detail: "SG" },
+                    { title: "Moonlit Code", subtitle: "Added today", accent: "linear-gradient(135deg, #c4b5fd 0%, #312e81 100%)", detail: "MC" },
+                    { title: "Velvet Drive", subtitle: "18 songs", accent: "linear-gradient(135deg, #f9a8d4 0%, #db2777 100%)", detail: "VD" },
+                    { title: "North Arcade", subtitle: "EP", accent: "linear-gradient(135deg, #86efac 0%, #0f766e 100%)", detail: "NA" },
+                    { title: "Signal Bloom", subtitle: "Updated yesterday", accent: "linear-gradient(135deg, #67e8f9 0%, #0f172a 100%)", detail: "SB" },
+                    { title: "Desert Echo", subtitle: "9 songs", accent: "linear-gradient(135deg, #fcd34d 0%, #f97316 100%)", detail: "DE" },
+                  ],
+                  artists: [
+                    { title: "Maya Lane", subtitle: "Indie Folk", accent: "linear-gradient(135deg, #e2e8f0 0%, #64748b 100%)", detail: "ML" },
+                    { title: "Atlas Bloom", subtitle: "Electronic", accent: "linear-gradient(135deg, #93c5fd 0%, #1d4ed8 100%)", detail: "AB" },
+                    { title: "Sora Vale", subtitle: "Ambient", accent: "linear-gradient(135deg, #ddd6fe 0%, #6d28d9 100%)", detail: "SV" },
+                    { title: "The Harbor", subtitle: "Alternative", accent: "linear-gradient(135deg, #fecaca 0%, #dc2626 100%)", detail: "TH" },
+                  ],
+                  albums: [
+                    { title: "Glass Horizon", subtitle: "2026", accent: "linear-gradient(135deg, #bae6fd 0%, #0284c7 100%)", detail: "GH" },
+                    { title: "Silver Static", subtitle: "Deluxe", accent: "linear-gradient(135deg, #d1d5db 0%, #111827 100%)", detail: "SS" },
+                    { title: "Quiet Motion", subtitle: "2025", accent: "linear-gradient(135deg, #bbf7d0 0%, #15803d 100%)", detail: "QM" },
+                    { title: "Cloud Parade", subtitle: "2024", accent: "linear-gradient(135deg, #fde68a 0%, #ea580c 100%)", detail: "CP" },
+                    { title: "Nocturne", subtitle: "2023", accent: "linear-gradient(135deg, #c4b5fd 0%, #4338ca 100%)", detail: "NO" },
+                    { title: "Blue Current", subtitle: "Single", accent: "linear-gradient(135deg, #93c5fd 0%, #0f766e 100%)", detail: "BC" },
+                  ],
+                  songs: [
+                    { title: "Into the Blue", subtitle: "3:14", accent: "linear-gradient(135deg, #bfdbfe 0%, #2563eb 100%)", detail: "01" },
+                    { title: "Fields at Night", subtitle: "2:58", accent: "linear-gradient(135deg, #fbcfe8 0%, #db2777 100%)", detail: "02" },
+                    { title: "Paper Planes", subtitle: "4:01", accent: "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)", detail: "03" },
+                    { title: "Deep Current", subtitle: "3:37", accent: "linear-gradient(135deg, #99f6e4 0%, #0f766e 100%)", detail: "04" },
+                  ],
+                  "back-porch-country": [
+                    { title: "Open Highway", subtitle: "Updated Monday", accent: "linear-gradient(135deg, #fdba74 0%, #7c2d12 100%)", detail: "OH" },
+                    { title: "Copper Sky", subtitle: "14 songs", accent: "linear-gradient(135deg, #fcd34d 0%, #b45309 100%)", detail: "CS" },
+                    { title: "Dust & Vinyl", subtitle: "11 songs", accent: "linear-gradient(135deg, #e7e5e4 0%, #57534e 100%)", detail: "DV" },
+                    { title: "Sunday Fields", subtitle: "Updated Friday", accent: "linear-gradient(135deg, #fde68a 0%, #ca8a04 100%)", detail: "SF" },
+                  ],
+                  "late-night-coding": [
+                    { title: "After Hours", subtitle: "Loop", accent: "linear-gradient(135deg, #1d4ed8 0%, #020617 100%)", detail: "AH" },
+                    { title: "Runtime Glow", subtitle: "Focus", accent: "linear-gradient(135deg, #06b6d4 0%, #0f172a 100%)", detail: "RG" },
+                    { title: "Silent Build", subtitle: "Instrumental", accent: "linear-gradient(135deg, #a78bfa 0%, #1e1b4b 100%)", detail: "SB" },
+                  ],
+                  "focus-signals": [
+                    { title: "Calm Frames", subtitle: "8 tracks", accent: "linear-gradient(135deg, #c4b5fd 0%, #4c1d95 100%)", detail: "CF" },
+                    { title: "Soft Current", subtitle: "Updated today", accent: "linear-gradient(135deg, #67e8f9 0%, #155e75 100%)", detail: "SC" },
+                    { title: "Air Notes", subtitle: "Playlist", accent: "linear-gradient(135deg, #bfdbfe 0%, #1e3a8a 100%)", detail: "AN" },
+                  ],
+                } as const
+                const pageTitle = sidebarSections.flatMap(section => section.items).find(item => item.id === itunesSidebarSel)?.label ?? "Recently Added"
+                const filteredAlbums = (albumCollections[itunesSidebarSel as keyof typeof albumCollections] ?? albumCollections["recently-added"]).filter(item => {
+                  const q = itunesSearch.trim().toLowerCase()
+                  if (!q) return true
+                  return item.title.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q)
+                })
+                const SidebarIcon = ({ kind, active }: { kind: string; active: boolean }) => {
+                  const color = active ? activeText : textSecondary
+                  const size = Math.round(iw * 0.02)
+                  if (kind === "clock") return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke={color as string} strokeWidth="1.6" /><path d="M10 6.4v3.9l2.8 1.8" stroke={color as string} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  if (kind === "artists") return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="2.8" stroke={color as string} strokeWidth="1.5" /><path d="M2.8 15.5c.9-2.2 2.6-3.3 4.2-3.3s3.3 1.1 4.2 3.3" stroke={color as string} strokeWidth="1.5" strokeLinecap="round" /><circle cx="14.5" cy="8" r="2.2" stroke={color as string} strokeWidth="1.4" opacity="0.9" /><path d="M12.2 15.4c.6-1.6 1.8-2.5 3.3-2.5 1.1 0 2 .4 2.8 1.5" stroke={color as string} strokeWidth="1.4" strokeLinecap="round" opacity="0.9" /></svg>
+                  if (kind === "albums") return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><rect x="3.2" y="3.2" width="13.6" height="13.6" rx="3" stroke={color as string} strokeWidth="1.5" /><circle cx="10" cy="10" r="2.2" fill={color as string} opacity="0.92" /></svg>
+                  if (kind === "songs") return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><path d="M12.8 4.4v7.3a2.3 2.3 0 1 1-1.2-2V6.3l5-1.1v5.1a2.3 2.3 0 1 1-1.2-2V4.1l-2.6.3Z" fill={color as string} /></svg>
+                  return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><path d="M4.3 4.5h11.4a1.8 1.8 0 0 1 1.8 1.8v7.4a1.8 1.8 0 0 1-1.8 1.8H7.9l-3.6 2.1v-3.9a1.8 1.8 0 0 1-1.8-1.8V6.3a1.8 1.8 0 0 1 1.8-1.8Z" stroke={color as string} strokeWidth="1.5" strokeLinejoin="round" /><path d="M6.4 8.6h7.2M6.4 11.3h5.1" stroke={color as string} strokeWidth="1.5" strokeLinecap="round" opacity="0.92" /></svg>
+                }
+
+                return (
+                  <div
+                    onClick={e => { e.stopPropagation(); bringToFront("itunes"); setFocusedWinId(null) }}
+                    style={{
+                      position: "absolute",
+                      ...(itunesMaximized
+                        ? { top: mbH, left: 0, right: 0, bottom: 0 }
+                        : { top: baseTop + itunesPos.y, left: baseLeft + itunesPos.x, width: iw, height: ih }),
+                      borderRadius: itunesMaximized ? 0 : 8,
+                      borderTopLeftRadius: itunesMaximized ? 10 : 8,
+                      borderTopRightRadius: itunesMaximized ? 10 : 8,
+                      overflow: "hidden",
+                      background: shellBg,
+                      border: `0.5px solid ${isDark ? "rgba(255,255,255,0.11)" : "rgba(255,255,255,0.72)"}`,
+                      boxShadow: isDark
+                        ? "0 0 0 0.5px rgba(0,0,0,0.9), 0 18px 48px rgba(0,0,0,0.62), 0 32px 80px rgba(0,0,0,0.52)"
+                        : "0 0 0 0.5px rgba(148,163,184,0.14), 0 18px 48px rgba(15,23,42,0.12), 0 32px 80px rgba(15,23,42,0.08)",
+                      display: "flex",
+                      flexDirection: "column",
+                      zIndex: zIdx,
+                      animation: itunesMinimizing
+                        ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
+                        : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      transition: itunesDragRef.current ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
+                    }}
+                  >
+                    <div
+                      onMouseDown={e => {
+                        if (itunesMaximized) return
+                        e.preventDefault()
+                        itunesDragRef.current = { startX: e.clientX, startY: e.clientY, ox: itunesPos.x, oy: itunesPos.y }
+                        const onMove = (ev: MouseEvent) => {
+                          const drag = itunesDragRef.current
+                          if (!drag) return
+                          setItunesPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
+                        }
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setItunesPos(pos => ({ x: pos.x, y: Math.max(pos.y, 0) }))
+                            setItunesMaximized(true)
+                          }
+                          itunesDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
+                        window.addEventListener("mousemove", onMove)
+                        window.addEventListener("mouseup", onUp)
+                      }}
+                      style={{
+                        height: toolbarH,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: Math.round(iw * 0.016),
+                        paddingRight: Math.round(iw * 0.02),
+                        background: toolbarBg,
+                        borderBottom: `0.5px solid ${divider}`,
+                        backdropFilter: "blur(16px) saturate(1.12)",
+                        WebkitBackdropFilter: "blur(16px) saturate(1.12)",
+                        userSelect: "none",
+                        cursor: itunesMaximized ? "default" : "grab",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, fn: () => { setItunesOpen(false); setItunesMinimized(false); setItunesMaximized(false); setItunesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "itunes")) } },
+                          { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, fn: () => { setItunesMinimizing(true); setTimeout(() => { setItunesMinimized(true); setItunesMinimizing(false) }, 340) } },
+                          { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, fn: () => { setItunesMaximized(v => !v); setItunesMinimized(false) } },
+                        ].map((btn, i) => (
+                          <div
+                            key={i}
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setHoveredItunesTl(i)}
+                            onMouseLeave={() => setHoveredItunesTl(-1)}
+                            style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+                          >
+                            <TrafficLightSymbol kind={btn.kind} color="rgba(0,0,0,0.55)" size={Math.round(tlSz * 0.84)} visible={hoveredItunesTl === i} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.01), flexShrink: 0 }}>
+                        {[
+                          <path key="back" d="M11.8 4.8 7 10l4.8 5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />,
+                          <path key="next" d="M8.2 4.8 13 10l-4.8 5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />,
+                        ].map((path, index) => (
+                          <div key={index} style={{ width: Math.round(iw * 0.026), height: Math.round(iw * 0.026), borderRadius: "50%", background: searchBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string }}>
+                            <svg width={Math.round(iw * 0.014)} height={Math.round(iw * 0.014)} viewBox="0 0 20 20" fill="none">{path}</svg>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", gap: Math.round(iw * 0.02) }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: Math.round(iw * 0.0145), fontWeight: 700, letterSpacing: -0.2, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {pageTitle}
+                          </div>
+                          <div style={{ marginTop: 2, fontSize: Math.round(iw * 0.0115), color: textSecondary as string, fontFamily: ff }}>
+                            Apple Music inspired desktop library
+                          </div>
+                        </div>
+                        <div style={{ width: Math.round(iw * 0.28), minWidth: Math.round(iw * 0.19), display: "flex", alignItems: "center", gap: Math.round(iw * 0.009), padding: `0 ${Math.round(iw * 0.012)}px`, height: Math.round(toolbarH * 0.56), borderRadius: 12, background: searchBg, border: `0.5px solid ${divider}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(255,255,255,0.74)" }}>
+                          <Search size={Math.round(iw * 0.015)} color={textSecondary as string} strokeWidth={1.9} />
+                          <input
+                            value={itunesSearch}
+                            onChange={e => setItunesSearch(e.target.value)}
+                            placeholder="Search"
+                            style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: Math.round(iw * 0.0135), color: textPrimary as string, fontFamily: ff }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, minHeight: 0, display: "flex", background: shellBg }}>
+                      <div style={{ width: sidebarW, flexShrink: 0, background: sidebarBg, borderRight: `0.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.48)"}`, padding: `${Math.round(ih * 0.032)}px 0`, backdropFilter: "blur(28px) saturate(1.8)", WebkitBackdropFilter: "blur(28px) saturate(1.8)", boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)" : "0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.65)", position: "relative", overflow: "hidden" }}>
+                        <div style={{ position: "absolute", left: "50%", top: 1, transform: "translateX(-50%)", width: "76%", height: "3.4%", borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.38)", filter: "blur(0.5px)", pointerEvents: "none" }} />
+                        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: "52%", height: "130%", borderRadius: 999, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.2)", filter: "blur(10px)", opacity: 0.75, pointerEvents: "none" }} />
+                        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: "28%", height: 1.5, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.2)" : "rgba(71,85,105,0.12)", pointerEvents: "none" }} />
+                        <div style={{ position: "absolute", left: "50%", bottom: -5, transform: "translateX(-50%)", width: "54%", height: 9, borderRadius: 999, background: isDark ? "rgba(0,0,0,0.28)" : "rgba(148,163,184,0.12)", filter: "blur(10px)", opacity: 0.85, pointerEvents: "none" }} />
+                        {sidebarSections.map((section, sectionIndex) => (
+                          <div key={section.title} style={{ marginTop: sectionIndex === 0 ? 0 : Math.round(ih * 0.03), position: "relative", zIndex: 1 }}>
+                            <div style={{ marginBottom: Math.round(ih * 0.012), padding: `0 ${Math.round(iw * 0.018)}px`, fontSize: Math.round(iw * 0.0115), fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: textSecondary as string, fontFamily: ff }}>
+                              {section.title}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: Math.round(ih * 0.008) }}>
+                              {section.items.map(item => {
+                                const active = item.id === itunesSidebarSel
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setItunesSidebarSel(item.id)}
+                                    style={{
+                                      width: "100%",
+                                      border: "none",
+                                      background: active ? activeBg : "transparent",
+                                      borderRadius: 0,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: Math.round(iw * 0.012),
+                                      padding: `${Math.round(ih * 0.012)}px ${Math.round(iw * 0.018)}px`,
+                                      color: active ? activeText : textPrimary as string,
+                                      fontSize: Math.round(iw * 0.0135),
+                                      fontWeight: active ? 700 : 550,
+                                      fontFamily: ff,
+                                      cursor: "pointer",
+                                      transition: "background 220ms ease, color 220ms ease, transform 220ms ease",
+                                      textAlign: "left",
+                                      boxShadow: active ? (isDark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.46)") : "none",
+                                    }}
+                                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)" }}
+                                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent" }}
+                                  >
+                                    <SidebarIcon kind={item.icon} active={active} />
+                                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: contentBg, display: "flex", flexDirection: "column" }}>
+                        <div style={{ padding: `${Math.round(ih * 0.045)}px ${Math.round(iw * 0.038)}px ${Math.round(ih * 0.022)}px`, borderBottom: `0.5px solid ${divider}` }}>
+                          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: Math.round(iw * 0.02) }}>
+                            <div>
+                              <div style={{ fontSize: Math.round(iw * 0.031), lineHeight: 1.05, letterSpacing: -0.9, fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>
+                                {pageTitle}
+                              </div>
+                              <div style={{ marginTop: Math.round(ih * 0.008), fontSize: Math.round(iw * 0.0135), color: textSecondary as string, fontFamily: ff }}>
+                                {filteredAlbums.length} items available
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.01), color: activeText, fontSize: Math.round(iw * 0.0125), fontWeight: 700, fontFamily: ff }}>
+                              <div style={{ width: Math.round(iw * 0.04), height: 6, borderRadius: 999, background: isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.12)", position: "relative", overflow: "hidden" }}>
+                                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent 0%, rgba(10,132,255,0.95) 26%, rgba(10,132,255,0.42) 72%, transparent 100%)" }} />
+                              </div>
+                              Playing
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: `${Math.round(ih * 0.028)}px ${Math.round(iw * 0.038)}px ${Math.round(ih * 0.04)}px` }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(118px, 1fr))", gap: Math.round(iw * 0.025) }}>
+                            {filteredAlbums.map((album) => (
+                              <button
+                                key={`${itunesSidebarSel}-${album.title}`}
+                                type="button"
+                                style={{
+                                  border: "none",
+                                  background: "transparent",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: Math.round(ih * 0.012),
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  transition: "transform 240ms ease",
+                                  padding: 0,
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.03)" }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)" }}
+                                onMouseDown={e => { e.currentTarget.style.transform = "translateY(0) scale(0.985)" }}
+                                onMouseUp={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.03)" }}
+                              >
+                                <div style={{
+                                  aspectRatio: "1 / 1",
+                                  width: "100%",
+                                  borderRadius: 14,
+                                  background: album.accent,
+                                  boxShadow: isDark ? "0 14px 24px rgba(0,0,0,0.28)" : "0 14px 24px rgba(15,23,42,0.1)",
+                                  position: "relative",
+                                  overflow: "hidden",
+                                }}>
+                                  <div style={{ position: "absolute", inset: "8% 8% auto auto", width: "44%", height: "44%", borderRadius: "50%", background: "rgba(255,255,255,0.18)", filter: "blur(2px)" }} />
+                                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0))" }} />
+                                  <div style={{ position: "absolute", left: "11%", bottom: "11%", color: "#fff", fontSize: Math.round(iw * 0.022), fontWeight: 700, letterSpacing: -0.4, fontFamily: ff }}>
+                                    {album.detail}
+                                  </div>
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: Math.round(iw * 0.0138), fontWeight: 650, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {album.title}
+                                  </div>
+                                  <div style={{ marginTop: 3, fontSize: Math.round(iw * 0.0123), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {album.subtitle}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {!itunesMaximized && (
+                      <ResizeHandle
+                        onMouseDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          const startX = e.clientX
+                          const startY = e.clientY
+                          const startW = iw
+                          const startH = ih
+                          const winLeft = baseLeft + itunesPos.x
+                          const winTop = baseTop + itunesPos.y
+                          const minW = Math.round(w * 0.62)
+                          const minH = Math.round(h * 0.5)
+                          const maxW = Math.max(minW, (w - 20) - winLeft)
+                          const maxH = Math.max(minH, h - winTop)
+                          const onMove = (ev: MouseEvent) => {
+                            setItunesSize({
+                              w: Math.max(minW, Math.min(maxW, startW + ev.clientX - startX)),
+                              h: Math.max(minH, Math.min(maxH, startH + ev.clientY - startY)),
+                            })
+                          }
+                          const onUp = () => {
+                            window.removeEventListener("mousemove", onMove)
+                            window.removeEventListener("mouseup", onUp)
+                          }
+                          window.addEventListener("mousemove", onMove)
+                          window.addEventListener("mouseup", onUp)
+                        }}
+                      />
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Messages Window */}
               {messagesOpen && !messagesMinimized && (() => {
                 const mbH = Math.round(h * 0.036)
@@ -3849,9 +4238,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ...(messagesMaximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { top: baseTop + messagesPos.y, left: baseLeft + messagesPos.x, width: mw, height: mh }),
-                      borderRadius: messagesMaximized ? 0 : 10,
-                      borderTopLeftRadius: messagesMaximized ? 12 : 10,
-                      borderTopRightRadius: messagesMaximized ? 12 : 10,
+                      borderRadius: messagesMaximized ? 0 : 8,
+                      borderTopLeftRadius: messagesMaximized ? 10 : 8,
+                      borderTopRightRadius: messagesMaximized ? 10 : 8,
                       overflow: "hidden",
                       background: bodyBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.72)"}`,
@@ -4153,9 +4542,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { top: baseTop + safariPos.y, left: baseLeft + safariPos.x, width: sw2, height: sh2 }
                       ),
-                      borderRadius: safariMaximized ? 0 : 14,
-                      borderTopLeftRadius: safariMaximized ? 12 : 14,
-                      borderTopRightRadius: safariMaximized ? 12 : 14,
+                      borderRadius: safariMaximized ? 0 : 8,
+                      borderTopLeftRadius: safariMaximized ? 10 : 8,
+                      borderTopRightRadius: safariMaximized ? 10 : 8,
                       background: bg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.65)"}`,
                       boxShadow: isDark
@@ -4921,9 +5310,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             top: mbH + Math.round((h - mbH - fh) * 0.08) + finderPos.y,
                           }),
                       zIndex: 3 + (windowOrder.indexOf("finder") >= 0 ? windowOrder.indexOf("finder") : 0),
-                      borderRadius: finderMaximized ? 0 : 10,
-                      borderTopLeftRadius: finderMaximized ? 12 : 10,
-                      borderTopRightRadius: finderMaximized ? 12 : 10,
+                      borderRadius: finderMaximized ? 0 : 8,
+                      borderTopLeftRadius: finderMaximized ? 10 : 8,
+                      borderTopRightRadius: finderMaximized ? 10 : 8,
                       overflow: "hidden",
                       display: "flex", flexDirection: "column",
                       boxShadow: "0 24px 60px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.1)",
