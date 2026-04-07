@@ -3394,7 +3394,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         )
                       ))}
                       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 0 }}>
-                        <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>?</span>
+                        <span style={{ color: termPrompt, fontWeight: 700, marginRight: 4 }}>$</span>
                         <span style={{ marginRight: 4 }}>
                           {termCwd.split("/").map((seg, si, arr) => (
                             <span key={si}>
@@ -4862,16 +4862,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div style={{
                         position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                         left: "50%", transform: "translateX(-50%)",
-                        background: "rgba(28,28,30,0.92)",
-                        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                        borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                        background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                        backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                        borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
                         fontSize: Math.round(w * 0.016), fontWeight: 400,
                         fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                         color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                         pointerEvents: "none", zIndex: 100,
                         opacity: hoveredSlot === "app" ? 1 : 0,
                         transition: "opacity 0.12s ease",
-                        boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+                        border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                        boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                       }}>Finder</div>
                       <img
                         src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png"
@@ -4928,16 +4929,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           <div style={{
                             position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                             left: "50%", transform: "translateX(-50%)",
-                            background: "rgba(28,28,30,0.92)",
-                            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                            borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                            background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                            backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                            borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
                             fontSize: Math.round(w * 0.016), fontWeight: 400,
                             fontFamily: "'SF Pro','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
                             color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                             pointerEvents: "none", zIndex: 100,
                             opacity: hoveredSlot === slotKey ? 1 : 0,
                             transition: "opacity 0.12s ease",
-                            boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+                            border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                            boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                           }}>{p.title ?? `Project ${idx + 1}`}</div>
                           {thumb
                             ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
@@ -5032,16 +5034,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{
                           position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                           left: "50%", transform: "translateX(-50%)",
-                          background: "rgba(28,28,30,0.92)",
-                          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                          borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                          background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                          backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                          borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
                           fontSize: Math.round(w * 0.016), fontWeight: 400,
                           fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                           color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                           pointerEvents: "none", zIndex: 100,
                           opacity: hoveredSlot === "terminal" ? 1 : 0,
                           transition: "opacity 0.12s ease",
-                          boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+                          border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                          boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                           display: "flex", alignItems: "center",
                         }}>
                           Terminal
@@ -5116,16 +5119,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{
                           position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                           left: "50%", transform: "translateX(-50%)",
-                          background: "rgba(28,28,30,0.92)",
-                          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                          borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                          background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                          backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                          borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
                           fontSize: Math.round(w * 0.016), fontWeight: 400,
                           fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
                           color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
                           pointerEvents: "none", zIndex: 100,
                           opacity: hoveredSlot === "github" ? 1 : 0,
                           transition: "opacity 0.12s ease",
-                          boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+                          boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                         }}>GitHub</div>
                         <img
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png"
@@ -5155,7 +5158,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }
                           }}
                         >
-                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Visual Studio Code</div>
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Visual Studio Code</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429665/128_na5mv8.webp" alt="VSCode" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                         </div>
                       )
@@ -5185,7 +5188,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }
                           }}
                         >
-                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Messages</div>
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
@@ -5216,7 +5219,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }
                           }}
                         >
-                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>Safari</div>
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
@@ -5242,7 +5245,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }
                           }}
                         >
-                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: "rgba(28,28,30,0.92)", backdropFilter: "blur(10px)", borderRadius: 5, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: "0 1px 6px rgba(0,0,0,0.3)" }}>iTunes</div>
+                          <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
                           <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: itunesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
