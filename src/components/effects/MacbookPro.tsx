@@ -31,7 +31,7 @@ interface MacbookProProps {
   className?: string
 }
 
-const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "ls", "mkdir", "touch", "write"]
+const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "open", "ls", "mkdir", "touch", "write"]
 const FOLDER_ICON = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403470/folder_ecvyzl.png"
 const FILE_ICON   = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403780/file_a2y8we.png"
 const MESSAGE_CONVERSATION: MessageConversation = {
@@ -1196,16 +1196,26 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       const isUserFolder = (fs[parentPath] ?? []).some(e => e.name === entryName && e.type === "folder")
       if (staticValid.includes(newCwd) || isUserFolder) {
         setTermCwd(newCwd)
-        const m = newCwd.match(/^~\/projects\/([^/]+)/)
-        if (m) {
-          const idx = allProjectSlugs.indexOf(m[1])
-          if (idx >= 0) openWindow(idx)
-        }
         setTermLines(l => [...l, echo])
       } else {
         setTermLines(l => [...l, echo,
           { text: `  cd: no such file or directory: ${target || "~"}`, color: "#ff453a" },
         ])
+      }
+    } else if (cmd.startsWith("open")) {
+      const target = raw.trim().slice(4).trim()
+      const normalizedTarget = target
+        .replace(/^~\/projects\//, "")
+        .replace(/^projects\//, "")
+        .replace(/\/.*$/, "")
+      const projectTarget = normalizedTarget || (cwd.match(/^~\/projects\/([^/]+)/)?.[1] ?? "")
+      const idx = allProjectSlugs.indexOf(projectTarget)
+
+      if (idx >= 0) {
+        setTermLines(l => [...l, echo, { text: `  Opening ${projectTarget}...`, color: "#30d158" }])
+        openWindow(idx)
+      } else {
+        setTermLines(l => [...l, echo, { text: `  open: project not found: ${target || "(current directory)"}`, color: "#ff453a" }])
       }
     } else if (cmd === "ls") {
       const fs = termFsRef.current
@@ -1339,6 +1349,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         helpLine("touch", "Create an empty file"),
         helpLine("write", "Write text into a file"),
         helpLine("cd", "Change directory"),
+        helpLine("open", "Open a project window"),
         { text: "" },
         { text: "Project", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.34)" },
         helpLine("desc", "Show project description"),
@@ -1728,10 +1739,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           else { setItunesOpen(o => !o); bringToFront("itunes") }
         }
         if (item.type === "github") {
-          if (projects && openWindows.length === 0) {
-            setTermOrigin("50% 80%"); setTerminalOpen(true)
-            setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
-          } else if (githubUrl && githubUrl !== "#") {
+          if (githubUrl && githubUrl !== "#") {
             window.open(githubUrl, "_blank", "noopener,noreferrer")
           }
         }
@@ -5945,10 +5953,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          if (projects && openWindows.length === 0) {
-                            setTermOrigin(getOrigin(e)); setTerminalOpen(true)
-                            setTimeout(() => setTermLines(l => [...l, { text: "  Select a project first.", color: "#ff453a" }]), 120)
-                          } else if (githubUrl && githubUrl !== "#") {
+                          if (githubUrl && githubUrl !== "#") {
                             window.open(githubUrl, "_blank", "noopener,noreferrer")
                           }
                         }}

@@ -93,7 +93,7 @@ export function ModernWork() {
           </p>
         </motion.div>
 
-        <MacbookPro projects={projects} width={macWidth} />
+        <MacbookPro projects={projects} githubUrl="https://github.com/Zakaria12e" width={macWidth} />
       </div>
     </section>
   )
