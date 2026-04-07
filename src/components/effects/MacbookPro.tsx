@@ -4878,7 +4878,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png"
                         alt="Finder"
                         draggable={false}
-                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform", animation: finderMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }}
                       />
                       <div style={{
                         position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
@@ -4900,6 +4900,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {hasDock && projects && projects.map((p, idx) => {
                       const scale = scales[idx + 1] ?? 1
                       const isActive = openWindows.some(w => w.projectIdx === idx)
+                      const isMinimized = openWindows.some(w => w.projectIdx === idx && w.minimized)
                       const iconSrc = isDark ? (p.iconDark ?? p.icon) : (p.icon ?? p.iconDark)
                       const thumb = iconSrc ?? p.images?.[0]
                       const slotKey = `proj-${idx}`
@@ -4942,8 +4943,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                           }}>{p.title ?? `Project ${idx + 1}`}</div>
                           {thumb
-                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
-                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8] }} />
+                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: isMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8], animation: isMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           }
                           <div style={{
                             position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
@@ -5084,6 +5085,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
                           }}
                         />
+                        <div style={{
+                          position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
+                          transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                          borderRadius: "50%",
+                          background: terminalOpen ? "rgba(255,255,255,0.9)" : "transparent",
+                          transition: "background 0.2s", pointerEvents: "none",
+                        }} />
                       </div>
                     </>}
 
@@ -5189,7 +5197,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: messagesMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
@@ -5220,7 +5228,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: safariMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
@@ -5246,7 +5254,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform" }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: itunesMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: itunesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
