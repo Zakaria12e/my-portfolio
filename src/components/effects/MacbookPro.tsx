@@ -259,6 +259,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   ]
   const SAFARI_WALLPAPERS = [
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775590602/desert-5_oqfab8.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775592418/61_jbqwtk.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775592591/natural-evening_qecm77.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
@@ -338,7 +340,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [safariInput, setSafariInput] = useState("")
   const [safariInputFocused, setSafariInputFocused] = useState(false)
   const [safariHoveredTl, setSafariHoveredTl] = useState(-1)
-  const [safariSettingsPanelOpen, setSafariSettingsPanelOpen] = useState(true)
+  const [safariSettingsPanelOpen, setSafariSettingsPanelOpen] = useState(false)
   const safariDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const safariTabIdRef = useRef(1)
   const [messagesOpen, setMessagesOpen] = useState(false)
@@ -4472,42 +4474,42 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     inset: 0,
                                     background: isDark
                                       ? "linear-gradient(180deg, rgba(8,10,14,0.26), rgba(8,10,14,0.58))"
-                                      : "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(248,250,252,0.42))",
+                                      : "transparent",
                                   }}
                                 />
                                 <div
                                   onClick={(e) => e.stopPropagation()}
                                   style={{
                                     position: "absolute",
-                                    top: Math.round(sh2 * 0.16),
+                                    top: Math.round(sh2 * 0.18),
                                     left: "50%",
                                     transform: "translateX(-50%)",
-                                    width: Math.min(Math.round(sw2 * 0.74), 760),
-                                    padding: `${Math.round(sh2 * 0.02)}px ${Math.round(sw2 * 0.025)}px ${Math.round(sh2 * 0.024)}px`,
-                                    borderRadius: 20,
-                                    background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.12)",
-                                    backdropFilter: "blur(14px)",
-                                    WebkitBackdropFilter: "blur(14px)",
+                                    width: Math.min(Math.round(sw2 * 0.66), 680),
+                                    padding: `${Math.round(sh2 * 0.015)}px ${Math.round(sw2 * 0.02)}px ${Math.round(sh2 * 0.018)}px`,
+                                    borderRadius: 18,
+                                    background: isDark ? "rgba(255,255,255,0.08)" : "transparent",
+                                    backdropFilter: isDark ? "blur(14px)" : "none",
+                                    WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
                                     boxShadow: isDark
                                       ? "0 18px 38px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)"
-                                      : "0 16px 34px rgba(86,104,135,0.1), inset 0 1px 0 rgba(255,255,255,0.36)",
-                                    border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.18)"}`,
+                                      : "none",
+                                    border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "transparent"}`,
                                     zIndex: 1,
                                   }}
                                 >
-                                  <div style={{ fontSize: fs(0.017), fontWeight: 600, color: isDark ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.96)", textAlign: "center", fontFamily: ff, marginBottom: Math.round(sh2 * 0.018), textShadow: "0 1px 8px rgba(0,0,0,0.16)" }}>
+                                  <div style={{ fontSize: fs(0.0155), fontWeight: 600, color: isDark ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.96)", textAlign: "center", fontFamily: ff, marginBottom: Math.round(sh2 * 0.014), textShadow: "0 1px 8px rgba(0,0,0,0.16)" }}>
                                     Favorites
                                   </div>
                                   <div
                                     style={{
                                       display: "grid",
                                       gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                                      gap: Math.round(sw2 * 0.018),
+                                      gap: Math.round(sw2 * 0.014),
                                       justifyItems: "center",
                                     }}
                                   >
                                     {SAFARI_FAVORITES.map((item, index) => {
-                                      const iconSize = Math.round(sw2 * 0.068)
+                                      const iconSize = Math.round(sw2 * 0.056)
                                       const isHovered = hoveredSafariFavorite === index
                                       const isPressed = pressedSafariFavorite === index
                                       return (
@@ -4521,7 +4523,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                           }}
                                           onMouseDown={() => setPressedSafariFavorite(index)}
                                           onMouseUp={() => setPressedSafariFavorite(null)}
-                                          onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
+                                          onClick={() => {
+                                            setActiveSafariTabId(tab.id)
+                                            setSafariInput(item.url)
+                                            setSafariInputFocused(false)
+                                            navigate(item.url)
+                                          }}
                                           style={{
                                             border: "none",
                                             background: "transparent",
@@ -4529,7 +4536,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                             display: "flex",
                                             flexDirection: "column",
                                             alignItems: "center",
-                                            gap: Math.round(sh2 * 0.01),
+                                            gap: Math.round(sh2 * 0.008),
                                             cursor: "pointer",
                                           }}
                                         >
@@ -4561,7 +4568,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                           </div>
                                           <span
                                             style={{
-                                              fontSize: fs(0.0122),
+                                              fontSize: fs(0.0112),
                                               fontWeight: 500,
                                               color: isDark ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.94)",
                                               fontFamily: ff,
