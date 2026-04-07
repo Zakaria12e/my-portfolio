@@ -1289,7 +1289,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setTermMaximized(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terminalOpen, projectSlug])
+  }, [terminalOpen])
 
   // Auto-scroll terminal body
   useEffect(() => {
