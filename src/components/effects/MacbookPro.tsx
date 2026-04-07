@@ -39,13 +39,26 @@ const MESSAGE_CONVERSATION: MessageConversation = {
   name: "Zakaria",
   color: "from-blue-500 to-cyan-400",
   online: true,
-  messages: [
-    { id: 1, fromMe: false, text: "This is the Messages window UI inside the MacBook.", time: "09:12" },
-    { id: 2, fromMe: true, text: "Clean. Glassy. macOS-like. Exactly what I wanted.", time: "09:13" },
-    { id: 3, fromMe: false, text: "Single conversation only, with your profile as the contact.", time: "09:14" },
-    { id: 4, fromMe: true, text: "Good. Keep it minimal and sharp.", time: "09:15" },
-  ],
+  messages: [],
 }
+const MESSAGE_PRESETS = [
+  {
+    prompt: "Can we talk about the portfolio?",
+    reply: "Yes. Tell me which section you want to refine and I will tighten it.",
+  },
+  {
+    prompt: "Show me your stack.",
+    reply: "React, TypeScript, Tailwind, motion, and custom UI details across the portfolio.",
+  },
+  {
+    prompt: "Are you available for freelance work?",
+    reply: "Yes. Send the scope, timeline, and budget, and I can review it.",
+  },
+  {
+    prompt: "Can I see the live demo?",
+    reply: "Open Safari from the dock and use the Live links inside the projects.",
+  },
+]
 
 interface WinState {
   id: number
@@ -1091,8 +1104,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
   ), [])
 
-  const handleSendMessage = useCallback(() => {
-    const text = messagesDraft.trim()
+  const appendIncomingMessage = useCallback((text: string) => {
+    setMessagesConversation((current) => ({
+      ...current,
+      messages: [
+        ...current.messages,
+        {
+          id: ++messageIdRef.current,
+          fromMe: false,
+          text,
+          time: stampMessageTime(),
+        },
+      ],
+    }))
+  }, [stampMessageTime])
+
+  const sendMessage = useCallback((rawText: string, autoReply?: string) => {
+    const text = rawText.trim()
     if (!text) return
     setMessagesConversation((current) => ({
       ...current,
@@ -1107,7 +1135,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ],
     }))
     setMessagesDraft("")
-  }, [messagesDraft, stampMessageTime])
+    if (autoReply) {
+      window.setTimeout(() => {
+        appendIncomingMessage(autoReply)
+      }, 520)
+    }
+  }, [appendIncomingMessage, stampMessageTime])
+
+  const handleSendMessage = useCallback(() => {
+    sendMessage(messagesDraft)
+  }, [messagesDraft, sendMessage])
+
+  const handlePresetMessage = useCallback((prompt: string, reply: string) => {
+    sendMessage(prompt, reply)
+  }, [sendMessage])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -3952,7 +3993,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
 
                         <div style={{ borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.72)" : "rgba(255,255,255,0.6)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.026)}px`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
-                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", alignItems: "center", gap: 8, borderRadius: 999, border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)", padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.012)}px`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.65)" }}>
+                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                              {MESSAGE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.prompt}
+                                  type="button"
+                                  onClick={() => handlePresetMessage(preset.prompt, preset.reply)}
+                                  style={{
+                                    border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+                                    background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)",
+                                    color: textPrimary as string,
+                                    borderRadius: 999,
+                                    padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.014)}px`,
+                                    fontSize: Math.round(w * 0.0122),
+                                    fontFamily: ff,
+                                    cursor: "pointer",
+                                    boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.65)",
+                                  }}
+                                >
+                                  {preset.prompt}
+                                </button>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 999, border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)", padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.012)}px`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.65)" }}>
                             <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 8, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <Plus size={Math.round(w * 0.017)} strokeWidth={1.9} />
                             </button>
@@ -3966,6 +4030,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             <button type="button" onClick={handleSendMessage} disabled={!messagesDraft.trim()} style={{ border: "none", background: "#0A84FF", color: "#fff", padding: 10, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(10,132,255,0.28)", opacity: messagesDraft.trim() ? 1 : 0.5, cursor: messagesDraft.trim() ? "pointer" : "default" }}>
                               <Send size={Math.round(w * 0.015)} strokeWidth={2.1} />
                             </button>
+                          </div>
                           </div>
                         </div>
                       </div>
