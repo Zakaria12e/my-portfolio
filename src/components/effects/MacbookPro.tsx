@@ -125,8 +125,10 @@ function TrafficLightSymbol({
       aria-hidden="true"
       style={{
         opacity: visible ? 1 : 0,
+        visibility: visible ? "visible" : "hidden",
         transition: "opacity 0.1s",
         overflow: "visible",
+        pointerEvents: "none",
       }}
     >
       {kind === "close" && (
@@ -169,6 +171,7 @@ function ResizeHandle({
     />
   )
 }
+
 
 function resolvePath(cwd: string, target: string): string {
   if (!target || target === "~") return "~"
@@ -254,7 +257,27 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561044/macwallpaper_ubycpy.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561859/dreamy-lines_upvr7l.jpg",
   ]
+  const SAFARI_WALLPAPERS = [
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775590602/desert-5_oqfab8.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561044/macwallpaper_ubycpy.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561859/dreamy-lines_upvr7l.jpg",
+  ]
+  const SAFARI_FAVORITES = [
+    { label: "Apple", url: "https://apple.com" },
+    { label: "Behance", url: "https://behance.net" },
+    { label: "Twitter", url: "https://x.com" },
+    { label: "WeTransfer", url: "https://wetransfer.com" },
+    { label: "Yelp", url: "https://yelp.com" },
+    { label: "Design Milk", url: "https://design-milk.com" },
+    { label: "Architect", url: "https://architecturaldigest.com" },
+  ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
+  const [safariWallpaper, setSafariWallpaper] = useState(SAFARI_WALLPAPERS[0])
+  const [hoveredSafariFavorite, setHoveredSafariFavorite] = useState<number | null>(null)
+  const [pressedSafariFavorite, setPressedSafariFavorite] = useState<number | null>(null)
   const [prevWallpaper, setPrevWallpaper] = useState<string | null>(null)
   const [wallpaperTransitioning, setWallpaperTransitioning] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
@@ -315,6 +338,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [safariInput, setSafariInput] = useState("")
   const [safariInputFocused, setSafariInputFocused] = useState(false)
   const [safariHoveredTl, setSafariHoveredTl] = useState(-1)
+  const [safariSettingsPanelOpen, setSafariSettingsPanelOpen] = useState(true)
   const safariDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const safariTabIdRef = useRef(1)
   const [messagesOpen, setMessagesOpen] = useState(false)
@@ -327,6 +351,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const messagesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const messagesBodyRef = useRef<HTMLDivElement>(null)
   const messageIdRef = useRef(3)
+  const [dockBounceKeys, setDockBounceKeys] = useState<Record<string, boolean>>({})
+  const dockBounceTimersRef = useRef<Record<string, number>>({})
   const [scales, setScales] = useState<number[]>([])
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
@@ -613,6 +639,25 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setFocusedWinId(id)
     setWindowOrder(o => [...o.filter(k => k !== id), id])
   }, [width])
+
+  const triggerDockBounce = useCallback((key: string) => {
+    const activeTimer = dockBounceTimersRef.current[key]
+    if (activeTimer) window.clearTimeout(activeTimer)
+    setDockBounceKeys(prev => ({ ...prev, [key]: false }))
+    window.requestAnimationFrame(() => {
+      setDockBounceKeys(prev => ({ ...prev, [key]: true }))
+      dockBounceTimersRef.current[key] = window.setTimeout(() => {
+        setDockBounceKeys(prev => ({ ...prev, [key]: false }))
+        delete dockBounceTimersRef.current[key]
+      }, 720)
+    })
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      Object.values(dockBounceTimersRef.current).forEach(timerId => window.clearTimeout(timerId))
+    }
+  }, [])
 
   const openSafariUrl = useCallback((raw: string) => {
     let url = raw.trim()
@@ -2699,9 +2744,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     {/* Left: logo + app/menu labels */}
                     <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
                       <img
-                        src="/moon-purple.png"
+                        src={isDark
+                          ? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589104/image-removebg-preview_4_fhb1hw.png"
+                          : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589008/image-removebg-preview_3_vidndh.png"}
                         alt="logo"
-                        style={{ height: Math.round(w * 0.0195), width: "auto", display: "block" }}
+                        style={{ height: Math.round(w * 0.0165), width: "auto", display: "block" }}
                       />
                       <span style={{ fontWeight: 700, color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.92)", fontSize: Math.round(w * 0.013), fontFamily: "'Iosevka Charon', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>Zakaria</span>
                       <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
@@ -3749,9 +3796,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ...(messagesMaximized
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { top: baseTop + messagesPos.y, left: baseLeft + messagesPos.x, width: mw, height: mh }),
-                      borderRadius: messagesMaximized ? 0 : 16,
-                      borderTopLeftRadius: messagesMaximized ? 12 : 16,
-                      borderTopRightRadius: messagesMaximized ? 12 : 16,
+                      borderRadius: messagesMaximized ? 0 : 10,
+                      borderTopLeftRadius: messagesMaximized ? 12 : 10,
+                      borderTopRightRadius: messagesMaximized ? 12 : 10,
                       overflow: "hidden",
                       background: bodyBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.72)"}`,
@@ -3965,6 +4012,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
                 const textSec     = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)"
                 const panelBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)"
+                const glassBg = isDark ? "rgba(24,28,35,0.76)" : "rgba(248,251,255,0.78)"
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
                 const fs = (n: number) => Math.round(sw2 * n)
                 const projectSuggestions = (projects ?? []).flatMap((project) => {
@@ -4066,22 +4114,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       style={{ height: toolbarH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.01), paddingRight: Math.round(sw2 * 0.015), userSelect: "none", cursor: "grab", backdropFilter: "blur(18px) saturate(1.25)", WebkitBackdropFilter: "blur(18px) saturate(1.25)", overflow: "visible", zIndex: 6 }}
                     >
                       {/* Traffic lights */}
-                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}
-                        onMouseEnter={() => setSafariHoveredTl(0)}
-                        onMouseLeave={() => setSafariHoveredTl(-1)}
-                      >
+                      <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}>
                         {[
                           { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariOpen(false); setSafariMinimized(false); setSafariMaximized(false); setSafariPos({ x: 0, y: 0 }); setSafariInputFocused(false); setWindowOrder(o => o.filter(k => k !== "safari")) } },
                           { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMinimizing(true); setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340) } },
                           { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, symClr: "rgba(0,0,0,0.55)", fn: () => { setSafariMaximized(m => !m); setSafariMinimized(false) } },
                         ].map((btn, i) => (
                           <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setSafariHoveredTl(i)}
+                            onMouseLeave={() => setSafariHoveredTl(-1)}
                             style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <TrafficLightSymbol
                               kind={btn.kind}
                               color={btn.symClr}
                               size={Math.round(tlSz * 0.84)}
-                              visible={safariHoveredTl >= 0}
+                              visible={safariHoveredTl === i}
                             />
                           </div>
                         ))}
@@ -4393,8 +4440,239 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 />
                               )
                             ) : (
-                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "radial-gradient(circle at top, rgba(14,165,233,0.16), transparent 24%), #111215" : "radial-gradient(circle at top, rgba(14,165,233,0.14), transparent 26%), #f8fafc", overflow: "auto" }}>
-                                <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072), opacity: isDark ? 0.82 : 0.9 }} draggable={false} />
+                              <div
+                                onClick={() => setSafariSettingsPanelOpen(false)}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  position: "relative",
+                                  overflow: "auto",
+                                  background: isDark ? "#111215" : "#f8fafc",
+                                }}
+                              >
+                                <img
+                                  src={safariWallpaper}
+                                  alt="Safari wallpaper"
+                                  draggable={false}
+                                  style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    display: "block",
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    background: isDark
+                                      ? "linear-gradient(180deg, rgba(8,10,14,0.26), rgba(8,10,14,0.58))"
+                                      : "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(248,250,252,0.42))",
+                                  }}
+                                />
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    position: "absolute",
+                                    top: Math.round(sh2 * 0.16),
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    width: Math.min(Math.round(sw2 * 0.74), 760),
+                                    padding: `${Math.round(sh2 * 0.02)}px ${Math.round(sw2 * 0.025)}px ${Math.round(sh2 * 0.024)}px`,
+                                    borderRadius: 20,
+                                    background: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.12)",
+                                    backdropFilter: "blur(14px)",
+                                    WebkitBackdropFilter: "blur(14px)",
+                                    boxShadow: isDark
+                                      ? "0 18px 38px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)"
+                                      : "0 16px 34px rgba(86,104,135,0.1), inset 0 1px 0 rgba(255,255,255,0.36)",
+                                    border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.18)"}`,
+                                    zIndex: 1,
+                                  }}
+                                >
+                                  <div style={{ fontSize: fs(0.017), fontWeight: 600, color: isDark ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.96)", textAlign: "center", fontFamily: ff, marginBottom: Math.round(sh2 * 0.018), textShadow: "0 1px 8px rgba(0,0,0,0.16)" }}>
+                                    Favorites
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                                      gap: Math.round(sw2 * 0.018),
+                                      justifyItems: "center",
+                                    }}
+                                  >
+                                    {SAFARI_FAVORITES.map((item, index) => {
+                                      const iconSize = Math.round(sw2 * 0.068)
+                                      const isHovered = hoveredSafariFavorite === index
+                                      const isPressed = pressedSafariFavorite === index
+                                      return (
+                                        <button
+                                          key={item.label}
+                                          type="button"
+                                          onMouseEnter={() => setHoveredSafariFavorite(index)}
+                                          onMouseLeave={() => {
+                                            setHoveredSafariFavorite(null)
+                                            setPressedSafariFavorite(null)
+                                          }}
+                                          onMouseDown={() => setPressedSafariFavorite(index)}
+                                          onMouseUp={() => setPressedSafariFavorite(null)}
+                                          onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
+                                          style={{
+                                            border: "none",
+                                            background: "transparent",
+                                            padding: 0,
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            gap: Math.round(sh2 * 0.01),
+                                            cursor: "pointer",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              width: iconSize,
+                                              height: iconSize,
+                                              borderRadius: 15,
+                                              overflow: "hidden",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.92)",
+                                              boxShadow: isPressed
+                                                ? "0 6px 16px rgba(0,0,0,0.16)"
+                                                : isHovered
+                                                  ? "0 14px 28px rgba(15,23,42,0.18), 0 0 14px rgba(255,255,255,0.14)"
+                                                  : "0 8px 18px rgba(15,23,42,0.14)",
+                                              transform: isPressed ? "scale(0.97)" : isHovered ? "scale(1.05)" : "scale(1)",
+                                              transition: "transform 0.16s ease, box-shadow 0.16s ease",
+                                            }}
+                                          >
+                                            <img
+                                              src={`https://www.google.com/s2/favicons?sz=128&domain_url=${encodeURIComponent(item.url)}`}
+                                              alt={item.label}
+                                              draggable={false}
+                                              style={{ width: Math.round(iconSize * 0.68), height: Math.round(iconSize * 0.68), display: "block" }}
+                                            />
+                                          </div>
+                                          <span
+                                            style={{
+                                              fontSize: fs(0.0122),
+                                              fontWeight: 500,
+                                              color: isDark ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.94)",
+                                              fontFamily: ff,
+                                              textAlign: "center",
+                                              whiteSpace: "nowrap",
+                                              textShadow: "0 1px 6px rgba(0,0,0,0.18)",
+                                            }}
+                                          >
+                                            {item.label}
+                                          </span>
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                                {!safariSettingsPanelOpen && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSafariSettingsPanelOpen(true)
+                                    }}
+                                    style={{
+                                      position: "absolute",
+                                      bottom: Math.round(sh2 * 0.035),
+                                      right: Math.round(sw2 * 0.03),
+                                      zIndex: 2,
+                                      color: textPrimary as string,
+                                      width: Math.round(sw2 * 0.04),
+                                      height: Math.round(sw2 * 0.04),
+                                      minWidth: 24,
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      background: "transparent",
+                                      border: "none",
+                                      padding: 0,
+                                    }}
+                                  >
+                                    <svg width={16} height={16} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                      <path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                                    </svg>
+                                  </button>
+                                )}
+                                {safariSettingsPanelOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: "absolute",
+                                      right: Math.round(sw2 * 0.03),
+                                      bottom: Math.round(sh2 * 0.035),
+                                      width: Math.round(sw2 * 0.32),
+                                      minWidth: 260,
+                                      maxWidth: Math.round(sw2 * 0.4),
+                                      padding: `${Math.round(sh2 * 0.016)}px ${Math.round(sw2 * 0.016)}px`,
+                                      borderRadius: 18,
+                                      background: glassBg,
+                                      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.18)"}`,
+                                      boxShadow: isDark
+                                        ? "0 14px 34px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.06)"
+                                        : "0 14px 34px rgba(96,120,148,0.12), inset 0 1px 0 rgba(255,255,255,0.42)",
+                                      backdropFilter: "blur(14px)",
+                                      WebkitBackdropFilter: "blur(14px)",
+                                      overflow: "hidden",
+                                      zIndex: 2,
+                                    }}
+                                  >
+                                    <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: Math.round(sh2 * 0.012) }}>
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                        <span style={{ fontSize: fs(0.015), fontWeight: 700, color: textPrimary as string, fontFamily: ff, letterSpacing: -0.2 }}>
+                                          Background Image
+                                        </span>
+                                        <span style={{ fontSize: fs(0.0115), color: textSec as string, fontFamily: ff }}>
+                                          Pick a wallpaper for the Safari start page
+                                        </span>
+                                      </div>
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: Math.round(sw2 * 0.012) }}>
+                                        {SAFARI_WALLPAPERS.slice(0, 3).map((wallpaperSrc, index) => {
+                                          const isActiveWallpaper = safariWallpaper === wallpaperSrc
+                                          return (
+                                            <button
+                                              key={wallpaperSrc}
+                                              type="button"
+                                              onClick={() => setSafariWallpaper(wallpaperSrc)}
+                                              style={{
+                                                width: Math.round(sw2 * 0.092),
+                                                height: Math.round(sh2 * 0.084),
+                                                borderRadius: 14,
+                                                border: `1px solid ${isActiveWallpaper ? "rgba(64,156,255,0.95)" : (isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.22)")}`,
+                                                padding: 0,
+                                                overflow: "hidden",
+                                                cursor: "pointer",
+                                                position: "relative",
+                                                flexShrink: 0,
+                                                boxShadow: isActiveWallpaper ? "0 0 0 1px rgba(79,154,255,0.24), 0 0 18px rgba(64,156,255,0.32)" : "none",
+                                              }}
+                                            >
+                                              <img
+                                                src={wallpaperSrc}
+                                                alt={`Wallpaper ${index + 1}`}
+                                                draggable={false}
+                                                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                              />
+                                            </button>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -4879,6 +5157,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         e.stopPropagation()
                         const isOnTop = windowOrder[windowOrder.length - 1] === "finder"
                         if (!finderOpen || finderMinimized) {
+                          triggerDockBounce("finder")
                           setFinderOpen(true)
                           setFinderMinimized(false)
                           setFinderMinimizing(false)
@@ -4916,7 +5195,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png"
                         alt="Finder"
                         draggable={false}
-                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform", animation: finderMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }}
+                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[0] ?? 1})`, transformOrigin: "bottom center", willChange: "transform", animation: (finderMinimized || dockBounceKeys.finder) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }}
                       />
                       <div style={{
                         position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
@@ -4960,6 +5239,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               updateWin(existing.id, { minimizing: true })
                               setTimeout(() => updateWin(existing.id, { minimized: true, minimizing: false }), 340)
                             } else {
+                              const shouldBounce = !existing || existing.minimized
+                              if (shouldBounce) triggerDockBounce(`project-${idx}`)
                               openWindow(idx)
                             }
                           }}
@@ -4981,8 +5262,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
                           }}>{p.title ?? `Project ${idx + 1}`}</div>
                           {thumb
-                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: isMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
-                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8], animation: isMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (isMinimized || dockBounceKeys[`project-${idx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8], animation: (isMinimized || dockBounceKeys[`project-${idx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           }
                           <div style={{
                             position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
@@ -5056,6 +5337,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           e.stopPropagation()
                           const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
                           if (!terminalOpen || termMinimized) {
+                            triggerDockBounce("terminal")
                             setTermMinimized(false); setTermMinimizing(false)
                             setTermOrigin(getOrigin(e)); setTerminalOpen(true)
                             setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
@@ -5120,7 +5402,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             flexShrink: 0,
                             objectFit: "contain",
                             display: "block",
-                            animation: termMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
+                            animation: (termMinimized || dockBounceKeys.terminal) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
                           }}
                         />
                         <div style={{
@@ -5224,6 +5506,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             e.stopPropagation()
                             const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
                             if (!messagesOpen || messagesMinimized) {
+                              triggerDockBounce("messages")
                               setMessagesMinimized(false); setMessagesMinimizing(false); setMessagesOpen(true)
                               setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
                             } else if (isOnTop) {
@@ -5235,7 +5518,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: messagesMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp" alt="Messages" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (messagesMinimized || dockBounceKeys.messages) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: messagesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
@@ -5255,6 +5538,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             e.stopPropagation()
                             const isOnTop = windowOrder[windowOrder.length - 1] === "safari"
                             if (!safariOpen || safariMinimized) {
+                              triggerDockBounce("safari")
                               setSafariMinimized(false); setSafariMinimizing(false); setSafariOpen(true)
                               setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
                             } else if (isOnTop) {
@@ -5266,7 +5550,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: safariMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" alt="Safari" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (safariMinimized || dockBounceKeys.safari) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: safariOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
@@ -5285,14 +5569,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onClick={e => {
                             e.stopPropagation()
                             if (itunesOpen && itunesMinimized) {
+                              triggerDockBounce("itunes")
                               setItunesMinimized(false); bringToFront("itunes")
                             } else {
+                              if (!itunesOpen) triggerDockBounce("itunes")
                               setItunesOpen(o => { if (!o) setWindowOrder(ord => [...ord.filter(k => k !== "itunes"), "itunes"]); else setWindowOrder(ord => ord.filter(k => k !== "itunes")); return !o })
                             }
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
-                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: itunesMinimized ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                          <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png" alt="iTunes" draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (itunesMinimized || dockBounceKeys.itunes) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           <div style={{ position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%", transform: "translateX(-50%)", width: 2.5, height: 2.5, borderRadius: "50%", background: itunesOpen ? "rgba(255,255,255,0.9)" : "transparent", transition: "background 0.2s", pointerEvents: "none" }} />
                         </div>
                       )
