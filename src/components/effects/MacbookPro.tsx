@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo, CSSProperties } from "react"
+import { Camera, ChevronLeft, Info, Mic, PencilLine, Plus, Search, Send, Smile, Video } from "lucide-react"
 import { useTheme } from "./theme-provider"
 
 interface ProjectItem {
@@ -33,6 +34,18 @@ interface MacbookProProps {
 const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "ls", "mkdir", "touch", "write"]
 const FOLDER_ICON = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403470/folder_ecvyzl.png"
 const FILE_ICON   = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403780/file_a2y8we.png"
+const MESSAGE_CONVERSATION: MessageConversation = {
+  id: 1,
+  name: "Zakaria",
+  color: "from-blue-500 to-cyan-400",
+  online: true,
+  messages: [
+    { id: 1, fromMe: false, text: "This is the Messages window UI inside the MacBook.", time: "09:12" },
+    { id: 2, fromMe: true, text: "Clean. Glassy. macOS-like. Exactly what I wanted.", time: "09:13" },
+    { id: 3, fromMe: false, text: "Single conversation only, with your profile as the contact.", time: "09:14" },
+    { id: 4, fromMe: true, text: "Good. Keep it minimal and sharp.", time: "09:15" },
+  ],
+}
 
 interface WinState {
   id: number
@@ -66,15 +79,17 @@ type SwitchableItem = {
 
 type MessageBubble = {
   id: number
-  sender: "zakaria" | "visitor"
+  fromMe: boolean
   text: string
   time: string
 }
 
-type MessagePrompt = {
-  id: string
-  question: string
-  answer: string
+type MessageConversation = {
+  id: number
+  name: string
+  color: string
+  online: boolean
+  messages: MessageBubble[]
 }
 
 type DesktopItem = {
@@ -310,7 +325,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [messagesSize, setMessagesSize] = useState({ w: 0, h: 0 })
   const [hoveredMessagesTl, setHoveredMessagesTl] = useState(-1)
   const messagesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
-  const messagesReplyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messagesBodyRef = useRef<HTMLDivElement>(null)
   const messageIdRef = useRef(3)
   const [scales, setScales] = useState<number[]>([])
@@ -381,36 +395,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
-  const messagePrompts = useMemo<MessagePrompt[]>(() => ([
-    {
-      id: "intro",
-      question: "What kind of work do you do?",
-      answer: "I design and build frontend-heavy products with strong motion, clean interactions, and production-ready React experiences.",
-    },
-    {
-      id: "stack",
-      question: "What stack do you use most?",
-      answer: "My usual stack is React, TypeScript, Tailwind, animation libraries when needed, and a lot of attention to interface detail and performance.",
-    },
-    {
-      id: "projects",
-      question: "How should I explore your projects?",
-      answer: "Open any project window first, then use the live demo or GitHub actions. I set the Mac UI up so you can browse everything without leaving the experience.",
-    },
-    {
-      id: "hire",
-      question: "Are you available for freelance or full-time work?",
-      answer: "Yes. If the product is thoughtful and the team cares about quality, I am open to freelance collaborations and strong full-time opportunities.",
-    },
-  ]), [])
   const folderOrderKey = useCallback((id: number) => `folder:${id}` as const, [])
   const fileOrderKey = useCallback((id: number) => `file:${id}` as const, [])
-  const [messagesConversation, setMessagesConversation] = useState<MessageBubble[]>([
-    { id: 1, sender: "zakaria", text: "Hey, I am Zakaria. Pick one of the questions below and I will answer here.", time: "9:18 AM" },
-    { id: 2, sender: "zakaria", text: "This Messages window works like a small guided chat so you can learn about my work quickly.", time: "9:19 AM" },
-  ])
-  const [messagesTyping, setMessagesTyping] = useState(false)
-  const [activePromptId, setActivePromptId] = useState<string | null>(null)
+  const [messagesSearch, setMessagesSearch] = useState("")
+  const [messagesDraft, setMessagesDraft] = useState("")
+  const [messagesConversation, setMessagesConversation] = useState<MessageConversation>(MESSAGE_CONVERSATION)
   const switchableWindows = useMemo<SwitchableItem[]>(() => {
     const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
       if (typeof key === "string" && key.startsWith("folder:")) {
@@ -1034,33 +1023,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
   ), [])
 
-  const sendPromptToMessages = useCallback((prompt: MessagePrompt) => {
-    if (messagesTyping) return
-    const askedAlready = messagesConversation.some(message => message.sender === "visitor" && message.text === prompt.question)
-    if (askedAlready) return
-    const visitorMessage: MessageBubble = {
-      id: ++messageIdRef.current,
-      sender: "visitor",
-      text: prompt.question,
-      time: stampMessageTime(),
-    }
-    setMessagesConversation(current => [...current, visitorMessage])
-    setMessagesTyping(true)
-    setActivePromptId(prompt.id)
-    if (messagesReplyTimeoutRef.current) clearTimeout(messagesReplyTimeoutRef.current)
-    messagesReplyTimeoutRef.current = setTimeout(() => {
-      const replyMessage: MessageBubble = {
-        id: ++messageIdRef.current,
-        sender: "zakaria",
-        text: prompt.answer,
-        time: stampMessageTime(),
-      }
-      setMessagesConversation(current => [...current, replyMessage])
-      setMessagesTyping(false)
-      setActivePromptId(null)
-      messagesReplyTimeoutRef.current = null
-    }, 1200)
-  }, [messagesTyping, messagesConversation, stampMessageTime])
+  const handleSendMessage = useCallback(() => {
+    const text = messagesDraft.trim()
+    if (!text) return
+    setMessagesConversation((current) => ({
+      ...current,
+      messages: [
+        ...current.messages,
+        {
+          id: ++messageIdRef.current,
+          fromMe: true,
+          text,
+          time: stampMessageTime(),
+        },
+      ],
+    }))
+    setMessagesDraft("")
+  }, [messagesDraft, stampMessageTime])
 
   const getOrigin = (e: React.MouseEvent): string => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -1315,7 +1294,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (messagesBodyRef.current) {
       messagesBodyRef.current.scrollTop = messagesBodyRef.current.scrollHeight
     }
-  }, [messagesConversation, messagesTyping])
+  }, [messagesConversation])
 
   useEffect(() => {
     if (editingDesktopItemId === null) return
@@ -1334,10 +1313,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }, 30)
     return () => clearTimeout(timer)
   }, [editingFolderItem])
-
-  useEffect(() => () => {
-    if (messagesReplyTimeoutRef.current) clearTimeout(messagesReplyTimeoutRef.current)
-  }, [])
 
   useEffect(() => {
     const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
@@ -3716,20 +3691,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const titleH = Math.round(mh * 0.09)
                 const sideW = Math.round(mw * 0.29)
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
-                const sidebarBg = isDark ? "linear-gradient(180deg, rgba(42,42,46,0.98), rgba(31,31,35,0.98))" : "linear-gradient(180deg, rgba(247,248,251,0.98), rgba(238,241,246,0.98))"
                 const bodyBg = isDark ? "#16171b" : "#f5f6f8"
-                const chatBg = isDark ? "linear-gradient(180deg, #18191d 0%, #141519 100%)" : "linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%)"
                 const titleBg = isDark ? "rgba(47,47,52,0.92)" : "rgba(250,251,253,0.92)"
                 const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.14)"
                 const textPrimary = isDark ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.95)"
                 const textSecondary = isDark ? "rgba(255,255,255,0.48)" : "rgba(71,85,105,0.74)"
-                const chipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.88)"
-                const bubbleBlue = "#0a84ff"
-                const bubbleGray = isDark ? "rgba(255,255,255,0.09)" : "rgba(230,233,239,0.96)"
-                const myAvatar = "Z"
                 const zIdx = 3 + (windowOrder.indexOf("messages") >= 0 ? windowOrder.indexOf("messages") : 0)
-                const latestMessage = messagesConversation[messagesConversation.length - 1]
-                const availablePrompts = messagePrompts.filter(prompt => !messagesConversation.some(message => message.sender === "visitor" && message.text === prompt.question))
 
                 return (
                   <div
@@ -3803,136 +3770,90 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         ))}
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transform: "translateX(-14px)" }}>
-                        <span style={{ fontSize: Math.round(w * 0.018), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Portfolio Visitor</span>
-                        <span style={{ fontSize: Math.round(w * 0.014), color: "#34c759", fontFamily: ff }}>Active now</span>
-                      </div>
+                      <div />
                       <div style={{ width: Math.round(w * 0.1) }} />
                     </div>
 
                     <div style={{ flex: 1, display: "flex", minHeight: 0, background: bodyBg }}>
-                      <div style={{ width: sideW, flexShrink: 0, background: sidebarBg, borderRight: `0.5px solid ${divider}`, display: "flex", flexDirection: "column" }}>
-                        <div style={{ padding: `${Math.round(mh * 0.024)}px ${Math.round(mw * 0.022)}px ${Math.round(mh * 0.016)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
-                          <div style={{ fontSize: Math.round(w * 0.021), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Messages</div>
-                          <div style={{ height: Math.round(titleH * 0.68), borderRadius: 11, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.82)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", gap: 7, padding: `0 ${Math.round(mw * 0.015)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.0145), fontFamily: ff }}>
-                            <svg width={Math.round(w * 0.015)} height={Math.round(w * 0.015)} viewBox="0 0 24 24" fill="none">
-                              <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
-                              <path d="M16 16l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            Search
+                      <div style={{ width: sideW, flexShrink: 0, background: isDark ? "linear-gradient(180deg, rgba(44,45,50,0.94), rgba(31,32,36,0.92))" : "linear-gradient(180deg, rgba(246,247,249,0.88), rgba(234,236,240,0.72))", borderRight: `0.5px solid ${divider}`, display: "flex", flexDirection: "column" }}>
+                        <div style={{ padding: `${Math.round(mh * 0.022)}px ${Math.round(mw * 0.02)}px ${Math.round(mh * 0.014)}px`, borderBottom: `0.5px solid ${divider}` }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: Math.round(mh * 0.018) }}>
+                            <div style={{ fontSize: Math.round(w * 0.012), fontWeight: 600, color: textSecondary as string, fontFamily: ff }}>Messages</div>
+                            <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 6, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <PencilLine size={Math.round(w * 0.017)} strokeWidth={1.9} />
+                            </button>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 10, border: `0.5px solid ${divider}`, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)", padding: `${Math.round(mh * 0.01)}px ${Math.round(mw * 0.014)}px`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(255,255,255,0.55)" }}>
+                            <Search size={Math.round(w * 0.015)} color={textSecondary as string} strokeWidth={1.9} />
+                            <input value={messagesSearch} onChange={(e) => setMessagesSearch(e.target.value)} placeholder="Search" style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: Math.round(w * 0.013), color: textPrimary as string, fontFamily: ff }} />
                           </div>
                         </div>
-                        <div style={{ padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.014)}px`, overflowY: "auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.01) }}>
-                          <div style={{ fontSize: Math.round(w * 0.0125), fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: textSecondary as string, fontFamily: ff, padding: `0 ${Math.round(mw * 0.01)}px` }}>Pinned</div>
-                          <div style={{ borderRadius: 14, background: isDark ? "linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.16))" : "linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.09))", border: `0.5px solid ${isDark ? "rgba(10,132,255,0.3)" : "rgba(10,132,255,0.14)"}`, padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.016)}px`, display: "flex", alignItems: "center", gap: Math.round(mw * 0.014) }}>
-                            <div style={{ width: Math.round(mw * 0.052), height: Math.round(mw * 0.052), borderRadius: "50%", background: "linear-gradient(135deg,#1ec3ff 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.015), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>PV</div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                                <span style={{ fontSize: Math.round(w * 0.0155), fontWeight: 700, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Portfolio Visitor</span>
-                                <span style={{ fontSize: Math.round(w * 0.0115), color: textSecondary as string, fontFamily: ff }}>now</span>
+                        <div style={{ overflowY: "auto", flex: 1 }}>
+                          {messagesConversation.name.toLowerCase().includes(messagesSearch.toLowerCase()) && (
+                            <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: Math.round(mw * 0.014), padding: `${Math.round(mh * 0.018)}px ${Math.round(mw * 0.016)}px`, textAlign: "left", border: "none", borderBottom: `0.5px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`, background: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.42)" }}>
+                              <div style={{ width: Math.round(mw * 0.052), height: Math.round(mw * 0.052), borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6 0%,#22d3ee 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.015), fontWeight: 700, fontFamily: ff, flexShrink: 0 }}>Z</div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                  <span style={{ fontSize: Math.round(w * 0.0135), fontWeight: 600, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{messagesConversation.name}</span>
+                                  <span style={{ fontSize: Math.round(w * 0.0108), color: textSecondary as string, fontFamily: ff }}>{messagesConversation.messages[messagesConversation.messages.length - 1]?.time}</span>
+                                </div>
+                                <div style={{ marginTop: 2, fontSize: Math.round(w * 0.0128), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{messagesConversation.messages[messagesConversation.messages.length - 1]?.text}</div>
                               </div>
-                              <div style={{ marginTop: 3, fontSize: Math.round(w * 0.0135), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {messagesTyping ? "Zakaria is typing..." : latestMessage?.text ?? "Start a conversation"}
-                              </div>
-                            </div>
-                          </div>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: chatBg }}>
-                        <div style={{ padding: `${Math.round(mh * 0.025)}px ${Math.round(mw * 0.03)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: Math.round(mw * 0.018), background: isDark ? "rgba(24,25,29,0.76)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.016), minWidth: 0 }}>
-                            <div style={{ width: Math.round(mw * 0.056), height: Math.round(mw * 0.056), borderRadius: "50%", background: "linear-gradient(135deg,#34c759 0%,#0a84ff 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: Math.round(w * 0.016), fontWeight: 800, fontFamily: ff, flexShrink: 0 }}>{myAvatar}</div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: Math.round(w * 0.02), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Zakaria</div>
-                              <div style={{ fontSize: Math.round(w * 0.0135), color: textSecondary as string, fontFamily: ff }}>iMessage</div>
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: isDark ? "rgba(24,25,29,0.82)" : "rgba(255,255,255,0.82)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.72)" : "rgba(255,255,255,0.55)", padding: `${Math.round(mh * 0.017)}px ${Math.round(mw * 0.026)}px`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 6, borderRadius: 999, display: "flex" }}>
+                              <ChevronLeft size={Math.round(w * 0.018)} strokeWidth={1.9} />
+                            </button>
+                            <div>
+                              <div style={{ fontSize: Math.round(w * 0.0115), color: textSecondary as string, fontFamily: ff }}>To:</div>
+                              <div style={{ fontSize: Math.round(w * 0.0145), fontWeight: 600, color: textPrimary as string, fontFamily: ff }}>{messagesConversation.name}</div>
                             </div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            {[
-                              <path key="info" d="M12 8.25h.01M11 11h1v5h1" />,
-                              <path key="call" d="M19 17.5v2a1.5 1.5 0 0 1-1.64 1.5A15.5 15.5 0 0 1 3 6.64 1.5 1.5 0 0 1 4.5 5h2A1.5 1.5 0 0 1 8 6.28c.12.94.34 1.86.66 2.73a1.5 1.5 0 0 1-.34 1.58l-.85.85a12 12 0 0 0 5.02 5.02l.85-.85a1.5 1.5 0 0 1 1.58-.34c.87.32 1.79.54 2.73.66A1.5 1.5 0 0 1 19 17.5Z" />,
-                            ].map((icon, idx) => (
-                              <div key={idx} style={{ width: Math.round(mw * 0.032), height: Math.round(mw * 0.032), borderRadius: "50%", background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string }}>
-                                <svg width={Math.round(mw * 0.016)} height={Math.round(mw * 0.016)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  {icon}
-                                </svg>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", padding: `${Math.round(mh * 0.028)}px ${Math.round(mw * 0.03)}px ${Math.round(mh * 0.02)}px`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.02) }}>
-                          <div style={{ alignSelf: "center", padding: `${Math.round(mh * 0.006)}px ${Math.round(mw * 0.012)}px`, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.86)", border: `0.5px solid ${divider}`, fontSize: Math.round(w * 0.012), fontWeight: 700, color: textSecondary as string, fontFamily: ff, letterSpacing: 0.25 }}>
-                            Today
-                          </div>
-                          {messagesConversation.map(message => (
-                            <div key={message.id} style={{ display: "flex", flexDirection: "column", alignItems: message.sender === "zakaria" ? "flex-start" : "flex-end", gap: 5 }}>
-                              <div style={{
-                                maxWidth: "78%",
-                                borderRadius: 21,
-                                ...(message.sender === "zakaria"
-                                  ? { borderTopLeftRadius: 9, background: bubbleGray, color: textPrimary as string, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.8)" }
-                                  : { borderTopRightRadius: 9, background: "linear-gradient(180deg, #1a8cff 0%, #0a84ff 100%)", color: "#fff", boxShadow: "0 10px 24px rgba(10,132,255,0.24)" }),
-                                padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.02)}px`,
-                                fontSize: Math.round(w * 0.016),
-                                lineHeight: 1.42,
-                                fontFamily: ff,
-                                letterSpacing: -0.08,
-                              }}>
-                                {message.text}
-                              </div>
-                              <span style={{ fontSize: Math.round(w * 0.0115), color: textSecondary as string, fontFamily: ff, padding: "0 4px" }}>{message.time}</span>
-                            </div>
-                          ))}
-                          {messagesTyping && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-                              <div style={{ borderRadius: 21, borderTopLeftRadius: 9, background: bubbleGray, padding: `${Math.round(mh * 0.014)}px ${Math.round(mw * 0.018)}px`, display: "flex", alignItems: "center", gap: 6 }}>
-                                {[0, 1, 2].map(dot => (
-                                  <span key={dot} style={{ width: 6, height: 6, borderRadius: "50%", background: textSecondary as string, opacity: 0.7 }} />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.024)}px ${Math.round(mh * 0.02)}px`, borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.82)" : "rgba(250,251,253,0.92)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: Math.round(mw * 0.01) }}>
-                            {availablePrompts.map(prompt => (
-                              <button
-                                key={prompt.id}
-                                type="button"
-                                onClick={() => sendPromptToMessages(prompt)}
-                                disabled={messagesTyping}
-                                style={{
-                                  border: `0.5px solid ${activePromptId === prompt.id ? "#0a84ff" : divider}`,
-                                  borderRadius: 999,
-                                  padding: `${Math.round(mh * 0.009)}px ${Math.round(mw * 0.014)}px`,
-                                  background: activePromptId === prompt.id ? bubbleBlue : chipBg,
-                                  color: activePromptId === prompt.id ? "#fff" : textPrimary as string,
-                                  boxShadow: activePromptId === prompt.id ? "0 8px 22px rgba(10,132,255,0.22)" : "none",
-                                  cursor: messagesTyping ? "default" : "pointer",
-                                  opacity: messagesTyping ? 0.62 : 1,
-                                  fontSize: Math.round(w * 0.0135),
-                                  fontWeight: 600,
-                                  fontFamily: ff,
-                                  letterSpacing: -0.08,
-                                }}
-                              >
-                                {prompt.question}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {[Camera, Video, Info].map((Icon, index) => (
+                              <button key={index} type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 8, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <Icon size={Math.round(w * 0.017)} strokeWidth={1.9} />
                               </button>
                             ))}
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(mw * 0.012) }}>
-                            <div style={{ width: Math.round(mw * 0.03), height: Math.round(mw * 0.03), borderRadius: "50%", background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", justifyContent: "center", color: textSecondary as string, fontSize: Math.round(w * 0.017), fontFamily: ff, flexShrink: 0 }}>+</div>
-                            <div style={{ flex: 1, minHeight: Math.round(titleH * 0.82), borderRadius: 18, background: chipBg, border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.018)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.014), fontFamily: ff }}>
-                              {messagesTyping ? "Zakaria is replying..." : availablePrompts.length > 0 ? "Choose a question to send" : "You answered every quick question"}
-                            </div>
-                            <div style={{ width: Math.round(mw * 0.034), height: Math.round(mw * 0.034), borderRadius: "50%", background: bubbleBlue, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 22px rgba(10,132,255,0.22)", flexShrink: 0 }}>
-                              <svg width={Math.round(mw * 0.015)} height={Math.round(mw * 0.015)} viewBox="0 0 24 24" fill="none">
-                                <path d="M6 12h12M13 5l7 7-7 7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </div>
+                        </div>
+
+                        <div ref={messagesBodyRef} style={{ flex: 1, overflowY: "auto", background: isDark ? "linear-gradient(180deg, rgba(24,25,29,0.94), rgba(20,21,25,0.98))" : "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,248,250,0.96))", padding: `${Math.round(mh * 0.026)}px ${Math.round(mw * 0.028)}px` }}>
+                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", flexDirection: "column", gap: Math.round(mh * 0.018) }}>
+                            {messagesConversation.messages.map((message) => (
+                              <div key={message.id} style={{ display: "flex", justifyContent: message.fromMe ? "flex-end" : "flex-start" }}>
+                                <div style={{ maxWidth: "76%", display: "flex", flexDirection: "column", alignItems: message.fromMe ? "flex-end" : "flex-start", gap: 4 }}>
+                                  <div style={{ padding: `${Math.round(mh * 0.012)}px ${Math.round(mw * 0.018)}px`, fontSize: Math.round(w * 0.014), lineHeight: 1.45, fontFamily: ff, boxShadow: "0 1px 2px rgba(0,0,0,0.06)", ...(message.fromMe ? { borderRadius: "18px 18px 6px 18px", background: "#0A84FF", color: "#fff" } : { borderRadius: "18px 18px 18px 6px", background: isDark ? "rgba(255,255,255,0.1)" : "#ECECEC", color: isDark ? "rgba(255,255,255,0.94)" : "#1f1f1f" }) }}>
+                                    {message.text}
+                                  </div>
+                                  <span style={{ padding: "0 4px", fontSize: Math.round(w * 0.011), color: isDark ? "rgba(255,255,255,0.38)" : "#a1a1aa", fontFamily: ff }}>{message.time}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: `0.5px solid ${divider}`, background: isDark ? "rgba(24,25,29,0.72)" : "rgba(255,255,255,0.6)", padding: `${Math.round(mh * 0.016)}px ${Math.round(mw * 0.026)}px`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
+                          <div style={{ maxWidth: Math.round(mw * 0.62), margin: "0 auto", display: "flex", alignItems: "center", gap: 8, borderRadius: 999, border: `0.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)", padding: `${Math.round(mh * 0.008)}px ${Math.round(mw * 0.012)}px`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.65)" }}>
+                            <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 8, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Plus size={Math.round(w * 0.017)} strokeWidth={1.9} />
+                            </button>
+                            <textarea rows={1} value={messagesDraft} onChange={(e) => setMessagesDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }} placeholder="iMessage" style={{ maxHeight: 110, minHeight: 24, width: "100%", resize: "none", border: "none", outline: "none", background: "transparent", padding: "0 8px", fontSize: Math.round(w * 0.014), color: isDark ? "rgba(255,255,255,0.88)" : "#3f3f46", fontFamily: ff }} />
+                            <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 8, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Smile size={Math.round(w * 0.017)} strokeWidth={1.9} />
+                            </button>
+                            <button type="button" style={{ border: "none", background: "transparent", color: textSecondary as string, padding: 8, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Mic size={Math.round(w * 0.017)} strokeWidth={1.9} />
+                            </button>
+                            <button type="button" onClick={handleSendMessage} disabled={!messagesDraft.trim()} style={{ border: "none", background: "#0A84FF", color: "#fff", padding: 10, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(10,132,255,0.28)", opacity: messagesDraft.trim() ? 1 : 0.5, cursor: messagesDraft.trim() ? "pointer" : "default" }}>
+                              <Send size={Math.round(w * 0.015)} strokeWidth={2.1} />
+                            </button>
                           </div>
                         </div>
                       </div>
