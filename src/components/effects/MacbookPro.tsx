@@ -2163,6 +2163,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { left: fw.pos.x, top: fw.pos.y, width: fwW, height: fwH }),
                       borderRadius: fw.maximized ? 0 : 10,
+                      borderTopLeftRadius: fw.maximized ? 12 : 10,
+                      borderTopRightRadius: fw.maximized ? 12 : 10,
                       background: fwBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -2401,6 +2403,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { left: fe.pos.x, top: fe.pos.y, width: feW, height: feH }),
                       borderRadius: fe.maximized ? 0 : 10,
+                      borderTopLeftRadius: fe.maximized ? 12 : 10,
+                      borderTopRightRadius: fe.maximized ? 12 : 10,
                       background: edBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -2982,6 +2986,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         : { top: winTop, left: winLeft, width: winW, height: winH }
                       ),
                       borderRadius: win.maximized ? 0 : 10,
+                      borderTopLeftRadius: win.maximized ? 12 : 10,
+                      borderTopRightRadius: win.maximized ? 12 : 10,
                       background: winBg,
                       border: `0.5px solid ${isFocused ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.2)") : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.1)")}`,
                       boxShadow: isFocused
@@ -3256,6 +3262,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }
                       ),
                       borderRadius: termMaximized ? 0 : 10,
+                      borderTopLeftRadius: termMaximized ? 12 : 10,
+                      borderTopRightRadius: termMaximized ? 12 : 10,
                       background: winBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.18)"}`,
                       boxShadow: isDark
@@ -3666,6 +3674,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? { top: mbH, left: 0, right: 0, bottom: 0 }
                         : { top: baseTop + messagesPos.y, left: baseLeft + messagesPos.x, width: mw, height: mh }),
                       borderRadius: messagesMaximized ? 0 : 16,
+                      borderTopLeftRadius: messagesMaximized ? 12 : 16,
+                      borderTopRightRadius: messagesMaximized ? 12 : 16,
                       overflow: "hidden",
                       background: bodyBg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.72)"}`,
@@ -3906,7 +3916,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tlSz  = Math.round(22 * 0.54)
                 const tlGap = Math.round(22 * 0.45)
                 const tlLeft = Math.round(22 * 0.64)
-                const toolbarH = Math.round(sh2 * 0.068)
+                const toolbarH = Math.round(sh2 * 0.078)
                 const tabH     = Math.round(sh2 * 0.062)
                 const bg    = isDark ? "#2b2b2f" : "#eef2f7"
                 const toolBg = isDark ? "rgba(36,36,40,0.9)" : "rgba(246,248,251,0.88)"
@@ -3917,9 +3927,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const panelBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)"
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
                 const fs = (n: number) => Math.round(sw2 * n)
-                const safariHost = safariUrl
-                  ? (() => { try { return new URL(safariUrl.startsWith("http") ? safariUrl : "https://" + safariUrl).hostname } catch { return safariUrl } })()
-                  : ""
                 const projectSuggestions = (projects ?? []).flatMap((project) => {
                   const entries: { label: string; url: string; meta: string; icon: string }[] = []
                   if (project.liveUrl && project.liveUrl !== "#") {
@@ -3962,6 +3969,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         : { top: baseTop + safariPos.y, left: baseLeft + safariPos.x, width: sw2, height: sh2 }
                       ),
                       borderRadius: safariMaximized ? 0 : 14,
+                      borderTopLeftRadius: safariMaximized ? 12 : 14,
+                      borderTopRightRadius: safariMaximized ? 12 : 14,
                       background: bg,
                       border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.65)"}`,
                       boxShadow: isDark
@@ -4013,7 +4022,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                       {/* URL bar */}
                       <div style={{ flex: 1, position: "relative", zIndex: 12 }} onMouseDown={e => { e.stopPropagation(); setSafariInputFocused(true) }}>
-                      <div style={{ height: Math.round(toolbarH * 0.7), background: inputBg, borderRadius: Math.round(toolbarH * 0.38), display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.013), paddingRight: Math.round(sw2 * 0.01), gap: Math.round(sw2 * 0.007), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.85)" }} onMouseDown={e => e.stopPropagation()}>
+                      <div style={{ height: Math.round(toolbarH * 0.82), background: inputBg, borderRadius: Math.round(toolbarH * 0.22), display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.015), paddingRight: Math.round(sw2 * 0.012), gap: Math.round(sw2 * 0.008), border: `0.5px solid ${divClr}`, boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.85)" }} onMouseDown={e => e.stopPropagation()}>
                         <svg width={Math.round(sw2 * 0.014)} height={Math.round(sw2 * 0.014)} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill={textSec as string} />
                         </svg>
@@ -4027,7 +4036,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onClick={e => e.stopPropagation()}
                           onMouseDown={e => e.stopPropagation()}
                           placeholder="Search or enter website name"
-                          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
+                          style={{ flex: 1, height: "100%", background: "transparent", border: "none", outline: "none", fontSize: Math.round(sw2 * 0.016), fontFamily: ff, color: textPrimary as string, caretColor: "#0a84ff" }}
                         />
                         {safariInput && (
                           <div onClick={e => { e.stopPropagation(); setSafariInput("") }} onMouseDown={e => e.stopPropagation()} style={{ cursor: "pointer", color: textSec as string, fontSize: Math.round(sw2 * 0.018), lineHeight: 1 }}>x</div>
@@ -4126,9 +4135,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       )}
                       </div>
-                      <div style={{ padding: `0 ${Math.round(sw2 * 0.012)}px`, height: Math.round(toolbarH * 0.46), borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: isDark ? "#a5f3fc" : "#0369a1", fontSize: Math.round(sw2 * 0.0135), fontWeight: 600, fontFamily: ff }}>
-                        {safariHost || "Start Page"}
-                      </div>
                       <div
                         onClick={e => {
                           e.stopPropagation()
@@ -4166,6 +4172,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     <div style={{ height: Math.round(tabH * 1.18), flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.014), paddingRight: Math.round(sw2 * 0.014), gap: Math.round(sw2 * 0.009), backdropFilter: "blur(18px) saturate(1.15)", WebkitBackdropFilter: "blur(18px) saturate(1.15)" }}>
                       {safariTabs.map(tab => {
                         const isActiveTab = tab.id === activeSafariTabId
+                        const tabLabel = tab.url
+                          ? (() => {
+                              try {
+                                return new URL(tab.url.startsWith("http") ? tab.url : "https://" + tab.url).hostname.replace(/^www\./, "")
+                              } catch {
+                                return "Safari"
+                              }
+                            })()
+                          : "New Tab"
                         return (
                           <div
                             key={tab.id}
@@ -4181,7 +4196,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               background: isActiveTab
                                 ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.92)")
                                 : (isDark ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.56)"),
-                              borderRadius: Math.round(tabH * 0.4),
+                              borderRadius: Math.round(tabH * 0.2),
                               display: "flex",
                               alignItems: "center",
                               gap: Math.round(sw2 * 0.01),
@@ -4196,7 +4211,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             }}
                           >
                             <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.42), height: Math.round(tabH * 0.42), borderRadius: 4, flexShrink: 0 }} draggable={false} />
-                            <span style={{ fontSize: fs(0.0155), fontWeight: 600, fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: -0.1 }}>{tab.url || "New Tab"}</span>
+                            <span style={{ fontSize: fs(0.0155), fontWeight: 600, fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: -0.1 }}>{tabLabel}</span>
                             <button
                               type="button"
                               aria-label="Close tab"
@@ -4302,26 +4317,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 />
                               )
                             ) : (
-                              <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: Math.round(sh2 * 0.1), gap: Math.round(sh2 * 0.03), background: isDark ? "radial-gradient(circle at top, rgba(14,165,233,0.16), transparent 24%), #111215" : "radial-gradient(circle at top, rgba(14,165,233,0.14), transparent 26%), #f8fafc", overflow: "auto" }}>
-                                <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072) }} draggable={false} />
-                                <div style={{ fontSize: fs(0.028), fontWeight: 600, fontFamily: ff, color: textPrimary as string }}>Start Page</div>
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: Math.round(sw2 * 0.018), width: Math.round(sw2 * 0.72) }}>
-                                  {[
-                                    { label: "GitHub", url: "https://github.com", color: "#24292e", icon: "G" },
-                                    { label: "Google", url: "https://google.com", color: "#4285f4", icon: "G" },
-                                    { label: "YouTube", url: "https://youtube.com", color: "#ff0000", icon: "?" },
-                                    { label: "MDN", url: "https://developer.mozilla.org", color: "#0065a2", icon: "M" },
-                                    { label: "Vercel", url: "https://vercel.com", color: "#000", icon: "?" },
-                                    { label: "NPM", url: "https://npmjs.com", color: "#cb3837", icon: "N" },
-                                    { label: "Tailwind", url: "https://tailwindcss.com", color: "#38bdf8", icon: "T" },
-                                    { label: "TypeScript", url: "https://typescriptlang.org", color: "#3178c6", icon: "TS" },
-                                  ].map(fav => (
-                                    <div key={fav.label} onClick={() => navigate(fav.url)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: Math.round(sh2 * 0.014), cursor: "pointer" }}>
-                                      <div style={{ width: Math.round(sw2 * 0.065), height: Math.round(sw2 * 0.065), borderRadius: Math.round(sw2 * 0.014), background: fav.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs(0.022), fontWeight: 700, color: "#fff", fontFamily: ff, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>{fav.icon}</div>
-                                      <span style={{ fontSize: fs(0.014), fontFamily: ff, color: textSec as string }}>{fav.label}</span>
-                                    </div>
-                                  ))}
-                                </div>
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "radial-gradient(circle at top, rgba(14,165,233,0.16), transparent 24%), #111215" : "radial-gradient(circle at top, rgba(14,165,233,0.14), transparent 26%), #f8fafc", overflow: "auto" }}>
+                                <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(sw2 * 0.072), height: Math.round(sw2 * 0.072), opacity: isDark ? 0.82 : 0.9 }} draggable={false} />
                               </div>
                             )}
                           </div>
@@ -4450,6 +4447,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }),
                       zIndex: 3 + (windowOrder.indexOf("finder") >= 0 ? windowOrder.indexOf("finder") : 0),
                       borderRadius: finderMaximized ? 0 : 10,
+                      borderTopLeftRadius: finderMaximized ? 12 : 10,
+                      borderTopRightRadius: finderMaximized ? 12 : 10,
                       overflow: "hidden",
                       display: "flex", flexDirection: "column",
                       boxShadow: "0 24px 60px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.1)",
