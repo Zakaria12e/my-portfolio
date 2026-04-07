@@ -151,20 +151,7 @@ function ResizeHandle({
         cursor: "nwse-resize",
         zIndex: 30,
       }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          right: 4,
-          bottom: 4,
-          width: 8,
-          height: 8,
-          borderRight: "1.5px solid rgba(255,255,255,0.34)",
-          borderBottom: "1.5px solid rgba(255,255,255,0.34)",
-          opacity: 0.85,
-        }}
-      />
-    </div>
+    />
   )
 }
 
@@ -181,6 +168,14 @@ function resolvePath(cwd: string, target: string): string {
 
 type FsEntry = { name: string; type: "folder" | "file" }
 type TermFs   = Record<string, FsEntry[]>
+type TermLine = {
+  text?: string
+  color?: string
+  items?: FsEntry[]
+  parts?: { text: string; color?: string }[]
+  helpSection?: string
+  helpRow?: { cmd: string; args: string; desc: string }
+}
 
 function getDirs(cwd: string, slugs: string[], userFs: TermFs = {}): string[] {
   const userDirs = (userFs[cwd] ?? []).filter(e => e.type === "folder").map(e => e.name)
@@ -256,7 +251,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [finderSidebarSel, setFinderSidebarSel] = useState("project")
   const [termInput, setTermInput] = useState("")
   const [termCwd, setTermCwd] = useState("~")
-  const [termLines, setTermLines] = useState<{ text?: string; color?: string; items?: FsEntry[]; parts?: { text: string; color?: string }[] }[]>([])
+  const [termLines, setTermLines] = useState<TermLine[]>([])
   const [termFs, setTermFs] = useState<TermFs>({})
   const termFsRef = useRef<TermFs>({})
   const [desktopItems, setDesktopItems] = useState<DesktopItem[]>([
@@ -1234,29 +1229,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else if (cmd === "clear" || cmd === "cls") {
       setTermLines([])
     } else if (cmd === "help") {
-      const c = { cmd: "#64d2ff", arg: "#ffd60a", sep: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)", dim: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.35)", sec: "#bf5af2", desc: isDark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.58)" }
-      const row = (cmd: string, args: string, desc: string) => ({ parts: [
-        { text: "  " },
-        { text: cmd.padEnd(8), color: c.cmd },
-        { text: (args + " ").padEnd(16), color: c.arg },
-        { text: desc, color: c.desc },
-      ]})
+      const row = (cmd: string, args: string, desc: string) => ({ helpRow: { cmd, args, desc } })
       setTermLines(l => [...l, echo,
-        { parts: [{ text: "  filesystem", color: c.sec }] },
+        { helpSection: "filesystem" },
         row("ls",      "",               "list directory contents"),
         row("mkdir",   "<name>",         "create a folder"),
         row("touch",   "<name>",         "create an empty file"),
         row("write",   "<file> <text>",  "write text into a file"),
         row("cd",      "<dir>",          "navigate  (Tab autocompletes)"),
         { text: "" },
-        { parts: [{ text: "  project", color: c.sec }] },
+        { helpSection: "project" },
         row("desc",    "",               "show project description"),
         row("stack",   "",               "show tech stack"),
         row("features","",               "list key features"),
         row("github",  "",               "open repo in browser"),
         row("live",    "",               "open live demo"),
         { text: "" },
-        { parts: [{ text: "  terminal", color: c.sec }] },
+        { helpSection: "terminal" },
         row("clear",   "",               "clear the screen"),
         row("help",    "",               "show this menu"),
       ])
@@ -3349,11 +3338,35 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         overflowY: "auto", scrollbarWidth: "none" as const,
                         cursor: "text",
                         fontFamily: "'SF Mono','Fira Code','Consolas',monospace",
-                        fontSize: Math.round(w * 0.021), lineHeight: 1.65,
+                        fontSize: Math.round(w * 0.0165), lineHeight: 1.5,
                       }}
                     >
                       {termLines.map((line, i) => (
-                        line.parts ? (
+                        line.helpSection ? (
+                          <div key={i} style={{ padding: `${Math.round(w * 0.004)}px 0 ${Math.round(w * 0.003)}px`, fontSize: Math.round(w * 0.014), lineHeight: 1.35 }}>
+                            <span style={{ color: "#bf5af2", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 700 }}>
+                              {line.helpSection}
+                            </span>
+                          </div>
+                        ) : line.helpRow ? (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap" as const,
+                              alignItems: "baseline",
+                              gap: `${Math.round(w * 0.006)}px ${Math.round(w * 0.014)}px`,
+                              paddingBottom: 2,
+                              paddingLeft: Math.round(w * 0.01),
+                              fontSize: Math.round(w * 0.0155),
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <span style={{ color: "#64d2ff", fontWeight: 700, flex: "0 0 5.5em" }}>{line.helpRow.cmd}</span>
+                            <span style={{ color: "#ffd60a", flex: "0 1 9.5em", minWidth: 0 }}>{line.helpRow.args || "-"}</span>
+                            <span style={{ color: isDark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.58)", flex: "1 1 12em", minWidth: 0 }}>{line.helpRow.desc}</span>
+                          </div>
+                        ) : line.parts ? (
                           <div key={i} style={{ paddingBottom: 1 }}>
                             {line.parts.map((p, pi) => (
                               <span key={pi} style={{ color: p.color ?? termText }}>{p.text}</span>

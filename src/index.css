@@ -134,9 +134,19 @@
     @apply border-border outline-ring/50;
     font-family: 'Poppins', sans-serif;
   }
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
 }
 
