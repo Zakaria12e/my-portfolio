@@ -4333,7 +4333,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
 
                     {/* Tab bar */}
-                    <div style={{ height: Math.round(tabH * 1.18), flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.014), paddingRight: Math.round(sw2 * 0.014), gap: Math.round(sw2 * 0.009), backdropFilter: "blur(18px) saturate(1.15)", WebkitBackdropFilter: "blur(18px) saturate(1.15)" }}>
+                    <div style={{ height: Math.round(tabH * 1.18), flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", paddingLeft: Math.round(sw2 * 0.014), paddingRight: Math.round(sw2 * 0.014), gap: 0, backdropFilter: "blur(18px) saturate(1.15)", WebkitBackdropFilter: "blur(18px) saturate(1.15)" }}>
                       {safariTabs.map(tab => {
                         const isActiveTab = tab.id === activeSafariTabId
                         const tabLabel = tab.url
@@ -4535,7 +4535,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     transform: "translateX(-50%)",
                                     width: Math.min(Math.round(sw2 * 0.62), 640),
                                     padding: `${Math.round(sh2 * 0.008)}px ${Math.round(sw2 * 0.015)}px ${Math.round(sh2 * 0.009)}px`,
-                                    borderRadius: 0,
+                                    borderRadius: 10,
                                     background: isDark ? "rgba(255,255,255,0.08)" : "transparent",
                                     backdropFilter: isDark ? "blur(14px)" : "none",
                                     WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
@@ -4593,7 +4593,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                             style={{
                                               width: iconSize,
                                               height: iconSize,
-                                              borderRadius: 11,
+                                              borderRadius: 15,
                                               overflow: "hidden",
                                               display: "flex",
                                               alignItems: "center",
