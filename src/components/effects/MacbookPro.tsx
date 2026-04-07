@@ -240,6 +240,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561859/dreamy-lines_upvr7l.jpg",
   ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
+  const [prevWallpaper, setPrevWallpaper] = useState<string | null>(null)
+  const [wallpaperTransitioning, setWallpaperTransitioning] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderMinimized, setFinderMinimized] = useState(false)
   const [finderMinimizing, setFinderMinimizing] = useState(false)
@@ -1750,8 +1752,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       bottom: 4,
       borderRadius: 3,
       overflow: "hidden",
-      background: `url("${wallpaper}") center/cover no-repeat`,
-      transition: "background 0.4s ease",
+      background: "#000",
       zIndex: 1,
       cursor: `url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, default`,
     },
@@ -1814,6 +1815,25 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const slotSize = ICON_BASE
   // Reserve enough vertical room for the tallest possible scaled icon
   const dockH = Math.round(ICON_BASE * MAX_SCALE) + DOCK_PAD_Y * 2 + 4
+
+  const switchWallpaper = useCallback((nextWallpaper: string) => {
+    if (!nextWallpaper || nextWallpaper === wallpaper) return
+    setPrevWallpaper(wallpaper)
+    setWallpaper(nextWallpaper)
+    setWallpaperTransitioning(false)
+    window.setTimeout(() => {
+      setWallpaperTransitioning(true)
+    }, 16)
+  }, [wallpaper])
+
+  useEffect(() => {
+    if (!wallpaperTransitioning) return
+    const timer = window.setTimeout(() => {
+      setPrevWallpaper(null)
+      setWallpaperTransitioning(false)
+    }, 520)
+    return () => window.clearTimeout(timer)
+  }, [wallpaperTransitioning])
 
   return (
     <div
@@ -1907,6 +1927,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, targetId: null })
             }
           }}>
+            {prevWallpaper && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: `url("${prevWallpaper}") center/cover no-repeat`,
+                  opacity: wallpaperTransitioning ? 0 : 1,
+                  transform: wallpaperTransitioning ? "scale(1.018)" : "scale(1)",
+                  transition: "opacity 0.52s ease, transform 0.7s ease",
+                  zIndex: 0,
+                }}
+              />
+            )}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: `url("${wallpaper}") center/cover no-repeat`,
+                opacity: 1,
+                transform: "scale(1)",
+                transition: "opacity 0.52s ease",
+                zIndex: 0,
+              }}
+            />
             <div style={s.screenOff} />
             <div style={s.screenOn} onClick={() => {
               setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))
@@ -2876,7 +2920,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     <div
                       onClick={() => {
                         const idx = WALLPAPERS.indexOf(wallpaper)
-                        setWallpaper(WALLPAPERS[(idx + 1) % WALLPAPERS.length])
+                        switchWallpaper(WALLPAPERS[(idx + 1) % WALLPAPERS.length])
                       }}
                       style={{
                         background: tileBg, borderRadius: tileR, cursor: "pointer",
@@ -2888,8 +2932,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         transition: "background 0.15s",
                       }}
                     >
-                      <div style={{ flexShrink: 0, borderRadius: Math.round(panW * 0.026), overflow: "hidden", width: Math.round(panW * 0.22), height: Math.round(panW * 0.14), boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-                        <img src={wallpaper} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
+                      <div style={{ flexShrink: 0, borderRadius: Math.round(panW * 0.026), overflow: "hidden", width: Math.round(panW * 0.22), height: Math.round(panW * 0.14), boxShadow: "0 2px 8px rgba(0,0,0,0.3)", position: "relative" }}>
+                        {prevWallpaper && (
+                          <img
+                            src={prevWallpaper}
+                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: wallpaperTransitioning ? 0 : 1, transition: "opacity 0.52s ease" }}
+                            draggable={false}
+                          />
+                        )}
+                        <img src={wallpaper} style={{ position: "relative", zIndex: 1, width: "100%", height: "100%", objectFit: "cover", display: "block" }} draggable={false} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: fsPx(13), fontWeight: 600, fontFamily: ff, color: textPri, lineHeight: "1.3" }}>Wallpaper</div>
