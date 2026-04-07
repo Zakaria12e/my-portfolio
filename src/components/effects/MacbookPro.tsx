@@ -549,6 +549,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
+  const shouldSnapWindowToTop = useCallback((clientY: number) => {
+    const rect = screenRef.current?.getBoundingClientRect()
+    if (!rect) return false
+    return clientY <= rect.top + 18
+  }, [])
+
   const focusWin = useCallback((id: number) => {
     setControlCenterOpen(false)
     setOpenWindows(ws => {
@@ -2193,6 +2199,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
                       zIndex: zIdx,
+                      transition: folderWinDragRef.current?.id === fw.id ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                       animation: fw.minimizing ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards" : "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
@@ -2210,7 +2217,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : f
                           ))
                         }
-                        const onUp = () => { folderWinDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setFolderWins(prev => prev.map(f => f.id === fw.id ? { ...f, maximized: true, pos: { x: f.pos.x, y: Math.max(f.pos.y, 28) } } : f))
+                          }
+                          folderWinDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
@@ -2433,6 +2447,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       display: "flex", flexDirection: "column",
                       overflow: "hidden",
                       zIndex: zIdx,
+                      transition: fileEditorDragRef.current?.id === fe.id ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                       animation: fe.minimizing ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards" : "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
@@ -2450,7 +2465,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : f
                           ))
                         }
-                        const onUp = () => { fileEditorDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setFileEditorWins(prev => prev.map(f => f.id === fe.id ? { ...f, maximized: true, pos: { x: f.pos.x, y: Math.max(f.pos.y, 28) } } : f))
+                          }
+                          fileEditorDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
@@ -3049,7 +3071,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : w
                           ))
                         }
-                        const onUp = () => {
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            updateWin(win.id, { maximized: true, pos: { x: win.pos.x, y: Math.max(win.pos.y, 0) } })
+                          }
                           winDragRef.current = null
                           window.removeEventListener("mousemove", onMove)
                           window.removeEventListener("mouseup", onUp)
@@ -3302,7 +3327,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
                         : "winIn 0.36s cubic-bezier(0.22,1,0.36,1)",
                       transformOrigin: termOrigin,
-                      transition: termDragRef.current ? "none" : "border-radius 0.2s ease",
+                      transition: termDragRef.current ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                     }}
                   >
                     {/* Title bar */}
@@ -3316,7 +3341,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           if (!drag) return
                           setTermPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
                         }
-                        const onUp = () => { termDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setTermPos(pos => ({ x: pos.x, y: Math.max(pos.y, 0) }))
+                            setTermMaximized(true)
+                          }
+                          termDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
                         window.addEventListener("mousemove", onMove)
                         window.addEventListener("mouseup", onUp)
                       }}
@@ -3731,6 +3764,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       animation: messagesMinimizing
                         ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
                         : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      transition: messagesDragRef.current ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                     }}
                   >
                     <div
@@ -3743,7 +3777,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           if (!d) return
                           setMessagesPos({ x: d.ox + ev.clientX - d.startX, y: d.oy + ev.clientY - d.startY })
                         }
-                        const onUp = () => {
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setMessagesPos(pos => ({ x: pos.x, y: Math.max(pos.y, 0) }))
+                            setMessagesMaximized(true)
+                          }
                           messagesDragRef.current = null
                           window.removeEventListener("mousemove", onMove)
                           window.removeEventListener("mouseup", onUp)
@@ -4001,6 +4039,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       animation: safariMinimizing
                         ? "mbMinimize 0.36s cubic-bezier(0.4,0,0.6,1) forwards"
                         : "winIn 0.32s cubic-bezier(0.22,1,0.36,1)",
+                      transition: safariDragRef.current ? "none" : "width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s cubic-bezier(0.32,0.72,0,1), top 0.3s cubic-bezier(0.32,0.72,0,1), left 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.28s",
                     }}
                   >
                     {/* Title bar + URL bar */}
@@ -4013,7 +4052,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           const d = safariDragRef.current; if (!d) return
                           setSafariPos({ x: d.ox + ev.clientX - d.startX, y: d.oy + ev.clientY - d.startY })
                         }
-                        const onUp = () => { safariDragRef.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp) }
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setSafariPos(pos => ({ x: pos.x, y: Math.max(pos.y, 0) }))
+                            setSafariMaximized(true)
+                          }
+                          safariDragRef.current = null
+                          window.removeEventListener("mousemove", onMove)
+                          window.removeEventListener("mouseup", onUp)
+                        }
                         window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp)
                       }}
                       style={{ height: toolbarH, flexShrink: 0, background: toolBg, borderBottom: `0.5px solid ${divClr}`, display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.01), paddingRight: Math.round(sw2 * 0.015), userSelect: "none", cursor: "grab", backdropFilter: "blur(18px) saturate(1.25)", WebkitBackdropFilter: "blur(18px) saturate(1.25)", overflow: "visible", zIndex: 6 }}
@@ -4505,7 +4552,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           if (!drag) return
                           setFinderPos({ x: drag.ox + ev.clientX - drag.startX, y: drag.oy + ev.clientY - drag.startY })
                         }
-                        const onUp = () => {
+                        const onUp = (ev: MouseEvent) => {
+                          if (shouldSnapWindowToTop(ev.clientY)) {
+                            setFinderPos(pos => ({ x: pos.x, y: Math.max(pos.y, 0) }))
+                            setFinderMaximized(true)
+                          }
                           finderDragRef.current = null
                           window.removeEventListener("mousemove", onMove)
                           window.removeEventListener("mouseup", onUp)
