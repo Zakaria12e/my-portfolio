@@ -545,10 +545,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [])
 
   const bringToFront = useCallback((key: MacWindowKey) => {
+    setControlCenterOpen(false)
     setWindowOrder(o => [...o.filter(k => k !== key), key])
   }, [])
 
   const focusWin = useCallback((id: number) => {
+    setControlCenterOpen(false)
     setOpenWindows(ws => {
       const win = ws.find(w => w.id === id)
       if (!win) return ws
@@ -654,6 +656,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const focusFolderWin = useCallback((id: number) => {
     const key = `folder:${id}` as const
+    setControlCenterOpen(false)
     setFolderWins(ws => {
       const win = ws.find(w => w.id === id)
       if (!win) return ws
@@ -664,6 +667,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const focusFileEditorWin = useCallback((id: number) => {
     const key = `file:${id}` as const
+    setControlCenterOpen(false)
     setFileEditorWins(ws => {
       const win = ws.find(w => w.id === id)
       if (!win) return ws
@@ -3273,7 +3277,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const zIdx    = 3 + (windowOrder.indexOf("terminal") >= 0 ? windowOrder.indexOf("terminal") : windowOrder.length)
                 return (
                   <div
-                    onClick={() => setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])}
+                    onClick={() => { setControlCenterOpen(false); setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"]) }}
                     style={{
                       position: "absolute",
                       ...(termMaximized
