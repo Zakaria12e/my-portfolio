@@ -335,7 +335,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [safariMaximized, setSafariMaximized] = useState(false)
   const [safariPos, setSafariPos] = useState({ x: 0, y: 0 })
   const [safariSize, setSafariSize] = useState({ w: 0, h: 0 })
-  const [safariTabs, setSafariTabs] = useState<{ id: number; url: string }[]>([{ id: 1, url: "" }])
+  const [safariTabs, setSafariTabs] = useState<{ id: number; url: string; history: string[]; historyIndex: number }[]>([{ id: 1, url: "", history: [""], historyIndex: 0 }])
   const [activeSafariTabId, setActiveSafariTabId] = useState(1)
   const [safariInput, setSafariInput] = useState("")
   const [safariInputFocused, setSafariInputFocused] = useState(false)
@@ -665,7 +665,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     let url = raw.trim()
     if (!url || url === "#") return
     if (!/^https?:\/\//i.test(url)) url = "https://" + url
-    setSafariTabs(tabs => tabs.map(tab => tab.id === activeSafariTabId ? { ...tab, url } : tab))
+    setSafariTabs(tabs => tabs.map(tab => {
+      if (tab.id !== activeSafariTabId) return tab
+      const currentUrl = tab.history[tab.historyIndex] ?? tab.url
+      if (currentUrl === url) return { ...tab, url }
+      const nextHistory = [...tab.history.slice(0, tab.historyIndex + 1), url]
+      return {
+        ...tab,
+        url,
+        history: nextHistory,
+        historyIndex: nextHistory.length - 1,
+      }
+    }))
     setSafariInput(url)
     setSafariMinimized(false)
     setSafariMinimizing(false)
@@ -1267,25 +1278,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else if (cmd === "clear" || cmd === "cls") {
       setTermLines([])
     } else if (cmd === "help") {
-      const row = (cmd: string, args: string, desc: string) => ({ helpRow: { cmd, args, desc } })
+      const helpLine = (name: string, text: string) => ({
+        text: `${name.padEnd(12, " ")}${text}`,
+        color: isDark ? "rgba(255,255,255,0.74)" : "rgba(0,0,0,0.74)",
+      })
       setTermLines(l => [...l, echo,
-        { helpSection: "filesystem" },
-        row("ls",      "",               "list directory contents"),
-        row("mkdir",   "<name>",         "create a folder"),
-        row("touch",   "<name>",         "create an empty file"),
-        row("write",   "<file> <text>",  "write text into a file"),
-        row("cd",      "<dir>",          "navigate  (Tab autocompletes)"),
+        { text: "Terminal commands", color: isDark ? "#f5f5f7" : "#111827" },
+        { text: "Filesystem", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.34)" },
+        helpLine("ls", "List directory contents"),
+        helpLine("mkdir", "Create a folder"),
+        helpLine("touch", "Create an empty file"),
+        helpLine("write", "Write text into a file"),
+        helpLine("cd", "Change directory"),
         { text: "" },
-        { helpSection: "project" },
-        row("desc",    "",               "show project description"),
-        row("stack",   "",               "show tech stack"),
-        row("features","",               "list key features"),
-        row("github",  "",               "open repo in browser"),
-        row("live",    "",               "open live demo"),
+        { text: "Project", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.34)" },
+        helpLine("desc", "Show project description"),
+        helpLine("stack", "Show tech stack"),
+        helpLine("features", "List key features"),
+        helpLine("github", "Open repo in browser"),
+        helpLine("live", "Open live demo"),
         { text: "" },
-        { helpSection: "terminal" },
-        row("clear",   "",               "clear the screen"),
-        row("help",    "",               "show this menu"),
+        { text: "Terminal", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.34)" },
+        helpLine("clear", "Clear the screen"),
+        helpLine("help", "Show this list"),
       ])
     } else if (cmd === "") {
       setTermLines(l => [...l, echo])
@@ -1297,7 +1312,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setTermInput("")
   }, [description, tags, features, githubUrl, liveUrl, projectSlug, isDark, allProjectSlugs, openWindow, openSafariUrl])
 
-  // Auto-focus input + show welcome hint when terminal opens
+  // Auto-focus input and reset terminal when it opens
   useEffect(() => {
     if (terminalOpen) {
       const cwd = proj ? `~/projects/${projectSlug}` : "~"
@@ -1307,11 +1322,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         ...prev,
         "~": desktopItems.filter(d => !d.locked).map(d => ({ name: d.name, type: d.type })),
       }))
-      setTermLines([
-        { text: "Type  help  to see available commands.", color: "#ffd60a" },
-        { text: "Tip   Tab to autocomplete commands and paths.", color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" },
-        ...(!proj ? [{ text: "Tip   cd projects  to browse projects.", color: "#0a84ff" }] : []),
-      ])
+      setTermLines([])
       setTermMinimized(false)
       setTermMinimizing(false)
       setTermMaximized(false)
@@ -3475,7 +3486,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               alignItems: "baseline",
                               gap: `${Math.round(w * 0.006)}px ${Math.round(w * 0.014)}px`,
                               paddingBottom: 2,
-                              paddingLeft: Math.round(w * 0.01),
                               fontSize: Math.round(w * 0.0155),
                               lineHeight: 1.4,
                             }}
@@ -4009,7 +4019,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const tabH     = Math.round(sh2 * 0.062)
                 const bg    = isDark ? "#2b2b2f" : "#eef2f7"
                 const toolBg = isDark ? "rgba(36,36,40,0.9)" : "rgba(246,248,251,0.88)"
-                const inputBg = isDark ? "rgba(22,22,24,0.9)" : "rgba(255,255,255,0.94)"
+                const inputBg = isDark ? "rgba(22,22,24,0.9)" : "rgba(241,245,249,0.96)"
                 const divClr  = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.22)"
                 const textPrimary = isDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.85)"
                 const textSec     = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)"
@@ -4063,6 +4073,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 ]
                   .filter((entry, index, entries) => entries.findIndex((candidate) => candidate.url === entry.url) === index)
                   .slice(0, 6)
+                const activeSafariTab = safariTabs.find(tab => tab.id === activeSafariTabId)
+                const canGoBack = (activeSafariTab?.historyIndex ?? 0) > 0
+                const canGoForward = activeSafariTab ? activeSafariTab.historyIndex < activeSafariTab.history.length - 1 : false
                 const navigate = (raw: string) => {
                   openSafariUrl(raw)
                 }
@@ -4134,6 +4147,42 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             />
                           </div>
                         ))}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: Math.round(sw2 * 0.006), flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (!canGoBack) return
+                            setSafariTabs(tabs => tabs.map(tab => {
+                              if (tab.id !== activeSafariTabId || tab.historyIndex <= 0) return tab
+                              const nextIndex = tab.historyIndex - 1
+                              return { ...tab, historyIndex: nextIndex, url: tab.history[nextIndex] ?? "" }
+                            }))
+                          }}
+                          style={{ border: "none", background: "transparent", color: canGoBack ? textSec as string : (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)"), padding: 0, width: Math.round(sw2 * 0.022), height: Math.round(sw2 * 0.022), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: canGoBack ? "pointer" : "default" }}
+                        >
+                          <svg width={Math.round(sw2 * 0.014)} height={Math.round(sw2 * 0.014)} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M12.5 5.5 7.5 10l5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (!canGoForward) return
+                            setSafariTabs(tabs => tabs.map(tab => {
+                              if (tab.id !== activeSafariTabId || tab.historyIndex >= tab.history.length - 1) return tab
+                              const nextIndex = tab.historyIndex + 1
+                              return { ...tab, historyIndex: nextIndex, url: tab.history[nextIndex] ?? "" }
+                            }))
+                          }}
+                          style={{ border: "none", background: "transparent", color: canGoForward ? textSec as string : (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)"), padding: 0, width: Math.round(sw2 * 0.022), height: Math.round(sw2 * 0.022), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: canGoForward ? "pointer" : "default" }}
+                        >
+                          <svg width={Math.round(sw2 * 0.014)} height={Math.round(sw2 * 0.014)} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M7.5 5.5 12.5 10l-5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
                       </div>
                       {/* URL bar */}
                       <div style={{ flex: 1, position: "relative", zIndex: 12 }} onMouseDown={e => { e.stopPropagation(); setSafariInputFocused(true) }}>
@@ -4340,7 +4389,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             <button
                               type="button"
                               aria-label="Close tab"
-                              style={{ width: Math.round(tabH * 0.5), height: Math.round(tabH * 0.5), minWidth: Math.round(tabH * 0.5), borderRadius: "50%", border: "none", background: isActiveTab ? (isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)") : "transparent", color: textSec as string, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0, transition: "background 0.18s ease, color 0.18s ease" }}
+                              style={{ width: Math.round(tabH * 0.5), height: Math.round(tabH * 0.5), minWidth: Math.round(tabH * 0.5), borderRadius: 0, border: "none", background: "transparent", color: textSec as string, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}
                               onClick={e => {
                                 e.stopPropagation()
                                 setSafariTabs(currentTabs => {
@@ -4375,11 +4424,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onClick={e => {
                           e.stopPropagation()
                           const nextTabId = ++safariTabIdRef.current
-                          setSafariTabs(currentTabs => [...currentTabs, { id: nextTabId, url: "" }])
+                          setSafariTabs(currentTabs => [...currentTabs, { id: nextTabId, url: "", history: [""], historyIndex: 0 }])
                           setActiveSafariTabId(nextTabId)
                           setSafariInputFocused(false)
                         }}
-                        style={{ width: Math.round(tabH * 0.88), height: Math.round(tabH * 0.88), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.02), fontWeight: 600, borderRadius: 999, background: panelBg, border: `0.5px solid ${divClr}`, flexShrink: 0 }}
+                        style={{ width: Math.round(tabH * 0.88), height: Math.round(tabH * 0.88), display: "flex", alignItems: "center", justifyContent: "center", color: textSec as string, cursor: "pointer", fontSize: fs(0.02), fontWeight: 600, borderRadius: 0, background: "transparent", border: "none", flexShrink: 0 }}
                       >
                         +
                       </div>
@@ -4486,7 +4535,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     transform: "translateX(-50%)",
                                     width: Math.min(Math.round(sw2 * 0.62), 640),
                                     padding: `${Math.round(sh2 * 0.008)}px ${Math.round(sw2 * 0.015)}px ${Math.round(sh2 * 0.009)}px`,
-                                    borderRadius: 12,
+                                    borderRadius: 0,
                                     background: isDark ? "rgba(255,255,255,0.08)" : "transparent",
                                     backdropFilter: isDark ? "blur(14px)" : "none",
                                     WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
