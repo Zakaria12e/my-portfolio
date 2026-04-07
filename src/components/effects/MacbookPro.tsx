@@ -465,9 +465,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [windowOrder, folderWins, fileEditorWins, finderOpen, finderMinimized, terminalOpen, termMinimized, messagesOpen, messagesMinimized, safariOpen, safariMinimized, itunesOpen, itunesMinimized, openWindows, projects])
   const hasFullscreenWindow =
     openWindows.some(w => w.maximized && !w.minimized) ||
-    termMaximized ||
-    safariMaximized ||
-    messagesMaximized ||
+    (terminalOpen && termMaximized && !termMinimized) ||
+    (safariOpen && safariMaximized && !safariMinimized) ||
+    (messagesOpen && messagesMaximized && !messagesMinimized) ||
     (finderOpen && finderMaximized && !finderMinimized)
 
   const dockForcedSleep = hasFullscreenWindow
@@ -2215,7 +2215,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                        <span style={{ fontSize: Math.round(w * 0.025), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fw.name}</span>
+                        <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fw.name}</span>
                       </div>
                     </div>
 
@@ -2455,7 +2455,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: 5 }}>
-                        <span style={{ fontSize: Math.round(w * 0.025), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fe.name}</span>
+                        <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.58)", fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>{fe.name}</span>
                         {content !== (fileContents[fe.path] ?? "") && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#888", display: "inline-block" }} />}
                       </div>
                     </div>
@@ -3068,7 +3068,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         pointerEvents: "none",
                       }}>
                         <span style={{
-                          fontSize: Math.round(w * 0.021), fontWeight: 500,
+                          fontSize: Math.round(w * 0.018), fontWeight: 500,
                           color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
                           letterSpacing: -0.1,
                           fontFamily: "-apple-system,'SF Pro Text','Helvetica Neue',sans-serif",
@@ -3334,7 +3334,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         ))}
                       </div>
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                        <span style={{ fontSize: Math.round(w * 0.021), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)", letterSpacing: -0.1, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
+                        <span style={{ fontSize: Math.round(w * 0.018), fontWeight: 500, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)", letterSpacing: -0.1, fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
                           {proj?.title ? `${proj.title} - zsh` : "Terminal - zsh"}
                         </span>
                       </div>
@@ -3749,7 +3749,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     <div style={{ flex: 1, display: "flex", minHeight: 0, background: bodyBg }}>
                       <div style={{ width: sideW, flexShrink: 0, background: sidebarBg, borderRight: `0.5px solid ${divider}`, display: "flex", flexDirection: "column" }}>
                         <div style={{ padding: `${Math.round(mh * 0.024)}px ${Math.round(mw * 0.022)}px ${Math.round(mh * 0.016)}px`, borderBottom: `0.5px solid ${divider}`, display: "flex", flexDirection: "column", gap: Math.round(mh * 0.012) }}>
-                          <div style={{ fontSize: Math.round(w * 0.025), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Messages</div>
+                          <div style={{ fontSize: Math.round(w * 0.021), fontWeight: 700, color: textPrimary as string, fontFamily: ff }}>Messages</div>
                           <div style={{ height: Math.round(titleH * 0.68), borderRadius: 11, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.82)", border: `0.5px solid ${divider}`, display: "flex", alignItems: "center", gap: 7, padding: `0 ${Math.round(mw * 0.015)}px`, color: textSecondary as string, fontSize: Math.round(w * 0.0145), fontFamily: ff }}>
                             <svg width={Math.round(w * 0.015)} height={Math.round(w * 0.015)} viewBox="0 0 24 24" fill="none">
                               <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
@@ -3950,14 +3950,31 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   return entries
                 })
                 const safariQuery = safariInput.trim().toLowerCase()
-                const safariSuggestions = (safariQuery
+                const websiteSuggestion = (() => {
+                  const raw = safariInput.trim()
+                  if (!raw || /\s/.test(raw) || /^https?:\/\//i.test(raw) || raw.includes("/")) return null
+                  const normalized = raw.includes(".") ? raw : `${raw}.com`
+                  const url = normalized.startsWith("http") ? normalized : `https://${normalized}`
+                  return {
+                    label: normalized,
+                    url,
+                    meta: "Website",
+                    icon: ".com",
+                  }
+                })()
+                const safariSuggestions = [
+                  ...(websiteSuggestion ? [websiteSuggestion] : []),
+                  ...(safariQuery
                   ? projectSuggestions.filter((entry) => (
                       entry.label.toLowerCase().includes(safariQuery) ||
                       entry.url.toLowerCase().includes(safariQuery) ||
                       entry.meta.toLowerCase().includes(safariQuery)
                     ))
                   : projectSuggestions
-                ).slice(0, 6)
+                ),
+                ]
+                  .filter((entry, index, entries) => entries.findIndex((candidate) => candidate.url === entry.url) === index)
+                  .slice(0, 6)
                 const navigate = (raw: string) => {
                   openSafariUrl(raw)
                 }
@@ -4524,7 +4541,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             ))}
                           </div>
                           {/* Path breadcrumb */}
-                          <div style={{ fontSize: Math.round(w * 0.022), color: textPri as string, fontWeight: 600, letterSpacing: -0.2 }}>
+                          <div style={{ fontSize: Math.round(w * 0.019), color: textPri as string, fontWeight: 600, letterSpacing: -0.2 }}>
                             Project
                           </div>
                           {/* View icons */}
