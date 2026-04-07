@@ -241,6 +241,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391444/macbg3_xg9uh1.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561044/macwallpaper_ubycpy.jpg",
+    "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775561859/dreamy-lines_upvr7l.jpg",
   ]
   const [wallpaper, setWallpaper] = useState(WALLPAPERS[0])
   const [finderOpen, setFinderOpen] = useState(false)
@@ -4181,6 +4183,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               }
                             })()
                           : "New Tab"
+                        const tabIcon = tab.url
+                          ? (() => {
+                              try {
+                                const href = tab.url.startsWith("http") ? tab.url : "https://" + tab.url
+                                return `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(href)}`
+                              } catch {
+                                return "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp"
+                              }
+                            })()
+                          : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp"
                         return (
                           <div
                             key={tab.id}
@@ -4210,7 +4222,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               transition: "background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
                             }}
                           >
-                            <img src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp" style={{ width: Math.round(tabH * 0.42), height: Math.round(tabH * 0.42), borderRadius: 4, flexShrink: 0 }} draggable={false} />
+                            <img src={tabIcon} style={{ width: Math.round(tabH * 0.42), height: Math.round(tabH * 0.42), borderRadius: 4, flexShrink: 0 }} draggable={false} />
                             <span style={{ fontSize: fs(0.0155), fontWeight: 600, fontFamily: ff, color: textPrimary as string, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: -0.1 }}>{tabLabel}</span>
                             <button
                               type="button"
@@ -4232,7 +4244,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                     const nextActiveTab = nextTabs[Math.max(0, currentTabs.findIndex(currentTab => currentTab.id === tab.id) - 1)] ?? nextTabs[0]
                                     if (nextActiveTab) {
                                       setActiveSafariTabId(nextActiveTab.id)
-                                      setSafariInputFocused(!nextActiveTab.url)
+                                      setSafariInputFocused(false)
                                     }
                                   }
                                   return nextTabs
