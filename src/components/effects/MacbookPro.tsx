@@ -1297,6 +1297,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [messagesConversation])
 
   useEffect(() => {
+    if (!messagesOpen || messagesMinimized) {
+      setHoveredMessagesTl(-1)
+    }
+  }, [messagesOpen, messagesMinimized])
+
+  useEffect(() => {
     if (editingDesktopItemId === null) return
     const timer = setTimeout(() => {
       desktopRenameInputRef.current?.focus()
@@ -3757,7 +3763,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div
                         style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}
-                        onMouseEnter={() => setHoveredMessagesTl(0)}
                         onMouseLeave={() => setHoveredMessagesTl(-1)}
                       >
                         {[
@@ -3765,8 +3770,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, fn: () => { setMessagesMinimizing(true); setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340) } },
                           { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, fn: () => { setMessagesMaximized(m => !m); setMessagesMinimized(false) } },
                         ].map((btn, i) => (
-                          <div key={i} onClick={e => { e.stopPropagation(); btn.fn() }} style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <TrafficLightSymbol kind={btn.kind} color="rgba(0,0,0,0.55)" size={Math.round(tlSz * 0.84)} visible={hoveredMessagesTl >= 0} />
+                          <div
+                            key={i}
+                            onClick={e => { e.stopPropagation(); btn.fn() }}
+                            onMouseEnter={() => setHoveredMessagesTl(i)}
+                            onMouseLeave={() => setHoveredMessagesTl(-1)}
+                            style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >
+                            <TrafficLightSymbol kind={btn.kind} color="rgba(0,0,0,0.55)" size={Math.round(tlSz * 0.84)} visible={hoveredMessagesTl === i} />
                           </div>
                         ))}
                       </div>
