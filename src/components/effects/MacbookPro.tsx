@@ -677,6 +677,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [windowOrder, folderWins, fileEditorWins, finderOpen, finderMinimized, terminalOpen, termMinimized, messagesOpen, messagesMinimized, safariOpen, safariMinimized, itunesOpen, itunesMinimized, openWindows, projects])
   const hasFullscreenWindow =
     openWindows.some(w => w.maximized && !w.minimized) ||
+    folderWins.some(win => win.maximized && !win.minimized) ||
+    fileEditorWins.some(win => win.maximized && !win.minimized) ||
     (terminalOpen && termMaximized && !termMinimized) ||
     (safariOpen && safariMaximized && !safariMinimized) ||
     (messagesOpen && messagesMaximized && !messagesMinimized) ||
@@ -2720,10 +2722,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                           style={{
                             width: "100%",
-                            fontSize: Math.round(w * 0.013),
+                            fontSize: Math.round(w * 0.011),
                             color: "white",
                             textAlign: "center",
-                            lineHeight: 1.2,
+                            lineHeight: 1.08,
                             padding: `2px ${Math.round(w * 0.005)}px`,
                             borderRadius: 4,
                             border: "1px solid rgba(255,255,255,0.75)",
@@ -2737,12 +2739,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ) : (
                         <span style={{
                           width: "100%",
-                          fontSize: Math.round(w * 0.013),
+                          fontSize: Math.round(w * 0.0106),
                           color: "white",
                           textAlign: "center",
-                          lineHeight: 1.2,
-                          wordBreak: "break-all",
+                          lineHeight: 1.04,
+                          wordBreak: "break-word",
+                          overflowWrap: "anywhere",
                           maxWidth: "100%",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
                           textShadow: "0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6)",
                           padding: `1px ${Math.round(w * 0.005)}px`,
                           borderRadius: 3,
@@ -2948,10 +2955,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                   }}
                                   style={{
                                     width: "100%",
-                                    fontSize: Math.round(w * 0.016),
+                                    fontSize: Math.round(w * 0.0114),
                                     color: fwText,
                                     textAlign: "center",
-                                    lineHeight: 1.2,
+                                    lineHeight: 1,
                                     padding: `2px ${Math.round(w * 0.004)}px`,
                                     borderRadius: 4,
                                     border: `1px solid ${isDark ? "rgba(255,255,255,0.32)" : "rgba(10,132,255,0.42)"}`,
@@ -2962,7 +2969,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                   }}
                                 />
                               ) : (
-                                <span style={{ fontSize: Math.round(w * 0.016), color: fwText, textAlign: "center", wordBreak: "break-all", lineHeight: 1.2, maxWidth: "100%", fontFamily: "-apple-system,sans-serif" }}>{item.name}</span>
+                                <span style={{
+                                  fontSize: Math.round(w * 0.011),
+                                  color: fwText,
+                                  textAlign: "center",
+                                  wordBreak: "break-word",
+                                  overflowWrap: "anywhere",
+                                  lineHeight: 1,
+                                  maxWidth: "100%",
+                                  fontFamily: "-apple-system,sans-serif",
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                }}>{item.name}</span>
                               )}
                             </div>
                           )
