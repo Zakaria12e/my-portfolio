@@ -123,7 +123,6 @@ type LaunchpadEntry = {
   label: string
   icon: string
   tone: string
-  meta: string
   kind: "app" | "project" | "link"
   projectIdx?: number
 }
@@ -259,6 +258,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [qShortcutHeld, setQShortcutHeld] = useState(false)
   const [launchpadOpen, setLaunchpadOpen] = useState(false)
   const [launchpadClosing, setLaunchpadClosing] = useState(false)
+  const [launchpadSearch, setLaunchpadSearch] = useState("")
   const [appSwitcherVisible, setAppSwitcherVisible] = useState(false)
   const [appSwitcherIndex, setAppSwitcherIndex] = useState(0)
   const [clock, setClock] = useState("")
@@ -470,6 +470,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     setControlCenterOpen(false)
     setLaunchpadClosing(false)
+    setLaunchpadSearch("")
     setLaunchpadOpen(true)
   }, [])
   const closeLaunchpad = useCallback(() => {
@@ -489,7 +490,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "Finder",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png",
         tone: "#60a5fa",
-        meta: "App",
         kind: "app",
       },
       {
@@ -497,7 +497,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "Terminal",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png",
         tone: "#111827",
-        meta: "App",
         kind: "app",
       },
       {
@@ -505,7 +504,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "Safari",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp",
         tone: "#0ea5e9",
-        meta: "Browser",
         kind: "app",
       },
       {
@@ -513,7 +511,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "Messages",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp",
         tone: "#34c759",
-        meta: "App",
         kind: "app",
       },
       {
@@ -521,7 +518,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "Music",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png",
         tone: "#ec4899",
-        meta: "App",
         kind: "app",
       },
       {
@@ -529,7 +525,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "GitHub",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png",
         tone: "#0f172a",
-        meta: "Profile",
         kind: "link",
       },
       {
@@ -537,7 +532,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         label: "VS Code",
         icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429665/128_na5mv8.webp",
         tone: "#2563eb",
-        meta: "App",
         kind: "app",
       },
     ]
@@ -548,12 +542,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         ? (project.iconDark ?? project.icon ?? project.images?.[0] ?? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775605503/256_ws4sxn.png")
         : (project.icon ?? project.iconDark ?? project.images?.[0] ?? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775605503/256_ws4sxn.png"),
       tone: "#0a84ff",
-      meta: project.category ?? "Project",
       kind: "project" as const,
       projectIdx: index,
     }))
     return [...appEntries, ...projectEntries]
   }, [isDark, projects])
+  const filteredLaunchpadEntries = useMemo(() => {
+    const query = launchpadSearch.trim().toLowerCase()
+    if (!query) return launchpadEntries
+    return launchpadEntries.filter(entry => entry.label.toLowerCase().includes(query))
+  }, [launchpadEntries, launchpadSearch])
+  const launchpadSlots = useMemo(() => {
+    const totalSlots = 35
+    return Array.from({ length: totalSlots }, (_, index) => filteredLaunchpadEntries[index] ?? null)
+  }, [filteredLaunchpadEntries])
   const switchableWindows = useMemo<SwitchableItem[]>(() => {
     const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
       if (typeof key === "string" && key.startsWith("folder:")) {
@@ -2978,7 +2980,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     display: "flex",
                     alignItems: "flex-start",
                     justifyContent: "center",
-                    paddingTop: Math.round(h * 0.12),
+                    paddingTop: Math.round(h * 0.09),
                     animation: launchpadClosing
                       ? "launchpadFadeOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
                       : "launchpadFadeIn 0.28s cubic-bezier(0.22,1,0.36,1)",
@@ -2989,75 +2991,146 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     style={{
                       width: "88%",
                       maxWidth: Math.round(w * 0.92),
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: Math.round(h * 0.095),
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: Math.round(w * 0.22),
+                        minWidth: Math.round(w * 0.18),
+                        height: Math.round(h * 0.036),
+                        borderRadius: Math.round(h * 0.006),
+                        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.34)",
+                        border: `0.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.52)"}`,
+                        boxShadow: isDark
+                          ? "0 12px 28px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)"
+                          : "0 10px 24px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.72)",
+                        backdropFilter: "blur(24px) saturate(1.4)",
+                        WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: `0 ${Math.round(w * 0.005)}px`,
+                      }}
+                    >
+                      <div style={{
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: Math.round(w * 0.005),
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexShrink: 0 }}>
+                          <Search size={Math.round(w * 0.011)} color={isDark ? "rgba(255,255,255,0.72)" : "rgba(15,23,42,0.54)"} strokeWidth={1.9} />
+                        </div>
+                        <input
+                          value={launchpadSearch}
+                          onChange={(e) => setLaunchpadSearch(e.target.value)}
+                          placeholder="Search"
+                          spellCheck={false}
+                          style={{
+                            width: Math.round(w * 0.11),
+                            height: "100%",
+                            border: "none",
+                            outline: "none",
+                            background: "transparent",
+                            color: "#fff",
+                            fontSize: Math.round(w * 0.0108),
+                            fontWeight: 400,
+                            lineHeight: "normal",
+                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                            padding: 0,
+                            margin: 0,
+                            textAlign: "left",
+                            appearance: "none",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        width: "100%",
+                      height: Math.round(h * 0.68),
                       display: "grid",
-                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                      gap: `${Math.round(w * 0.02)}px ${Math.round(w * 0.028)}px`,
+                      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                      gridTemplateRows: "repeat(5, minmax(0, 1fr))",
+                      gap: `${Math.round(w * 0.012)}px ${Math.round(w * 0.014)}px`,
                       animation: launchpadClosing
                         ? "launchpadGridOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
                         : "launchpadGridIn 0.42s cubic-bezier(0.2,0.9,0.2,1)",
                       transformOrigin: "50% 62%",
                     }}
                   >
-                    {launchpadEntries.map((entry) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        onClick={() => activateLaunchpadEntry(entry)}
-                        style={{
-                          appearance: "none",
-                          border: "none",
-                          background: "transparent",
-                          padding: `${Math.round(w * 0.01)}px ${Math.round(w * 0.006)}px`,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: Math.round(w * 0.009),
-                          cursor: "pointer",
-                          animation: launchpadClosing
-                            ? "launchpadIconOut 0.2s cubic-bezier(0.4,0,0.2,1) forwards"
-                            : "launchpadIconIn 0.36s cubic-bezier(0.22,1,0.36,1)",
-                        }}
-                      >
-                        <div
+                    {launchpadSlots.map((entry, index) => (
+                      entry ? (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => activateLaunchpadEntry(entry)}
                           style={{
-                            width: Math.round(w * 0.09),
-                            height: Math.round(w * 0.09),
+                            appearance: "none",
+                            border: "none",
+                            background: "transparent",
+                            padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.004)}px`,
                             display: "flex",
+                            flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "center",
-                            position: "relative",
+                            gap: Math.round(w * 0.006),
+                            cursor: "pointer",
+                            minWidth: 0,
+                            minHeight: 0,
+                            animation: launchpadClosing
+                              ? "launchpadIconOut 0.2s cubic-bezier(0.4,0,0.2,1) forwards"
+                              : "launchpadIconIn 0.36s cubic-bezier(0.22,1,0.36,1)",
                           }}
                         >
-                          <img
-                            src={entry.icon}
-                            alt={entry.label}
-                            draggable={false}
+                          <div
                             style={{
-                              width: "82%",
-                              height: "82%",
-                              objectFit: "contain",
+                              width: Math.round(w * 0.066),
+                              height: Math.round(w * 0.066),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                               position: "relative",
-                              zIndex: 1,
+                              flexShrink: 0,
                             }}
-                          />
-                        </div>
-                        <div style={{ textAlign: "center", lineHeight: 1.2 }}>
-                          <div style={{
-                            fontSize: Math.round(w * 0.0155),
-                            fontWeight: 600,
-                            color: "#fff",
-                            textShadow: "0 1px 8px rgba(0,0,0,0.28)",
-                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
-                          }}>{entry.label}</div>
-                          <div style={{
-                            marginTop: 2,
-                            fontSize: Math.round(w * 0.0115),
-                            color: "rgba(255,255,255,0.68)",
-                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
-                          }}>{entry.meta}</div>
-                        </div>
-                      </button>
+                          >
+                            <img
+                              src={entry.icon}
+                              alt={entry.label}
+                              draggable={false}
+                              style={{
+                                width: "84%",
+                                height: "84%",
+                                objectFit: "contain",
+                                position: "relative",
+                                zIndex: 1,
+                              }}
+                            />
+                          </div>
+                          <div style={{ textAlign: "center", lineHeight: 1.15, minHeight: Math.round(w * 0.028) }}>
+                            <div style={{
+                              fontSize: Math.round(w * 0.0112),
+                              fontWeight: 400,
+                              color: "#fff",
+                              textShadow: "0 1px 8px rgba(0,0,0,0.28)",
+                              fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: "100%",
+                            }}>{entry.label}</div>
+                          </div>
+                        </button>
+                      ) : (
+                        <div key={`launchpad-empty-${index}`} />
+                      )
                     ))}
+                    </div>
                   </div>
                 </div>
               )}

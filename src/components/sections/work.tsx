@@ -8,7 +8,7 @@ import MacbookPro from "@/components/effects/MacbookPro"
 const projects = [
   {
     id: 1,
-    title: "Real-Time Vehicle Tracking",
+    title: "Trackvio",
     description:
       "A real-time vehicle tracking platform offering seamless fleet monitoring, live GPS positioning, and smart alerting.",
     features: [
@@ -35,7 +35,7 @@ const projects = [
   },
   {
     id: 2,
-    title: "Garamitos E-Commerce",
+    title: "Garamitos",
     description:
       "A full-stack e-commerce platform with a React storefront, REST API, JWT authentication, and MongoDB-powered product & order management.",
     features: [
