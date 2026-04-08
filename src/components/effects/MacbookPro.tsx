@@ -273,6 +273,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [launchpadDraggingId, setLaunchpadDraggingId] = useState<string | null>(null)
   const [launchpadEditingGroupId, setLaunchpadEditingGroupId] = useState<string | null>(null)
   const [launchpadEditingName, setLaunchpadEditingName] = useState("")
+  const [launchpadOpenGroupId, setLaunchpadOpenGroupId] = useState<string | null>(null)
   const [appSwitcherVisible, setAppSwitcherVisible] = useState(false)
   const [appSwitcherIndex, setAppSwitcherIndex] = useState(0)
   const [clock, setClock] = useState("")
@@ -490,6 +491,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setLaunchpadDraggingId(null)
     setLaunchpadEditingGroupId(null)
     setLaunchpadEditingName("")
+    setLaunchpadOpenGroupId(null)
     setLaunchpadOpen(true)
   }, [])
   const closeLaunchpad = useCallback(() => {
@@ -499,6 +501,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setLaunchpadDraggingId(null)
     setLaunchpadEditingGroupId(null)
     setLaunchpadEditingName("")
+    setLaunchpadOpenGroupId(null)
     launchpadCloseTimerRef.current = window.setTimeout(() => {
       setLaunchpadOpen(false)
       setLaunchpadClosing(false)
@@ -586,6 +589,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       })
       .filter((item): item is LaunchpadRenderable => item !== null)
   }, [filteredLaunchpadEntries, launchpadEntryMap, launchpadGroups, launchpadOrder, launchpadSearch])
+  const activeLaunchpadGroup = useMemo(() => (
+    launchpadOpenGroupId ? launchpadGroups[launchpadOpenGroupId] ?? null : null
+  ), [launchpadGroups, launchpadOpenGroupId])
   const launchpadSlots = useMemo(() => {
     const totalSlots = 35
     return Array.from({ length: totalSlots }, (_, index) => launchpadItems[index] ?? null)
@@ -859,6 +865,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const beginLaunchpadGroupRename = useCallback((groupId: string) => {
     const group = launchpadGroups[groupId]
     if (!group) return
+    setLaunchpadOpenGroupId(groupId)
     setLaunchpadEditingGroupId(groupId)
     setLaunchpadEditingName(group.label)
   }, [launchpadGroups])
@@ -3095,12 +3102,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
               {(launchpadOpen || launchpadClosing) && (
                 <div
-                  onClick={closeLaunchpad}
+                  onClick={() => {
+                    if (activeLaunchpadGroup) {
+                      setLaunchpadOpenGroupId(null)
+                      setLaunchpadEditingGroupId(null)
+                      setLaunchpadEditingName("")
+                      return
+                    }
+                    closeLaunchpad()
+                  }}
                   style={{
                     position: "absolute",
                     inset: 0,
                     zIndex: 16,
-                    background: isDark ? "rgba(8,12,24,0.34)" : "rgba(255,255,255,0.22)",
+                    background: "rgba(8,12,24,0.34)",
                     backdropFilter: "blur(28px) saturate(1.25)",
                     WebkitBackdropFilter: "blur(28px) saturate(1.25)",
                     display: "flex",
@@ -3113,7 +3128,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   }}
                 >
                   <div
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      if (activeLaunchpadGroup) {
+                        setLaunchpadOpenGroupId(null)
+                        setLaunchpadEditingGroupId(null)
+                        setLaunchpadEditingName("")
+                        return
+                      }
+                      e.stopPropagation()
+                    }}
                     style={{
                       width: "88%",
                       maxWidth: Math.round(w * 0.92),
@@ -3179,17 +3202,21 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     <div
                       style={{
                         width: "100%",
-                      height: Math.round(h * 0.68),
-                      display: "grid",
-                      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                      gridTemplateRows: "repeat(5, minmax(0, 1fr))",
-                      gap: `${Math.round(w * 0.012)}px ${Math.round(w * 0.014)}px`,
-                      animation: launchpadClosing
-                        ? "launchpadGridOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
-                        : "launchpadGridIn 0.42s cubic-bezier(0.2,0.9,0.2,1)",
-                      transformOrigin: "50% 62%",
-                    }}
-                  >
+                        height: Math.round(h * 0.68),
+                        display: "grid",
+                        gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                        gridTemplateRows: "repeat(5, minmax(0, 1fr))",
+                        gap: `${Math.round(w * 0.012)}px ${Math.round(w * 0.014)}px`,
+                        animation: launchpadClosing
+                          ? "launchpadGridOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
+                          : "launchpadGridIn 0.42s cubic-bezier(0.2,0.9,0.2,1)",
+                        transformOrigin: "50% 62%",
+                        opacity: 1,
+                        transition: "opacity 0.22s ease",
+                        filter: "none",
+                        pointerEvents: activeLaunchpadGroup ? "none" : "auto",
+                      }}
+                    >
                     {launchpadSlots.map((entry, index) => (
                       entry ? (
                         <button
@@ -3215,7 +3242,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             if (entry.kind === "group") beginLaunchpadGroupRename(entry.id)
                           }}
                           onClick={() => {
-                            if (entry.kind !== "group") activateLaunchpadEntry(entry)
+                            if (entry.kind === "group") {
+                              setLaunchpadOpenGroupId(entry.id)
+                              return
+                            }
+                            activateLaunchpadEntry(entry)
                           }}
                           style={{
                             appearance: "none",
@@ -3340,6 +3371,140 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       )
                     ))}
                     </div>
+                    {activeLaunchpadGroup && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "55%",
+                          transform: "translate(-50%, -50%)",
+                          width: Math.round(w * 0.34),
+                          minHeight: Math.round(h * 0.27),
+                          borderRadius: Math.round(w * 0.012),
+                          background: "rgba(48,52,60,0.3)",
+                          border: "0.5px solid rgba(255,255,255,0.12)",
+                          boxShadow: isDark
+                            ? "0 28px 56px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08)"
+                            : "0 28px 56px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.1)",
+                          backdropFilter: "blur(22px) saturate(1.15)",
+                          WebkitBackdropFilter: "blur(22px) saturate(1.15)",
+                          padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.024)}px ${Math.round(w * 0.024)}px`,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: Math.round(w * 0.018),
+                          animation: "launchpadFolderIn 0.26s cubic-bezier(0.22,1,0.36,1)",
+                          zIndex: 4,
+                        }}
+                      >
+                        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minHeight: Math.round(h * 0.034) }}>
+                          {launchpadEditingGroupId === activeLaunchpadGroup.id ? (
+                            <input
+                              ref={launchpadRenameInputRef}
+                              value={launchpadEditingName}
+                              onChange={(e) => setLaunchpadEditingName(e.target.value)}
+                              onBlur={commitLaunchpadGroupRename}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commitLaunchpadGroupRename()
+                                if (e.key === "Escape") {
+                                  setLaunchpadEditingGroupId(null)
+                                  setLaunchpadEditingName("")
+                                }
+                              }}
+                              style={{
+                                width: Math.round(w * 0.16),
+                                border: "none",
+                                outline: "none",
+                                background: "rgba(255,255,255,0.08)",
+                                color: "#fff",
+                                fontSize: Math.round(w * 0.0125),
+                                fontWeight: 500,
+                                textAlign: "center",
+                                borderRadius: 10,
+                                padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.008)}px`,
+                                fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                              }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => beginLaunchpadGroupRename(activeLaunchpadGroup.id)}
+                              style={{
+                                appearance: "none",
+                                border: "none",
+                                background: "transparent",
+                                color: "#fff",
+                                fontSize: Math.round(w * 0.0135),
+                                fontWeight: 500,
+                                cursor: "pointer",
+                                padding: 0,
+                                letterSpacing: "-0.01em",
+                              }}
+                            >
+                              {activeLaunchpadGroup.label}
+                            </button>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                            gap: Math.round(w * 0.012),
+                            padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.004)}px 0`,
+                          }}
+                        >
+                          {activeLaunchpadGroup.memberIds.map(memberId => {
+                            const member = launchpadEntryMap[memberId]
+                            if (!member) return null
+                            return (
+                              <button
+                                key={memberId}
+                                type="button"
+                                onClick={() => activateLaunchpadEntry(member)}
+                                style={{
+                                  appearance: "none",
+                                  border: "none",
+                                  background: "transparent",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: Math.round(w * 0.006),
+                                  cursor: "pointer",
+                                  padding: `${Math.round(w * 0.007)}px ${Math.round(w * 0.004)}px`,
+                                  borderRadius: Math.round(w * 0.014),
+                                  transition: "background 0.16s ease, transform 0.16s ease",
+                                }}
+                              >
+                                <img
+                                  src={member.icon}
+                                  alt={member.label}
+                                  draggable={false}
+                                  style={{
+                                    width: Math.round(w * 0.048),
+                                    height: Math.round(w * 0.048),
+                                    objectFit: "contain",
+                                  }}
+                                />
+                                <div style={{
+                                  fontSize: Math.round(w * 0.0104),
+                                  fontWeight: 400,
+                                  color: "#fff",
+                                  textShadow: "0 1px 8px rgba(0,0,0,0.28)",
+                                  fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "100%",
+                                }}>
+                                  {member.label}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -7017,6 +7182,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         @keyframes launchpadIconOut {
           0%   { opacity: 1; transform: translateY(0) scale(1); }
           100% { opacity: 0; transform: translateY(10px) scale(0.92); }
+        }
+        @keyframes launchpadFolderIn {
+          0%   { opacity: 0; transform: translate(-50%, -46%) scale(0.9); filter: blur(10px); }
+          100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
         }
       `}</style>
     </div>
