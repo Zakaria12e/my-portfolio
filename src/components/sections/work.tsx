@@ -62,7 +62,8 @@ export function ModernWork() {
 
   useEffect(() => {
     const update = () => {
-      if (window.innerWidth < 640) setMacWidth(Math.min(window.innerWidth - 26, 360))
+      if (window.innerWidth < 480) setMacWidth(Math.min(window.innerWidth - 18, 312))
+      else if (window.innerWidth < 640) setMacWidth(Math.min(window.innerWidth - 24, 340))
       else if (window.innerWidth < 1024) setMacWidth(Math.min(window.innerWidth - 50, 670))
       else setMacWidth(820)
     }
@@ -72,11 +73,11 @@ export function ModernWork() {
   }, [])
 
   return (
-    <section id="work" className="py-24 relative">
+    <section id="work" className="py-24 relative overflow-x-hidden">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       </div>
-      <div className="container flex flex-col items-center gap-12">
+      <div className="container flex flex-col items-center gap-12 px-3 sm:px-6">
         <motion.div
           className="max-w-xl text-center"
           initial={{ opacity: 0, y: 50 }}
@@ -93,7 +94,9 @@ export function ModernWork() {
           </p>
         </motion.div>
 
-        <MacbookPro projects={projects} githubUrl="https://github.com/Zakaria12e" width={macWidth} />
+        <div className="w-full flex justify-center overflow-hidden">
+          <MacbookPro projects={projects} githubUrl="https://github.com/Zakaria12e" width={macWidth} />
+        </div>
       </div>
     </section>
   )

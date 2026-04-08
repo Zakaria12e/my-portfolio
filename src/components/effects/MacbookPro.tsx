@@ -483,6 +483,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const tags = proj?.tags ?? tagsProp
   const features = proj?.features ?? featuresProp
 
+  const isMobileLayout = width <= 340
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
   const openProjectIndices = useMemo(
     () => Array.from(new Set(openWindows.map(win => win.projectIdx))),
@@ -871,14 +872,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const availH = localH - mbH
     setOpenWindows(ws => [...ws, {
       id, projectIdx,
-      pos: { x: cascadeN * 24, y: cascadeN * 24 },
-      size: { w: Math.round(width * 0.88), h: Math.round(availH * 0.8) },
+      pos: { x: cascadeN * (isMobileLayout ? 14 : 24), y: cascadeN * (isMobileLayout ? 14 : 24) },
+      size: {
+        w: Math.round(width * (isMobileLayout ? 0.8 : 0.88)),
+        h: Math.round(availH * (isMobileLayout ? 0.7 : 0.8)),
+      },
       maximized: false, minimized: false, minimizing: false,
       hoveredTl: -1, activeImg: 0,
     }])
     setFocusedWinId(id)
     setWindowOrder(o => [...o.filter(k => k !== id), id])
-  }, [closeLaunchpad, dismissMacMenus, launchpadClosing, launchpadOpen, width])
+  }, [closeLaunchpad, dismissMacMenus, isMobileLayout, launchpadClosing, launchpadOpen, width])
 
   function openDockApp(appId: DockAppId, event?: React.MouseEvent<HTMLDivElement>) {
     dismissMacMenus()
@@ -1285,31 +1289,31 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       const eid = fileEditorIdRef.current++
       const screenW = width - 20
       const screenH = Math.round(width * 0.609)
-      const winW = Math.round(width * 0.66)
-      const winH = Math.round(screenH * 0.62)
+      const winW = Math.round(width * (isMobileLayout ? 0.6 : 0.66))
+      const winH = Math.round(screenH * (isMobileLayout ? 0.54 : 0.62))
       const cascade = fileEditorWins.filter(win => !win.minimized).length
-      const ex = Math.round((screenW - winW) / 2) + cascade * 22
-      const ey = Math.round((screenH - winH) / 2) + cascade * 18
+      const ex = Math.round((screenW - winW) / 2) + cascade * (isMobileLayout ? 12 : 22)
+      const ey = Math.round((screenH - winH) / 2) + cascade * (isMobileLayout ? 10 : 18)
       setFileEditorWins(prev => [...prev, { id: eid, name: itemName, path: itemPath, pos: { x: ex, y: ey }, size: { w: winW, h: winH }, maximized: false, minimized: false, minimizing: false, hoveredTl: -1 }])
       setWindowOrder(o => [...o.filter(k => k !== fileOrderKey(eid)), fileOrderKey(eid)])
     } else {
       focusFileEditorWin(existing.id)
     }
-  }, [closeLaunchpad, fileEditorWins, fileOrderKey, focusFileEditorWin, launchpadClosing, launchpadOpen, width])
+  }, [closeLaunchpad, fileEditorWins, fileOrderKey, focusFileEditorWin, isMobileLayout, launchpadClosing, launchpadOpen, width])
 
   const openFolderWindowAtPath = useCallback((itemPath: string, itemName: string) => {
     if (launchpadOpen || launchpadClosing) closeLaunchpad()
     const fid = folderWinIdRef.current++
     const screenW = width - 20
     const screenH = Math.round(width * 0.609)
-    const winW = Math.round(width * 0.62)
-    const winH = Math.round(screenH * 0.58)
+    const winW = Math.round(width * (isMobileLayout ? 0.56 : 0.62))
+    const winH = Math.round(screenH * (isMobileLayout ? 0.5 : 0.58))
     const cascade = folderWins.filter(win => !win.minimized).length
     setFolderWins(prev => [...prev, {
       id: fid,
       name: itemName,
       path: itemPath,
-      pos: { x: Math.round((screenW - winW) / 2) + cascade * 24, y: Math.round((screenH - winH) / 2) + cascade * 20 },
+      pos: { x: Math.round((screenW - winW) / 2) + cascade * (isMobileLayout ? 12 : 24), y: Math.round((screenH - winH) / 2) + cascade * (isMobileLayout ? 10 : 20) },
       size: { w: winW, h: winH },
       maximized: false,
       minimized: false,
@@ -1317,7 +1321,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       hoveredTl: -1,
     }])
     setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
-  }, [closeLaunchpad, folderOrderKey, folderWins, launchpadClosing, launchpadOpen, width])
+  }, [closeLaunchpad, folderOrderKey, folderWins, isMobileLayout, launchpadClosing, launchpadOpen, width])
 
   const startFolderRename = useCallback((winId: number, path: string, name: string, type: "folder" | "file") => {
     setEditingFolderItem({ winId, path, originalName: name, type })
@@ -2025,6 +2029,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const DOCK_PAD_Y = Math.round(w * 0.009)
   const MAX_SCALE = 1.55
   const RANGE     = ICON_BASE * 2.2
+  const isMobileMac = w <= 340
+  const bezelInset = isMobileMac ? 1.5 : 5
+  const lidBorder = isMobileMac ? "1px" : "1.5px"
+  const screenInsetX = isMobileMac ? 2 : 5
+  const screenInsetY = isMobileMac ? 2 : 4
+  const screenRadius = isMobileMac ? 2 : 3
+  const notchWidth = Math.round(w * (isMobileMac ? 0.128 : 0.165))
+  const notchHeight = Math.round(h * (isMobileMac ? 0.036 : 0.048))
+  const notchRadius = Math.round(w * (isMobileMac ? 0.009 : 0.012))
+  const camSize = Math.round(w * (isMobileMac ? 0.007 : 0.009))
 
   const startSpring = useCallback(() => {
     if (rafRef.current !== null) return
@@ -2316,38 +2330,38 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       height: h,
       background: globalDark ? "#1e1e20" : "#e8e8ea",
       borderRadius: `${Math.round(w * 0.023)}px ${Math.round(w * 0.023)}px 0 0`,
-      borderTop: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
-      borderLeft: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
-      borderRight: globalDark ? "1.5px solid #2e2e30" : "1.5px solid #c8c8ca",
+      borderTop: globalDark ? `${lidBorder} solid #2e2e30` : `${lidBorder} solid #c8c8ca`,
+      borderLeft: globalDark ? `${lidBorder} solid #2e2e30` : `${lidBorder} solid #c8c8ca`,
+      borderRight: globalDark ? `${lidBorder} solid #2e2e30` : `${lidBorder} solid #c8c8ca`,
       borderBottom: "none",
       position: "relative",
       overflow: "hidden",
     },
     bezel: {
       position: "absolute",
-      top: 5, left: 5, right: 5, bottom: 5,
+      top: bezelInset, left: bezelInset, right: bezelInset, bottom: bezelInset,
       background: "#050507",
-      borderRadius: "6px 6px 0 0",
+      borderRadius: isMobileMac ? "4px 4px 0 0" : "6px 6px 0 0",
       overflow: "hidden",
     },
     notch: {
       position: "absolute",
       top: 0, left: "50%",
       transform: "translateX(-50%)",
-      width: Math.round(w * 0.165),
-      height: Math.round(h * 0.048),
+      width: notchWidth,
+      height: notchHeight,
       background: "#000",
-      borderRadius: `0 0 ${Math.round(w * 0.012)}px ${Math.round(w * 0.012)}px`,
+      borderRadius: `0 0 ${notchRadius}px ${notchRadius}px`,
       zIndex: 10,
       display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
     },
-    cam:    { width: Math.round(w * 0.009), height: Math.round(w * 0.009), borderRadius: "50%", background: "#2a2a2a", border: `0.5px solid #333`, flexShrink: 0 },
+    cam:    { width: camSize, height: camSize, borderRadius: "50%", background: "#2a2a2a", border: `0.5px solid #333`, flexShrink: 0 },
     micDot: { width: 0, height: 0 },
     notifPill: (() => {
       const fullW  = Math.round(w * 0.46)
       const fullH  = Math.round(h * 0.21)
-      const notchW = Math.round(w * 0.165)
-      const notchH = Math.round(h * 0.048)
+      const notchW = notchWidth
+      const notchH = notchHeight
       const sx = notifBig ? 1 : notchW / fullW
       const sy = notifBig ? 1 : notchH / fullH
       return {
@@ -2382,11 +2396,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     },
     screen: {
       position: "absolute",
-      top: 4,
-      left: 5,
-      right: 5,
-      bottom: 4,
-      borderRadius: 3,
+      top: screenInsetY,
+      left: screenInsetX,
+      right: screenInsetX,
+      bottom: screenInsetY,
+      borderRadius: screenRadius,
       overflow: "hidden",
       background: "#000",
       zIndex: 1,
@@ -2821,7 +2835,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const fwW = fw.size.w
                 const fwH = fw.size.h
                 const mbH = Math.round(h * 0.036)
-                const titleH = 22
+                const titleH = isMobileLayout ? 18 : 22
                 const tlSz2  = Math.round(titleH * 0.54)
                 const tlGap2 = Math.round(titleH * 0.45)
                 const tlLeft2= Math.round(titleH * 0.64)
@@ -3080,7 +3094,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const feW = fe.size.w
                 const feH = fe.size.h
                 const mbH = Math.round(h * 0.036)
-                const titleH = 22
+                const titleH = isMobileLayout ? 18 : 22
                 const tlSz3   = Math.round(titleH * 0.54)
                 const tlGap3  = Math.round(titleH * 0.45)
                 const tlLeft3 = Math.round(titleH * 0.64)
@@ -4126,7 +4140,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const baseWinTop = mbH + Math.round((availH - baseWinH) * 0.22)
                 const screenW    = w - 20
                 const baseWinLeft= Math.round((screenW - baseWinW) / 2)
-                const titleH = 22
+                const titleH = isMobileLayout ? 18 : 22
                 // const toolH  = 28
                 const slugMap: Record<string,string> = {
                   react:"react/react-original", typescript:"typescript/typescript-original",
@@ -4454,9 +4468,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const termCwdEnd = isDark ? "#a78bfa" : "#7c3aed"
                 const termPrompt = "#30d158"
                 const termPercent = isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)"
-                const tlSz2   = Math.round(22 * 0.54)
-                const tlGap2  = Math.round(22 * 0.45)
-                const tlLeft2 = Math.round(22 * 0.64)
+                const titleH2 = isMobileLayout ? 18 : 22
+                const tlSz2   = Math.round(titleH2 * 0.54)
+                const tlGap2  = Math.round(titleH2 * 0.45)
+                const tlLeft2 = Math.round(titleH2 * 0.64)
                 const zIdx    = 3 + (windowOrder.indexOf("terminal") >= 0 ? windowOrder.indexOf("terminal") : windowOrder.length)
                 return (
                   <div
@@ -4885,9 +4900,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const ih = itunesSize.h || Math.round(h * 0.74)
                 const baseTop = mbH + Math.round((h - mbH - ih) * 0.14)
                 const baseLeft = Math.round((w - iw) / 2)
-                const tlSz = Math.round(22 * 0.54)
-                const tlGap = Math.round(22 * 0.45)
-                const tlLeft = Math.round(22 * 0.64)
+                const titleH = isMobileLayout ? 18 : 22
+                const tlSz = Math.round(titleH * 0.54)
+                const tlGap = Math.round(titleH * 0.45)
+                const tlLeft = Math.round(titleH * 0.64)
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
                 const toolbarH = Math.round(ih * 0.094)
                 const sidebarW = Math.round(iw * 0.255)
@@ -5258,9 +5274,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const mh = messagesSize.h || Math.round(h * 0.74)
                 const baseTop = mbH + Math.round((h - mbH - mh) * 0.12)
                 const baseLeft = Math.round((w - mw) / 2)
-                const tlSz = Math.round(22 * 0.54)
-                const tlGap = Math.round(22 * 0.45)
-                const tlLeft = Math.round(22 * 0.64)
+                const trafficTitleH = isMobileLayout ? 18 : 22
+                const tlSz = Math.round(trafficTitleH * 0.54)
+                const tlGap = Math.round(trafficTitleH * 0.45)
+                const tlLeft = Math.round(trafficTitleH * 0.64)
                 const titleH = Math.round(mh * 0.09)
                 const sideW = Math.round(mw * 0.29)
                 const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
@@ -5507,9 +5524,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 const baseTop  = mbH + Math.round((h - mbH - sh2) * 0.1)
                 const screenW2 = w - 20
                 const baseLeft = Math.round((screenW2 - sw2) / 2)
-                const tlSz  = Math.round(22 * 0.54)
-                const tlGap = Math.round(22 * 0.45)
-                const tlLeft = Math.round(22 * 0.64)
+                const titleH = isMobileLayout ? 18 : 22
+                const tlSz  = Math.round(titleH * 0.54)
+                const tlGap = Math.round(titleH * 0.45)
+                const tlLeft = Math.round(titleH * 0.64)
                 const toolbarH = Math.round(sh2 * 0.078)
                 const tabH     = Math.round(sh2 * 0.062)
                 const bg    = isDark ? "#2b2b2f" : "#eef2f7"
