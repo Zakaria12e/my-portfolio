@@ -484,12 +484,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const features = proj?.features ?? featuresProp
 
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
-  const visibleProjectIndices = useMemo(
-    () => (projects ?? []).map((_, index) => index).filter(index => !hiddenProjectDockIds.includes(index)),
-    [hiddenProjectDockIds, projects]
+  const openProjectIndices = useMemo(
+    () => Array.from(new Set(openWindows.map(win => win.projectIdx))),
+    [openWindows]
+  )
+  const displayedProjectIndices = useMemo(
+    () => (projects ?? []).map((_, index) => index).filter(index => !hiddenProjectDockIds.includes(index) || openProjectIndices.includes(index)),
+    [hiddenProjectDockIds, openProjectIndices, projects]
   )
   // In projects mode, dock icons = one per project; otherwise = one per image
-  const dockCount = projects ? visibleProjectIndices.length : imgList.length
+  const dockCount = projects ? displayedProjectIndices.length : imgList.length
   const hasDock = projects ? dockCount > 0 : dockCount > 1
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
@@ -500,7 +504,20 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (showGithubIcon) apps.splice(showTerminalIcon ? 2 : 1, 0, "github")
     return apps
   }, [showGithubIcon, showTerminalIcon])
-  const hasPinnedDockApps = dockPinnedApps.length > 0
+  const runningDockApps = useMemo<DockAppId[]>(() => {
+    const running: DockAppId[] = []
+    if (terminalOpen) running.push("terminal")
+    if (messagesOpen) running.push("messages")
+    if (safariOpen) running.push("safari")
+    if (itunesOpen) running.push("itunes")
+    return running
+  }, [itunesOpen, messagesOpen, safariOpen, terminalOpen])
+  const visibleDockApps = useMemo(
+    () => availableDockApps.filter(id => dockPinnedApps.includes(id) || runningDockApps.includes(id)),
+    [availableDockApps, dockPinnedApps, runningDockApps]
+  )
+  const hasVisibleDockApps = visibleDockApps.length > 0
+  const hasDockExtras = folderWins.length > 0 || fileEditorWins.length > 0 || hasVisibleDockApps
   const folderOrderKey = useCallback((id: number) => `folder:${id}` as const, [])
   const fileOrderKey = useCallback((id: number) => `file:${id}` as const, [])
   const [messagesSearch, setMessagesSearch] = useState("")
@@ -1985,12 +2002,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [availableDockApps])
 
   useEffect(() => {
-    const totalSlots = 2 + dockCount + dockPinnedApps.length
+    const totalSlots = 2 + dockCount + folderWins.length + fileEditorWins.length + visibleDockApps.length
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
     setScales(ones)
-  }, [dockCount, dockPinnedApps.length])
+  }, [dockCount, fileEditorWins.length, folderWins.length, visibleDockApps.length])
 
   const w = width
   const h = Math.round(w * 0.609)
@@ -2045,13 +2062,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     { type: "finder" as const, refIdx: 0 },
     { type: "launchpad" as const, refIdx: 1 },
     ...(projects
-      ? visibleProjectIndices.map((projIdx, i) => ({ type: "project" as const, projIdx, refIdx: i + 2 }))
+      ? displayedProjectIndices.map((projIdx, i) => ({ type: "project" as const, projIdx, refIdx: i + 2 }))
       : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 2 }))
     ),
-    ...dockPinnedApps.map((appId, index) => ({ type: appId, refIdx: dockCount + 2 + index })),
+    ...folderWins.map((folderWin, index) => ({ type: "folderWindow" as const, folderId: folderWin.id, refIdx: dockCount + 2 + index })),
+    ...fileEditorWins.map((fileWin, index) => ({ type: "fileWindow" as const, fileId: fileWin.id, refIdx: dockCount + 2 + folderWins.length + index })),
+    ...visibleDockApps.map((appId, index) => ({ type: appId, refIdx: dockCount + 2 + folderWins.length + fileEditorWins.length + index })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [projects?.length, visibleProjectIndices, imgList.length, dockCount, dockPinnedApps])
-  const getPinnedDockRefIdx = useCallback((appId: DockAppId) => dockCount + 2 + dockPinnedApps.indexOf(appId), [dockCount, dockPinnedApps])
+  ], [projects?.length, displayedProjectIndices, imgList.length, dockCount, fileEditorWins, folderWins, visibleDockApps])
+  const getFolderDockRefIdx = useCallback((folderId: number) => dockCount + 2 + folderWins.findIndex(folderWin => folderWin.id === folderId), [dockCount, folderWins])
+  const getFileDockRefIdx = useCallback((fileId: number) => dockCount + 2 + folderWins.length + fileEditorWins.findIndex(fileWin => fileWin.id === fileId), [dockCount, fileEditorWins, folderWins.length])
+  const getDockAppRefIdx = useCallback((appId: DockAppId) => dockCount + 2 + folderWins.length + fileEditorWins.length + visibleDockApps.indexOf(appId), [dockCount, fileEditorWins.length, folderWins.length, visibleDockApps])
 
   // Reset focus when MacBook loses hover
   useEffect(() => {
@@ -2233,6 +2254,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
         if (item.type === "project") {
           openWindow(item.projIdx)
+        }
+        if (item.type === "folderWindow") {
+          focusFolderWin(item.folderId)
+        }
+        if (item.type === "fileWindow") {
+          focusFileEditorWin(item.fileId)
         }
         if (typeof item.type === "string" && isDockAppId(item.type)) {
           openDockApp(item.type)
@@ -6723,7 +6750,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
                         transform: "translateX(-50%)", width: 2.5, height: 2.5,
                         borderRadius: "50%",
-                        background: finderOpen && !finderMinimized ? "rgba(255,255,255,0.9)" : "transparent",
+                        background: finderOpen ? "rgba(255,255,255,0.9)" : "transparent",
                         transition: "background 0.2s", pointerEvents: "none",
                       }} />
                     </div>
@@ -6787,7 +6814,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     }} />}
 
                     {/* Projects mode: one icon per project */}
-                    {hasDock && projects && visibleProjectIndices.map((projectIdx, idx) => {
+                    {hasDock && projects && displayedProjectIndices.map((projectIdx, idx) => {
                       const p = projects[projectIdx]
                       const scale = scales[idx + 2] ?? 1
                       const isActive = openWindows.some(w => w.projectIdx === projectIdx)
@@ -6902,14 +6929,157 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })}
 
                     {/* Dock separator + pinned apps */}
-                    {hasPinnedDockApps && <>
+                    {hasDockExtras && <>
                       <div style={{
                         width: 0.5, height: slotSize * 0.7, alignSelf: "center",
                         background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
                         marginLeft: 1, marginRight: 1,
                       }} />
-                      {dockPinnedApps.includes("terminal") && <div
-                        ref={(el) => { iconRefs.current[getPinnedDockRefIdx("terminal")] = el }}
+                      {folderWins.map(folderWin => {
+                        const folderRefIdx = getFolderDockRefIdx(folderWin.id)
+                        const scale = scales[folderRefIdx] ?? 1
+                        const folderKey = `folder-dock-${folderWin.id}`
+                        const folderOrder = folderOrderKey(folderWin.id)
+                        const isOnTop = windowOrder[windowOrder.length - 1] === folderOrder
+                        return (
+                          <div
+                            key={folderWin.id}
+                            ref={(el) => { iconRefs.current[folderRefIdx] = el }}
+                            onMouseEnter={() => setHoveredSlot(folderKey)}
+                            onMouseLeave={() => setHoveredSlot(null)}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isOnTop && !folderWin.minimized) {
+                                setFolderWins(prev => prev.map(win => win.id === folderWin.id ? { ...win, minimizing: true } : win))
+                                setTimeout(() => {
+                                  setFolderWins(prev => prev.map(win => win.id === folderWin.id ? { ...win, minimized: true, minimizing: false } : win))
+                                }, 340)
+                              } else {
+                                focusFolderWin(folderWin.id)
+                              }
+                            }}
+                            style={{
+                              width: slotSize, height: slotSize, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", overflow: "visible", position: "relative",
+                            }}
+                          >
+                            <div style={{
+                              position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
+                              left: "50%", transform: "translateX(-50%)",
+                              background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                              backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                              borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                              fontSize: Math.round(w * 0.016), fontWeight: 400,
+                              fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
+                              color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
+                              pointerEvents: "none", zIndex: 100,
+                              opacity: hoveredSlot === folderKey ? 1 : 0,
+                              transition: "opacity 0.12s ease",
+                              border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                              boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
+                            }}>{folderWin.name}</div>
+                            <img
+                              src={FOLDER_ICON}
+                              alt={folderWin.name}
+                              draggable={false}
+                              style={{
+                                width: slotSize, height: slotSize,
+                                objectFit: "contain", display: "block", flexShrink: 0,
+                                transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform",
+                                animation: (folderWin.minimized || folderWin.minimizing) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
+                              }}
+                            />
+                            <div style={{
+                              position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
+                              transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                              borderRadius: "50%",
+                              background: "rgba(255,255,255,0.9)",
+                              transition: "background 0.2s", pointerEvents: "none",
+                            }} />
+                          </div>
+                        )
+                      })}
+                      {fileEditorWins.map(fileWin => {
+                        const fileRefIdx = getFileDockRefIdx(fileWin.id)
+                        const scale = scales[fileRefIdx] ?? 1
+                        const fileKey = `file-dock-${fileWin.id}`
+                        const fileOrder = fileOrderKey(fileWin.id)
+                        const isOnTop = windowOrder[windowOrder.length - 1] === fileOrder
+                        return (
+                          <div
+                            key={fileWin.id}
+                            ref={(el) => { iconRefs.current[fileRefIdx] = el }}
+                            onMouseEnter={() => setHoveredSlot(fileKey)}
+                            onMouseLeave={() => setHoveredSlot(null)}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isOnTop && !fileWin.minimized) {
+                                setFileEditorWins(prev => prev.map(win => win.id === fileWin.id ? { ...win, minimizing: true } : win))
+                                setTimeout(() => {
+                                  setFileEditorWins(prev => prev.map(win => win.id === fileWin.id ? { ...win, minimized: true, minimizing: false } : win))
+                                }, 340)
+                              } else {
+                                focusFileEditorWin(fileWin.id)
+                              }
+                            }}
+                            style={{
+                              width: slotSize, height: slotSize, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", overflow: "visible", position: "relative",
+                            }}
+                          >
+                            <div style={{
+                              position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
+                              left: "50%", transform: "translateX(-50%)",
+                              background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                              backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                              borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                              fontSize: Math.round(w * 0.016), fontWeight: 400,
+                              fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
+                              color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
+                              pointerEvents: "none", zIndex: 100,
+                              opacity: hoveredSlot === fileKey ? 1 : 0,
+                              transition: "opacity 0.12s ease",
+                              border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                              boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
+                            }}>{fileWin.name}</div>
+                            <img
+                              src={FILE_ICON}
+                              alt={fileWin.name}
+                              draggable={false}
+                              style={{
+                                width: Math.round(slotSize * 0.88),
+                                height: Math.round(slotSize * 0.88),
+                                objectFit: "contain",
+                                display: "block",
+                                flexShrink: 0,
+                                transform: `scale(${scale})`,
+                                transformOrigin: "bottom center",
+                                willChange: "transform",
+                                animation: (fileWin.minimized || fileWin.minimizing) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined,
+                              }}
+                            />
+                            <div style={{
+                              position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
+                              transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                              borderRadius: "50%",
+                              background: "rgba(255,255,255,0.9)",
+                              transition: "background 0.2s", pointerEvents: "none",
+                            }} />
+                          </div>
+                        )
+                      })}
+                      {visibleDockApps.includes("terminal") && <div
+                        ref={(el) => { iconRefs.current[getDockAppRefIdx("terminal")] = el }}
                         onMouseEnter={() => setHoveredSlot("terminal")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -6977,7 +7147,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           draggable={false}
                           style={{
                             width: slotSize, height: slotSize,
-                            transform: `scale(${scales[getPinnedDockRefIdx("terminal")] ?? 1})`,
+                            transform: `scale(${scales[getDockAppRefIdx("terminal")] ?? 1})`,
                             transformOrigin: "bottom center",
                             willChange: "transform",
                             flexShrink: 0,
@@ -6997,8 +7167,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </>}
 
                     {/* GitHub icon */}
-                    {dockPinnedApps.includes("github") && <div
-                        ref={(el) => { iconRefs.current[getPinnedDockRefIdx("github")] = el }}
+                    {visibleDockApps.includes("github") && <div
+                        ref={(el) => { iconRefs.current[getDockAppRefIdx("github")] = el }}
                         onMouseEnter={() => setHoveredSlot("github")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -7040,13 +7210,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png"
                           alt="GitHub"
                           draggable={false}
-                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[getPinnedDockRefIdx("github")] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[getDockAppRefIdx("github")] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
                         />
                       </div>}
 
                     {/* VSCode icon */}
-                    {dockPinnedApps.includes("vscode") && (() => {
-                      const vscodeRefIdx = getPinnedDockRefIdx("vscode")
+                    {visibleDockApps.includes("vscode") && (() => {
+                      const vscodeRefIdx = getDockAppRefIdx("vscode")
                       const scale = scales[vscodeRefIdx] ?? 1
                       return (
                         <div
@@ -7076,8 +7246,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* Messages icon */}
-                    {dockPinnedApps.includes("messages") && (() => {
-                      const messagesRefIdx = getPinnedDockRefIdx("messages")
+                    {visibleDockApps.includes("messages") && (() => {
+                      const messagesRefIdx = getDockAppRefIdx("messages")
                       const scale = scales[messagesRefIdx] ?? 1
                       return (
                         <div
@@ -7108,8 +7278,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* Safari icon */}
-                    {dockPinnedApps.includes("safari") && (() => {
-                      const safariRefIdx = getPinnedDockRefIdx("safari")
+                    {visibleDockApps.includes("safari") && (() => {
+                      const safariRefIdx = getDockAppRefIdx("safari")
                       const scale = scales[safariRefIdx] ?? 1
                       return (
                         <div
@@ -7140,8 +7310,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* iTunes icon */}
-                    {dockPinnedApps.includes("itunes") && (() => {
-                      const itunesRefIdx = getPinnedDockRefIdx("itunes")
+                    {visibleDockApps.includes("itunes") && (() => {
+                      const itunesRefIdx = getDockAppRefIdx("itunes")
                       const scale = scales[itunesRefIdx] ?? 1
                       return (
                         <div
@@ -7183,10 +7353,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   ? [
                       { label: "Open", action: () => openWindow(appContextMenu.projectIdx) },
                       null,
-                      appContextMenu.source === "launchpad"
-                        ? (projectHidden
-                            ? { label: "Add to Dock", action: () => pinProjectToDock(appContextMenu.projectIdx) }
-                            : { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) })
+                      projectHidden
+                        ? { label: "Add to Dock", action: () => pinProjectToDock(appContextMenu.projectIdx) }
                         : { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) },
                     ]
                   : appContextMenu.source === "launchpad"
@@ -7200,7 +7368,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   : [
                       { label: "Open", action: () => openDockApp(appContextMenu.appId) },
                       null,
-                      { label: "Remove from Dock", action: () => removeDockApp(appContextMenu.appId) },
+                      dockPinnedApps.includes(appContextMenu.appId)
+                        ? { label: "Remove from Dock", action: () => removeDockApp(appContextMenu.appId) }
+                        : { label: "Add to Dock", action: () => pinDockApp(appContextMenu.appId) },
                     ]
                 const menuW = Math.round(w * 0.23)
                 const clampedX = Math.min(appContextMenu.x, Math.max(12, w - 20 - menuW - 12))
