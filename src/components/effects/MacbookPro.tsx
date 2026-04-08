@@ -144,7 +144,7 @@ function isDockAppId(value: string): value is DockAppId {
 
 type DockContextMenuState =
   | { x: number; y: number; source: "launchpad" | "dock"; kind: "app"; appId: DockAppId }
-  | { x: number; y: number; source: "dock"; kind: "project"; projectIdx: number }
+  | { x: number; y: number; source: "launchpad" | "dock"; kind: "project"; projectIdx: number }
 
 function TrafficLightSymbol({
   kind,
@@ -506,11 +506,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [messagesSearch, setMessagesSearch] = useState("")
   const [messagesDraft, setMessagesDraft] = useState("")
   const [messagesConversation, setMessagesConversation] = useState<MessageConversation>(MESSAGE_CONVERSATION)
+  const dismissMacMenus = useCallback(() => {
+    setContextMenu(null)
+    setContextMenuHovered(null)
+    setFolderContextMenu(null)
+    setFolderContextMenuHovered(null)
+    setAppContextMenu(null)
+    setAppContextMenuHovered(null)
+  }, [])
   const pinDockApp = useCallback((appId: DockAppId) => {
     setDockPinnedApps(prev => DOCK_APP_ORDER.filter(id => availableDockApps.includes(id) && (id === appId || prev.includes(id))))
   }, [availableDockApps])
   const removeDockApp = useCallback((appId: DockAppId) => {
     setDockPinnedApps(prev => prev.filter(id => id !== appId))
+  }, [])
+  const pinProjectToDock = useCallback((projectIdx: number) => {
+    setHiddenProjectDockIds(prev => prev.filter(id => id !== projectIdx))
   }, [])
   const removeProjectFromDock = useCallback((projectIdx: number) => {
     setHiddenProjectDockIds(prev => prev.includes(projectIdx) ? prev : [...prev, projectIdx])
@@ -819,6 +830,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [projects])
 
   const openWindow = useCallback((projectIdx: number) => {
+    dismissMacMenus()
     if (launchpadOpen || launchpadClosing) closeLaunchpad()
     const existing = openWindowsRef.current.find(w => w.projectIdx === projectIdx)
     if (existing) {
@@ -848,9 +860,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }])
     setFocusedWinId(id)
     setWindowOrder(o => [...o.filter(k => k !== id), id])
-  }, [closeLaunchpad, launchpadClosing, launchpadOpen, width])
+  }, [closeLaunchpad, dismissMacMenus, launchpadClosing, launchpadOpen, width])
 
   function openDockApp(appId: DockAppId, event?: React.MouseEvent<HTMLDivElement>) {
+    dismissMacMenus()
     if (launchpadOpen || launchpadClosing) closeLaunchpad()
     if (appId === "terminal") {
       const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
@@ -937,6 +950,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }
 
   const activateLaunchpadEntry = useCallback((entry: LaunchpadEntry) => {
+    dismissMacMenus()
     closeLaunchpad()
     if (entry.kind === "project" && typeof entry.projectIdx === "number") {
       openWindow(entry.projectIdx)
@@ -953,7 +967,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
       return
     }
-  }, [closeLaunchpad, openDockApp, openWindow])
+  }, [closeLaunchpad, dismissMacMenus, openDockApp, openWindow])
   const beginLaunchpadGroupRename = useCallback((groupId: string) => {
     const group = launchpadGroups[groupId]
     if (!group) return
@@ -3471,7 +3485,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             activateLaunchpadEntry(entry)
                           }}
                           onContextMenu={(e) => {
-                            if (entry.kind === "group" || !isDockAppId(entry.id)) return
+                            if (entry.kind === "group") return
                             e.preventDefault()
                             e.stopPropagation()
                             const rect = screenRef.current?.getBoundingClientRect()
@@ -3479,6 +3493,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             setContextMenu(null)
                             setFolderContextMenu(null)
                             setAppContextMenuHovered(null)
+                            if (entry.kind === "project" && typeof entry.projectIdx === "number") {
+                              setAppContextMenu({
+                                x: e.clientX - rect.left,
+                                y: e.clientY - rect.top,
+                                source: "launchpad",
+                                kind: "project",
+                                projectIdx: entry.projectIdx,
+                              })
+                              return
+                            }
+                            if (!isDockAppId(entry.id)) return
                             setAppContextMenu({
                               x: e.clientX - rect.left,
                               y: e.clientY - rect.top,
@@ -7151,11 +7176,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               )}
 
               {appContextMenu && (() => {
+                const projectHidden = appContextMenu.kind === "project"
+                  ? hiddenProjectDockIds.includes(appContextMenu.projectIdx)
+                  : false
                 const menuItems = appContextMenu.kind === "project"
                   ? [
                       { label: "Open", action: () => openWindow(appContextMenu.projectIdx) },
                       null,
-                      { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) },
+                      appContextMenu.source === "launchpad"
+                        ? (projectHidden
+                            ? { label: "Add to Dock", action: () => pinProjectToDock(appContextMenu.projectIdx) }
+                            : { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) })
+                        : { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) },
                     ]
                   : appContextMenu.source === "launchpad"
                   ? [
