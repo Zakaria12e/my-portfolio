@@ -31,7 +31,7 @@ interface MacbookProProps {
   className?: string
 }
 
-const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "cd", "open", "ls", "mkdir", "touch", "write"]
+const COMMANDS = ["desc", "stack", "features", "github", "live", "clear", "cls", "help", "exit", "cd", "open", "ls", "mkdir", "touch", "write"]
 const FOLDER_ICON = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403470/folder_ecvyzl.png"
 const FILE_ICON   = "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775403780/file_a2y8we.png"
 const MESSAGE_CONVERSATION: MessageConversation = {
@@ -75,6 +75,7 @@ interface WinState {
 type MacWindowKey =
   | number
   | "finder"
+  | "launchpad"
   | "terminal"
   | "messages"
   | "safari"
@@ -115,6 +116,16 @@ type DesktopItem = {
   selected: boolean
   locked?: boolean
   path?: string
+}
+
+type LaunchpadEntry = {
+  id: string
+  label: string
+  icon: string
+  tone: string
+  meta: string
+  kind: "app" | "project" | "link"
+  projectIdx?: number
 }
 
 function TrafficLightSymbol({
@@ -246,6 +257,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [hovered, setHovered] = useState(false)
   const [macKeyboardActive, setMacKeyboardActive] = useState(false)
   const [qShortcutHeld, setQShortcutHeld] = useState(false)
+  const [launchpadOpen, setLaunchpadOpen] = useState(false)
+  const [launchpadClosing, setLaunchpadClosing] = useState(false)
   const [appSwitcherVisible, setAppSwitcherVisible] = useState(false)
   const [appSwitcherIndex, setAppSwitcherIndex] = useState(0)
   const [clock, setClock] = useState("")
@@ -411,6 +424,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const termBodyRef = useRef<HTMLDivElement>(null)
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
+  const launchpadCloseTimerRef = useRef<number | null>(null)
   const focusedDockIdxRef = useRef(-1)
   const arrowResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -449,6 +463,97 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [messagesSearch, setMessagesSearch] = useState("")
   const [messagesDraft, setMessagesDraft] = useState("")
   const [messagesConversation, setMessagesConversation] = useState<MessageConversation>(MESSAGE_CONVERSATION)
+  const openLaunchpad = useCallback(() => {
+    if (launchpadCloseTimerRef.current) {
+      window.clearTimeout(launchpadCloseTimerRef.current)
+      launchpadCloseTimerRef.current = null
+    }
+    setControlCenterOpen(false)
+    setLaunchpadClosing(false)
+    setLaunchpadOpen(true)
+  }, [])
+  const closeLaunchpad = useCallback(() => {
+    if (!launchpadOpen && !launchpadClosing) return
+    if (launchpadCloseTimerRef.current) window.clearTimeout(launchpadCloseTimerRef.current)
+    setLaunchpadClosing(true)
+    launchpadCloseTimerRef.current = window.setTimeout(() => {
+      setLaunchpadOpen(false)
+      setLaunchpadClosing(false)
+      launchpadCloseTimerRef.current = null
+    }, 260)
+  }, [launchpadClosing, launchpadOpen])
+  const launchpadEntries = useMemo<LaunchpadEntry[]>(() => {
+    const appEntries: LaunchpadEntry[] = [
+      {
+        id: "finder",
+        label: "Finder",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429910/128_vv8kbl.png",
+        tone: "#60a5fa",
+        meta: "App",
+        kind: "app",
+      },
+      {
+        id: "terminal",
+        label: "Terminal",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424797/256_uzh1yj.png",
+        tone: "#111827",
+        meta: "App",
+        kind: "app",
+      },
+      {
+        id: "safari",
+        label: "Safari",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775423763/128_g9zehk.webp",
+        tone: "#0ea5e9",
+        meta: "Browser",
+        kind: "app",
+      },
+      {
+        id: "messages",
+        label: "Messages",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429715/128_cdh305.webp",
+        tone: "#34c759",
+        meta: "App",
+        kind: "app",
+      },
+      {
+        id: "itunes",
+        label: "Music",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429984/256_bumw1c.png",
+        tone: "#ec4899",
+        meta: "App",
+        kind: "app",
+      },
+      {
+        id: "github",
+        label: "GitHub",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png",
+        tone: "#0f172a",
+        meta: "Profile",
+        kind: "link",
+      },
+      {
+        id: "vscode",
+        label: "VS Code",
+        icon: "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429665/128_na5mv8.webp",
+        tone: "#2563eb",
+        meta: "App",
+        kind: "app",
+      },
+    ]
+    const projectEntries = (projects ?? []).map((project, index) => ({
+      id: `project-${index}`,
+      label: project.title ?? `Project ${index + 1}`,
+      icon: isDark
+        ? (project.iconDark ?? project.icon ?? project.images?.[0] ?? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775605503/256_ws4sxn.png")
+        : (project.icon ?? project.iconDark ?? project.images?.[0] ?? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775605503/256_ws4sxn.png"),
+      tone: "#0a84ff",
+      meta: project.category ?? "Project",
+      kind: "project" as const,
+      projectIdx: index,
+    }))
+    return [...appEntries, ...projectEntries]
+  }, [isDark, projects])
   const switchableWindows = useMemo<SwitchableItem[]>(() => {
     const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
       if (typeof key === "string" && key.startsWith("folder:")) {
@@ -663,6 +768,59 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setWindowOrder(o => [...o.filter(k => k !== id), id])
   }, [width])
 
+  const activateLaunchpadEntry = useCallback((entry: LaunchpadEntry) => {
+    closeLaunchpad()
+    if (entry.kind === "project" && typeof entry.projectIdx === "number") {
+      openWindow(entry.projectIdx)
+      return
+    }
+    if (entry.id === "finder") {
+      setFinderOpen(true)
+      setFinderMinimized(false)
+      setFinderMinimizing(false)
+      setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
+      return
+    }
+    if (entry.id === "terminal") {
+      setTermMinimized(false)
+      setTermMinimizing(false)
+      setTerminalOpen(true)
+      setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+      setTimeout(() => inputRef.current?.focus(), 50)
+      return
+    }
+    if (entry.id === "safari") {
+      setSafariOpen(true)
+      setSafariMinimized(false)
+      setSafariMinimizing(false)
+      setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
+      return
+    }
+    if (entry.id === "messages") {
+      setMessagesOpen(true)
+      setMessagesMinimized(false)
+      setMessagesMinimizing(false)
+      setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+      return
+    }
+    if (entry.id === "itunes") {
+      setItunesOpen(true)
+      setItunesMinimized(false)
+      setItunesMinimizing(false)
+      setWindowOrder(o => [...o.filter(k => k !== "itunes"), "itunes"])
+      return
+    }
+    if (entry.id === "github") {
+      if (githubUrl && githubUrl !== "#") window.open(githubUrl, "_blank", "noopener,noreferrer")
+      return
+    }
+    if (entry.id === "vscode" && vscodeAudioRef.current) {
+      vscodeAudioRef.current.pause()
+      vscodeAudioRef.current.currentTime = 0
+      vscodeAudioRef.current.play().catch(() => {})
+    }
+  }, [closeLaunchpad, githubUrl, openWindow])
+
   const triggerDockBounce = useCallback((key: string) => {
     const activeTimer = dockBounceTimersRef.current[key]
     if (activeTimer) window.clearTimeout(activeTimer)
@@ -679,6 +837,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   useEffect(() => {
     return () => {
       Object.values(dockBounceTimersRef.current).forEach(timerId => window.clearTimeout(timerId))
+      if (launchpadCloseTimerRef.current) window.clearTimeout(launchpadCloseTimerRef.current)
     }
   }, [])
 
@@ -1336,6 +1495,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       }
     } else if (cmd === "clear" || cmd === "cls") {
       setTermLines([])
+    } else if (cmd === "exit") {
+      setTerminalOpen(false)
+      setTermLines([])
+      setTermInput("")
+      setTermPos({ x: 0, y: 0 })
+      setWindowOrder(o => o.filter(k => k !== "terminal"))
     } else if (cmd === "help") {
       const helpLine = (name: string, text: string) => ({
         text: `${name.padEnd(12, " ")}${text}`,
@@ -1360,6 +1525,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         { text: "" },
         { text: "Terminal", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.34)" },
         helpLine("clear", "Clear the screen"),
+        helpLine("exit", "Close Terminal"),
         helpLine("help", "Show this list"),
       ])
     } else if (cmd === "") {
@@ -1457,7 +1623,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [editingFolderItem])
 
   useEffect(() => {
-    const totalSlots = 1 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
+    const totalSlots = 2 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
@@ -1515,16 +1681,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   // All navigable dock items in order - defined after computeTargets
   const dockItems = useMemo(() => [
     { type: "finder" as const, refIdx: 0 },
+    { type: "launchpad" as const, refIdx: 1 },
     ...(projects
-      ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 1 }))
-      : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 1 }))
+      ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 2 }))
+      : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 2 }))
     ),
-    ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 1 }] : []),
-    ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "vscode"   as const, refIdx: dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "messages" as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "safari"   as const, refIdx: dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "itunes" as const, refIdx: dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 2 }] : []),
+    ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) }] : []),
+    { type: "vscode"   as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "messages" as const, refIdx: dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "safari"   as const, refIdx: dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    { type: "itunes" as const, refIdx: dockCount + 5 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
 
@@ -1650,6 +1817,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         return
       }
       if (e.key === "Escape") {
+        closeLaunchpad()
         setTerminalOpen(false); setWindowOrder(o => o.filter(k => k !== "terminal"))
         setFinderOpen(false)
         setQuickLookOpen(false)
@@ -1689,6 +1857,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         
         const item = dockItems[focusedDockIdxRef.current]
         if (!item) return
+        if (item.type === "launchpad") {
+          if (launchpadOpen) closeLaunchpad()
+          else openLaunchpad()
+        }
         if (item.type === "finder") {
           const isOnTop = windowOrder[windowOrder.length - 1] === "finder"
           if (!finderOpen || finderMinimized) {
@@ -1768,7 +1940,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       window.removeEventListener("keydown", onKey, { capture: true })
       window.removeEventListener("keyup", onKeyUp, { capture: true })
     }
-  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, focusFolderWin, focusFileEditorWin, switchableWindows, appSwitcherVisible, appSwitcherIndex, folderWins, fileEditorWins])
+  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, focusFolderWin, focusFileEditorWin, switchableWindows, appSwitcherVisible, appSwitcherIndex, folderWins, fileEditorWins, closeLaunchpad, launchpadOpen, openLaunchpad])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -2790,6 +2962,103 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     )
                   })}
+                </div>
+              )}
+
+              {(launchpadOpen || launchpadClosing) && (
+                <div
+                  onClick={closeLaunchpad}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 16,
+                    background: isDark ? "rgba(8,12,24,0.34)" : "rgba(255,255,255,0.22)",
+                    backdropFilter: "blur(28px) saturate(1.25)",
+                    WebkitBackdropFilter: "blur(28px) saturate(1.25)",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    paddingTop: Math.round(h * 0.12),
+                    animation: launchpadClosing
+                      ? "launchpadFadeOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
+                      : "launchpadFadeIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      width: "88%",
+                      maxWidth: Math.round(w * 0.92),
+                      display: "grid",
+                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                      gap: `${Math.round(w * 0.02)}px ${Math.round(w * 0.028)}px`,
+                      animation: launchpadClosing
+                        ? "launchpadGridOut 0.24s cubic-bezier(0.4,0,0.2,1) forwards"
+                        : "launchpadGridIn 0.42s cubic-bezier(0.2,0.9,0.2,1)",
+                      transformOrigin: "50% 62%",
+                    }}
+                  >
+                    {launchpadEntries.map((entry) => (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => activateLaunchpadEntry(entry)}
+                        style={{
+                          appearance: "none",
+                          border: "none",
+                          background: "transparent",
+                          padding: `${Math.round(w * 0.01)}px ${Math.round(w * 0.006)}px`,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: Math.round(w * 0.009),
+                          cursor: "pointer",
+                          animation: launchpadClosing
+                            ? "launchpadIconOut 0.2s cubic-bezier(0.4,0,0.2,1) forwards"
+                            : "launchpadIconIn 0.36s cubic-bezier(0.22,1,0.36,1)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: Math.round(w * 0.09),
+                            height: Math.round(w * 0.09),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            position: "relative",
+                          }}
+                        >
+                          <img
+                            src={entry.icon}
+                            alt={entry.label}
+                            draggable={false}
+                            style={{
+                              width: "82%",
+                              height: "82%",
+                              objectFit: "contain",
+                              position: "relative",
+                              zIndex: 1,
+                            }}
+                          />
+                        </div>
+                        <div style={{ textAlign: "center", lineHeight: 1.2 }}>
+                          <div style={{
+                            fontSize: Math.round(w * 0.0155),
+                            fontWeight: 600,
+                            color: "#fff",
+                            textShadow: "0 1px 8px rgba(0,0,0,0.28)",
+                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                          }}>{entry.label}</div>
+                          <div style={{
+                            marginTop: 2,
+                            fontSize: Math.round(w * 0.0115),
+                            color: "rgba(255,255,255,0.68)",
+                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                          }}>{entry.meta}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -5536,8 +5805,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 )
               })()}
 
-              {/* Dock - show when multiple images OR description OR github exists */}
-              {(hasDock || showTerminalIcon || showGithubIcon) && (
+              {/* Dock */}
+              {(
                 <div
                   onMouseLeave={() => {
                     if (dockSleeping) {
@@ -5554,7 +5823,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     alignItems: "flex-end",
                     justifyContent: "center",
                     paddingBottom: 4,
-                    zIndex: 10,
+                    zIndex: 17,
                     // allow scaled icons to overflow dock container upward
                     overflow: "visible",
                     pointerEvents: "none",
@@ -5666,7 +5935,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       transition: "opacity 0.22s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1)",
                     }}
                   >
-                    {/* App icon - always first */}
+                    {/* Finder icon */}
                     <div
                       ref={(el) => { iconRefs.current[0] = el }}
                       onMouseEnter={() => setHoveredSlot("app")}
@@ -5693,7 +5962,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         overflow: "visible", position: "relative", cursor: "pointer",
                       }}
                     >
-                      {/* macOS label */}
                       <div style={{
                         position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
                         left: "50%", transform: "translateX(-50%)",
@@ -5724,6 +5992,53 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       }} />
                     </div>
 
+                    {/* Launchpad icon */}
+                    <div
+                      ref={(el) => { iconRefs.current[1] = el }}
+                      onMouseEnter={() => setHoveredSlot("launchpad")}
+                      onMouseLeave={() => setHoveredSlot(null)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (launchpadOpen) closeLaunchpad()
+                        else openLaunchpad()
+                      }}
+                      style={{
+                        width: slotSize, height: slotSize, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        overflow: "visible", position: "relative", cursor: "pointer",
+                      }}
+                    >
+                      {/* macOS label */}
+                      <div style={{
+                        position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`,
+                        left: "50%", transform: "translateX(-50%)",
+                        background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)",
+                        backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)",
+                        borderRadius: 7, padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`,
+                        fontSize: Math.round(w * 0.016), fontWeight: 400,
+                        fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
+                        color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
+                        pointerEvents: "none", zIndex: 100,
+                        opacity: hoveredSlot === "launchpad" ? 1 : 0,
+                        transition: "opacity 0.12s ease",
+                        border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
+                        boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
+                      }}>Launchpad</div>
+                      <img
+                        src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775605503/256_ws4sxn.png"
+                        alt="Launchpad"
+                        draggable={false}
+                        style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[1] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                      />
+                      <div style={{
+                        position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
+                        transform: "translateX(-50%)", width: 2.5, height: 2.5,
+                        borderRadius: "50%",
+                        background: launchpadOpen ? "rgba(255,255,255,0.9)" : "transparent",
+                        transition: "background 0.2s", pointerEvents: "none",
+                      }} />
+                    </div>
+
                     {/* Separator between app icon and thumbnails */}
                     {hasDock && <div style={{
                       width: 0.5, height: slotSize * 0.7, alignSelf: "center",
@@ -5733,7 +6048,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Projects mode: one icon per project */}
                     {hasDock && projects && projects.map((p, idx) => {
-                      const scale = scales[idx + 1] ?? 1
+                          const scale = scales[idx + 2] ?? 1
                       const isActive = openWindows.some(w => w.projectIdx === idx)
                       const isMinimized = openWindows.some(w => w.projectIdx === idx && w.minimized)
                       const iconSrc = isDark ? (p.iconDark ?? p.icon) : (p.icon ?? p.iconDark)
@@ -5742,7 +6057,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       return (
                         <div
                           key={idx}
-                          ref={(el) => { iconRefs.current[idx + 1] = el }}
+                          ref={(el) => { iconRefs.current[idx + 2] = el }}
                           onMouseEnter={() => setHoveredSlot(slotKey)}
                           onMouseLeave={() => setHoveredSlot(null)}
                           style={{
@@ -5796,12 +6111,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Images mode: one icon per image in current project */}
                     {hasDock && !projects && imgList.map((imgSrc, idx) => {
-                      const scale = scales[idx + 1] ?? 1
+                      const scale = scales[idx + 2] ?? 1
                       const isActive = idx === activeImg
                       return (
                         <div
                           key={idx}
-                          ref={(el) => { iconRefs.current[idx + 1] = el }}
+                          ref={(el) => { iconRefs.current[idx + 2] = el }}
                           style={{
                             width: slotSize, height: slotSize, flexShrink: 0,
                             display: "flex", flexDirection: "column",
@@ -5843,7 +6158,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         marginLeft: 1, marginRight: 1,
                       }} />
                       <div
-                        ref={(el) => { iconRefs.current[dockCount + 1] = el }}
+                        ref={(el) => { iconRefs.current[dockCount + 2] = el }}
                         onMouseEnter={() => setHoveredSlot("terminal")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -5914,7 +6229,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           draggable={false}
                           style={{
                             width: slotSize, height: slotSize,
-                            transform: `scale(${scales[dockCount + 1] ?? 1})`,
+                            transform: `scale(${scales[dockCount + 2] ?? 1})`,
                             transformOrigin: "bottom center",
                             willChange: "transform",
                             flexShrink: 0,
@@ -5943,7 +6258,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }} />
                       )}
                       <div
-                        ref={(el) => { iconRefs.current[dockCount + 1 + (showTerminalIcon ? 1 : 0)] = el }}
+                        ref={(el) => { iconRefs.current[dockCount + 2 + (showTerminalIcon ? 1 : 0)] = el }}
                         onMouseEnter={() => setHoveredSlot("github")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -5977,14 +6292,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png"
                           alt="GitHub"
                           draggable={false}
-                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[dockCount + 1 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[dockCount + 2 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
                         />
                       </div>
                     </>}
 
                     {/* VSCode icon */}
                     {(() => {
-                      const vscodeRefIdx = dockCount + 1 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const vscodeRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[vscodeRefIdx] ?? 1
                       return (
                         <div
@@ -6009,7 +6324,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Messages icon */}
                     {(() => {
-                      const messagesRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const messagesRefIdx = dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[messagesRefIdx] ?? 1
                       return (
                         <div
@@ -6041,7 +6356,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* Safari icon */}
                     {(() => {
-                      const safariRefIdx = dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const safariRefIdx = dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[safariRefIdx] ?? 1
                       return (
                         <div
@@ -6073,7 +6388,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                     {/* iTunes icon */}
                     {(() => {
-                      const itunesRefIdx = dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                      const itunesRefIdx = dockCount + 5 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
                       const scale = scales[itunesRefIdx] ?? 1
                       return (
                         <div
@@ -6396,6 +6711,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         @keyframes ccIn {
           0%   { opacity: 0; transform: scale(0.96) translateY(-6px); }
           100% { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+        @keyframes launchpadFadeIn {
+          0%   { opacity: 0; backdrop-filter: blur(0px) saturate(1); -webkit-backdrop-filter: blur(0px) saturate(1); }
+          100% { opacity: 1; backdrop-filter: blur(28px) saturate(1.25); -webkit-backdrop-filter: blur(28px) saturate(1.25); }
+        }
+        @keyframes launchpadFadeOut {
+          0%   { opacity: 1; backdrop-filter: blur(28px) saturate(1.25); -webkit-backdrop-filter: blur(28px) saturate(1.25); }
+          100% { opacity: 0; backdrop-filter: blur(6px) saturate(1.02); -webkit-backdrop-filter: blur(6px) saturate(1.02); }
+        }
+        @keyframes launchpadGridIn {
+          0%   { opacity: 0; transform: scale(1.08) translateY(28px); filter: blur(10px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        @keyframes launchpadGridOut {
+          0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+          100% { opacity: 0; transform: scale(0.96) translateY(14px); filter: blur(8px); }
+        }
+        @keyframes launchpadIconIn {
+          0%   { opacity: 0; transform: translateY(16px) scale(0.9); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes launchpadIconOut {
+          0%   { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(10px) scale(0.92); }
         }
       `}</style>
     </div>
