@@ -3237,6 +3237,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
               {(launchpadOpen || launchpadClosing) && (
                 <div
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
                   onClick={() => {
                     if (activeLaunchpadGroup) {
                       setLaunchpadOpenGroupId(null)
@@ -3270,6 +3274,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         setLaunchpadEditingName("")
                         return
                       }
+                      if (e.target === e.currentTarget) {
+                        closeLaunchpad()
+                        return
+                      }
+                      e.stopPropagation()
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                     }}
                     style={{
@@ -3335,6 +3347,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     </div>
                     <div
+                      onClick={(e) => {
+                        if (e.target === e.currentTarget) closeLaunchpad()
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
                       onDragOver={(e) => {
                         if (activeLaunchpadGroup && (launchpadDraggingMember || (launchpadDraggingId && launchpadGroups[launchpadDraggingId]))) {
                           e.preventDefault()
@@ -3531,7 +3550,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           </div>
                         </button>
                       ) : (
-                        <div key={`launchpad-empty-${index}`} />
+                        <div
+                          key={`launchpad-empty-${index}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            closeLaunchpad()
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                        />
                       )
                     ))}
                     </div>
