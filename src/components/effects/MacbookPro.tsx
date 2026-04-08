@@ -135,6 +135,12 @@ type LaunchpadGroup = {
 }
 
 type LaunchpadRenderable = LaunchpadEntry | LaunchpadGroup
+type DockAppId = "terminal" | "github" | "vscode" | "messages" | "safari" | "itunes"
+
+const DOCK_APP_ORDER: DockAppId[] = ["terminal", "github", "vscode", "messages", "safari", "itunes"]
+function isDockAppId(value: string): value is DockAppId {
+  return DOCK_APP_ORDER.includes(value as DockAppId)
+}
 
 function TrafficLightSymbol({
   kind,
@@ -409,8 +415,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [termOrigin, setTermOrigin]   = useState("50% 100%")
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
   const [dockPeek, setDockPeek] = useState(false)
+  const [dockPinnedApps, setDockPinnedApps] = useState<DockAppId[]>(DOCK_APP_ORDER)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId: number | null } | null>(null)
   const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
+  const [appContextMenu, setAppContextMenu] = useState<{
+    x: number
+    y: number
+    source: "launchpad" | "dock"
+    appId: DockAppId
+  } | null>(null)
+  const [appContextMenuHovered, setAppContextMenuHovered] = useState<number | null>(null)
   const [folderContextMenu, setFolderContextMenu] = useState<{
     x: number
     y: number
@@ -476,11 +490,24 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
+  const availableDockApps = useMemo<DockAppId[]>(() => {
+    const apps: DockAppId[] = ["vscode", "messages", "safari", "itunes"]
+    if (showTerminalIcon) apps.unshift("terminal")
+    if (showGithubIcon) apps.splice(showTerminalIcon ? 2 : 1, 0, "github")
+    return apps
+  }, [showGithubIcon, showTerminalIcon])
+  const hasPinnedDockApps = dockPinnedApps.length > 0
   const folderOrderKey = useCallback((id: number) => `folder:${id}` as const, [])
   const fileOrderKey = useCallback((id: number) => `file:${id}` as const, [])
   const [messagesSearch, setMessagesSearch] = useState("")
   const [messagesDraft, setMessagesDraft] = useState("")
   const [messagesConversation, setMessagesConversation] = useState<MessageConversation>(MESSAGE_CONVERSATION)
+  const pinDockApp = useCallback((appId: DockAppId) => {
+    setDockPinnedApps(prev => DOCK_APP_ORDER.filter(id => availableDockApps.includes(id) && (id === appId || prev.includes(id))))
+  }, [availableDockApps])
+  const removeDockApp = useCallback((appId: DockAppId) => {
+    setDockPinnedApps(prev => prev.filter(id => id !== appId))
+  }, [])
   const openLaunchpad = useCallback(() => {
     if (launchpadCloseTimerRef.current) {
       window.clearTimeout(launchpadCloseTimerRef.current)
@@ -811,10 +838,99 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setWindowOrder(o => [...o.filter(k => k !== id), id])
   }, [width])
 
+  function openDockApp(appId: DockAppId, event?: React.MouseEvent<HTMLDivElement>) {
+    if (appId === "terminal") {
+      const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
+      if (!terminalOpen || termMinimized) {
+        triggerDockBounce("terminal")
+        setTermMinimized(false)
+        setTermMinimizing(false)
+        if (event) setTermOrigin(getOrigin(event))
+        setTerminalOpen(true)
+        setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+        setTimeout(() => inputRef.current?.focus(), 50)
+      } else if (isOnTop) {
+        setTermMinimizing(true)
+        setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340)
+      } else {
+        setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
+        setTimeout(() => inputRef.current?.focus(), 50)
+      }
+      return
+    }
+
+    if (appId === "github") {
+      if (githubUrl && githubUrl !== "#") {
+        window.open(githubUrl, "_blank", "noopener,noreferrer")
+      }
+      return
+    }
+
+    if (appId === "vscode") {
+      if (vscodeAudioRef.current) {
+        vscodeAudioRef.current.pause()
+        vscodeAudioRef.current.currentTime = 0
+        vscodeAudioRef.current.play().catch(() => {})
+      }
+      return
+    }
+
+    if (appId === "messages") {
+      const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
+      if (!messagesOpen || messagesMinimized) {
+        triggerDockBounce("messages")
+        setMessagesMinimized(false)
+        setMessagesMinimizing(false)
+        setMessagesOpen(true)
+        setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+      } else if (isOnTop) {
+        setMessagesMinimizing(true)
+        setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340)
+      } else {
+        setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
+      }
+      return
+    }
+
+    if (appId === "safari") {
+      const isOnTop = windowOrder[windowOrder.length - 1] === "safari"
+      if (!safariOpen || safariMinimized) {
+        triggerDockBounce("safari")
+        setSafariMinimized(false)
+        setSafariMinimizing(false)
+        setSafariOpen(true)
+        setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
+      } else if (isOnTop) {
+        setSafariMinimizing(true)
+        setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340)
+      } else {
+        setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
+      }
+      return
+    }
+
+    if (itunesOpen && itunesMinimized) {
+      triggerDockBounce("itunes")
+      setItunesMinimized(false)
+      bringToFront("itunes")
+    } else {
+      if (!itunesOpen) triggerDockBounce("itunes")
+      setItunesOpen(open => {
+        if (!open) setWindowOrder(order => [...order.filter(k => k !== "itunes"), "itunes"])
+        else setWindowOrder(order => order.filter(k => k !== "itunes"))
+        return !open
+      })
+    }
+  }
+
   const activateLaunchpadEntry = useCallback((entry: LaunchpadEntry) => {
     closeLaunchpad()
     if (entry.kind === "project" && typeof entry.projectIdx === "number") {
       openWindow(entry.projectIdx)
+      return
+    }
+    if (isDockAppId(entry.id)) {
+      openDockApp(entry.id)
       return
     }
     if (entry.id === "finder") {
@@ -824,45 +940,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setWindowOrder(o => [...o.filter(k => k !== "finder"), "finder"])
       return
     }
-    if (entry.id === "terminal") {
-      setTermMinimized(false)
-      setTermMinimizing(false)
-      setTerminalOpen(true)
-      setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
-      setTimeout(() => inputRef.current?.focus(), 50)
-      return
-    }
-    if (entry.id === "safari") {
-      setSafariOpen(true)
-      setSafariMinimized(false)
-      setSafariMinimizing(false)
-      setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
-      return
-    }
-    if (entry.id === "messages") {
-      setMessagesOpen(true)
-      setMessagesMinimized(false)
-      setMessagesMinimizing(false)
-      setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
-      return
-    }
-    if (entry.id === "itunes") {
-      setItunesOpen(true)
-      setItunesMinimized(false)
-      setItunesMinimizing(false)
-      setWindowOrder(o => [...o.filter(k => k !== "itunes"), "itunes"])
-      return
-    }
-    if (entry.id === "github") {
-      if (githubUrl && githubUrl !== "#") window.open(githubUrl, "_blank", "noopener,noreferrer")
-      return
-    }
-    if (entry.id === "vscode" && vscodeAudioRef.current) {
-      vscodeAudioRef.current.pause()
-      vscodeAudioRef.current.currentTime = 0
-      vscodeAudioRef.current.play().catch(() => {})
-    }
-  }, [closeLaunchpad, githubUrl, openWindow])
+  }, [closeLaunchpad, openDockApp, openWindow])
   const beginLaunchpadGroupRename = useCallback((groupId: string) => {
     const group = launchpadGroups[groupId]
     if (!group) return
@@ -1852,12 +1930,16 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [launchpadEditingGroupId])
 
   useEffect(() => {
-    const totalSlots = 2 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
+    setDockPinnedApps(prev => DOCK_APP_ORDER.filter(id => availableDockApps.includes(id) && prev.includes(id)))
+  }, [availableDockApps])
+
+  useEffect(() => {
+    const totalSlots = 2 + dockCount + dockPinnedApps.length
     const ones = Array(totalSlots).fill(1)
     targetScales.current = [...ones]
     currentScales.current = [...ones]
     setScales(ones)
-  }, [dockCount, showTerminalIcon, showGithubIcon])
+  }, [dockCount, dockPinnedApps.length])
 
   const w = width
   const h = Math.round(w * 0.609)
@@ -1915,14 +1997,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 2 }))
       : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 2 }))
     ),
-    ...(showTerminalIcon ? [{ type: "terminal" as const, refIdx: dockCount + 2 }] : []),
-    ...(showGithubIcon   ? [{ type: "github"   as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) }] : []),
-    { type: "vscode"   as const, refIdx: dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "messages" as const, refIdx: dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "safari"   as const, refIdx: dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
-    { type: "itunes" as const, refIdx: dockCount + 5 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) },
+    ...dockPinnedApps.map((appId, index) => ({ type: appId, refIdx: dockCount + 2 + index })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [projects?.length, imgList.length, dockCount, showTerminalIcon, showGithubIcon])
+  ], [projects?.length, imgList.length, dockCount, dockPinnedApps])
+  const getPinnedDockRefIdx = useCallback((appId: DockAppId) => dockCount + 2 + dockPinnedApps.indexOf(appId), [dockCount, dockPinnedApps])
 
   // Reset focus when MacBook loses hover
   useEffect(() => {
@@ -2105,51 +2183,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         if (item.type === "project") {
           openWindow(item.projIdx)
         }
-        if (item.type === "terminal") {
-          const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
-          if (!terminalOpen || termMinimized) {
-            setTermMinimized(false); setTermMinimizing(false); setTerminalOpen(true)
-            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
-            setTimeout(() => inputRef.current?.focus(), 50)
-          } else if (isOnTop) {
-            setTermMinimizing(true)
-            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340)
-          } else {
-            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
-            setTimeout(() => inputRef.current?.focus(), 50)
-          }
-        }
-        if (item.type === "messages") {
-          const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
-          if (!messagesOpen || messagesMinimized) {
-            setMessagesMinimized(false); setMessagesMinimizing(false); setMessagesOpen(true)
-            setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
-          } else if (isOnTop) {
-            setMessagesMinimizing(true)
-            setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340)
-          } else {
-            setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
-          }
-        }
-        if (item.type === "safari") {
-          if (safariOpen && safariMinimized) { setSafariMinimized(false); bringToFront("safari") }
-          else { setSafariOpen(o => !o); bringToFront("safari") }
-        }
-        if (item.type === "itunes") {
-          if (itunesOpen && itunesMinimized) { setItunesMinimized(false); bringToFront("itunes") }
-          else { setItunesOpen(o => !o); bringToFront("itunes") }
-        }
-        if (item.type === "github") {
-          if (githubUrl && githubUrl !== "#") {
-            window.open(githubUrl, "_blank", "noopener,noreferrer")
-          }
-        }
-        if (item.type === "vscode") {
-          if (vscodeAudioRef.current) {
-            vscodeAudioRef.current.pause()
-            vscodeAudioRef.current.currentTime = 0
-            vscodeAudioRef.current.play().catch(() => {})
-          }
+        if (typeof item.type === "string" && isDockAppId(item.type)) {
+          openDockApp(item.type)
         }
       }
     }
@@ -2169,7 +2204,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       window.removeEventListener("keydown", onKey, { capture: true })
       window.removeEventListener("keyup", onKeyUp, { capture: true })
     }
-  }, [hovered, macKeyboardActive, qShortcutHeld, terminalOpen, termMinimized, quickLookOpen, imgList.length, dockItems, computeTargets, githubUrl, focusedWinId, closeWindow, termPos, windowOrder, itunesOpen, itunesMinimized, openWindows, bringToFront, messagesOpen, messagesMinimized, finderOpen, finderMinimized, safariOpen, safariMinimized, focusWin, focusFolderWin, focusFileEditorWin, switchableWindows, appSwitcherVisible, appSwitcherIndex, folderWins, fileEditorWins, closeLaunchpad, launchpadOpen, openLaunchpad])
+  }, [hovered, macKeyboardActive, qShortcutHeld, quickLookOpen, imgList.length, dockItems, computeTargets, focusedWinId, closeWindow, termPos, windowOrder, openWindows, finderOpen, finderMinimized, focusWin, focusFolderWin, focusFileEditorWin, switchableWindows, appSwitcherVisible, appSwitcherIndex, folderWins, fileEditorWins, closeLaunchpad, launchpadOpen, openLaunchpad, openDockApp])
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -2177,7 +2212,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setContextMenu(null)
+      if (e.key === "Escape") {
+        setContextMenu(null)
+        setAppContextMenu(null)
+      }
     }
     window.addEventListener("keydown", handleEscape)
     return () => window.removeEventListener("keydown", handleEscape)
@@ -2427,6 +2465,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             setMacKeyboardActive(true)
             setControlCenterOpen(false)
             setContextMenu(null)
+            setAppContextMenu(null)
             setFolderContextMenu(null)
             cancelDesktopRename()
             cancelFolderRename()
@@ -2436,6 +2475,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             const rect = screenRef.current?.getBoundingClientRect()
             if (rect) {
               setContextMenuHovered(null)
+              setAppContextMenu(null)
               setFolderContextMenu(null)
               cancelDesktopRename()
               cancelFolderRename()
@@ -2470,6 +2510,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.screenOn} onClick={() => {
               setDesktopItems(prev => prev.map(d => ({ ...d, selected: false })))
               setContextMenu(null)
+              setAppContextMenu(null)
               setFolderContextMenu(null)
               cancelDesktopRename()
               cancelFolderRename()
@@ -3354,6 +3395,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               return
                             }
                             activateLaunchpadEntry(entry)
+                          }}
+                          onContextMenu={(e) => {
+                            if (entry.kind === "group" || !isDockAppId(entry.id)) return
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({
+                              x: e.clientX - rect.left,
+                              y: e.clientY - rect.top,
+                              source: "launchpad",
+                              appId: entry.id,
+                            })
                           }}
                           style={{
                             appearance: "none",
@@ -6715,15 +6772,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       )
                     })}
 
-                    {/* Dock separator + terminal icon */}
-                    {showTerminalIcon && <>
+                    {/* Dock separator + pinned apps */}
+                    {hasPinnedDockApps && <>
                       <div style={{
                         width: 0.5, height: slotSize * 0.7, alignSelf: "center",
                         background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
                         marginLeft: 1, marginRight: 1,
                       }} />
-                      <div
-                        ref={(el) => { iconRefs.current[dockCount + 2] = el }}
+                      {dockPinnedApps.includes("terminal") && <div
+                        ref={(el) => { iconRefs.current[getPinnedDockRefIdx("terminal")] = el }}
                         onMouseEnter={() => setHoveredSlot("terminal")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -6733,20 +6790,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
-                          if (!terminalOpen || termMinimized) {
-                            triggerDockBounce("terminal")
-                            setTermMinimized(false); setTermMinimizing(false)
-                            setTermOrigin(getOrigin(e)); setTerminalOpen(true)
-                            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
-                            setTimeout(() => inputRef.current?.focus(), 50)
-                          } else if (isOnTop) {
-                            setTermMinimizing(true)
-                            setTimeout(() => { setTermMinimized(true); setTermMinimizing(false) }, 340)
-                          } else {
-                            setWindowOrder(o => [...o.filter(k => k !== "terminal"), "terminal"])
-                            setTimeout(() => inputRef.current?.focus(), 50)
-                          }
+                          openDockApp("terminal", e)
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const rect = screenRef.current?.getBoundingClientRect()
+                          if (!rect) return
+                          setContextMenu(null)
+                          setFolderContextMenu(null)
+                          setAppContextMenuHovered(null)
+                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "terminal" })
                         }}
                       >
                         {/* macOS label */}
@@ -6794,7 +6848,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           draggable={false}
                           style={{
                             width: slotSize, height: slotSize,
-                            transform: `scale(${scales[dockCount + 2] ?? 1})`,
+                            transform: `scale(${scales[getPinnedDockRefIdx("terminal")] ?? 1})`,
                             transformOrigin: "bottom center",
                             willChange: "transform",
                             flexShrink: 0,
@@ -6810,20 +6864,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           background: terminalOpen ? "rgba(255,255,255,0.9)" : "transparent",
                           transition: "background 0.2s", pointerEvents: "none",
                         }} />
-                      </div>
+                      </div>}
                     </>}
 
                     {/* GitHub icon */}
-                    {showGithubIcon && <>
-                      {!showTerminalIcon && (
-                        <div style={{
-                          width: 0.5, height: slotSize * 0.7, alignSelf: "center",
-                          background: "rgba(255,255,255,0.2)", borderRadius: 1, flexShrink: 0,
-                          marginLeft: 1, marginRight: 1,
-                        }} />
-                      )}
-                      <div
-                        ref={(el) => { iconRefs.current[dockCount + 2 + (showTerminalIcon ? 1 : 0)] = el }}
+                    {dockPinnedApps.includes("github") && <div
+                        ref={(el) => { iconRefs.current[getPinnedDockRefIdx("github")] = el }}
                         onMouseEnter={() => setHoveredSlot("github")}
                         onMouseLeave={() => setHoveredSlot(null)}
                         style={{
@@ -6833,9 +6879,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          if (githubUrl && githubUrl !== "#") {
-                            window.open(githubUrl, "_blank", "noopener,noreferrer")
-                          }
+                          openDockApp("github")
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const rect = screenRef.current?.getBoundingClientRect()
+                          if (!rect) return
+                          setContextMenu(null)
+                          setFolderContextMenu(null)
+                          setAppContextMenuHovered(null)
+                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "github" })
                         }}
                       >
                         {/* macOS label */}
@@ -6857,14 +6911,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775429614/128_xyfst7.png"
                           alt="GitHub"
                           draggable={false}
-                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[dockCount + 2 + (showTerminalIcon ? 1 : 0)] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
+                          style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scales[getPinnedDockRefIdx("github")] ?? 1})`, transformOrigin: "bottom center", willChange: "transform" }}
                         />
-                      </div>
-                    </>}
+                      </div>}
 
                     {/* VSCode icon */}
-                    {(() => {
-                      const vscodeRefIdx = dockCount + 2 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                    {dockPinnedApps.includes("vscode") && (() => {
+                      const vscodeRefIdx = getPinnedDockRefIdx("vscode")
                       const scale = scales[vscodeRefIdx] ?? 1
                       return (
                         <div
@@ -6874,11 +6927,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
                           onClick={e => {
                             e.stopPropagation()
-                            if (vscodeAudioRef.current) {
-                              vscodeAudioRef.current.pause()
-                              vscodeAudioRef.current.currentTime = 0
-                              vscodeAudioRef.current.play().catch(() => {})
-                            }
+                            openDockApp("vscode")
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "vscode" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Visual Studio Code</div>
@@ -6888,8 +6947,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* Messages icon */}
-                    {(() => {
-                      const messagesRefIdx = dockCount + 3 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                    {dockPinnedApps.includes("messages") && (() => {
+                      const messagesRefIdx = getPinnedDockRefIdx("messages")
                       const scale = scales[messagesRefIdx] ?? 1
                       return (
                         <div
@@ -6899,17 +6958,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
                           onClick={e => {
                             e.stopPropagation()
-                            const isOnTop = windowOrder[windowOrder.length - 1] === "messages"
-                            if (!messagesOpen || messagesMinimized) {
-                              triggerDockBounce("messages")
-                              setMessagesMinimized(false); setMessagesMinimizing(false); setMessagesOpen(true)
-                              setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
-                            } else if (isOnTop) {
-                              setMessagesMinimizing(true)
-                              setTimeout(() => { setMessagesMinimized(true); setMessagesMinimizing(false) }, 340)
-                            } else {
-                              setWindowOrder(o => [...o.filter(k => k !== "messages"), "messages"])
-                            }
+                            openDockApp("messages")
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "messages" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
@@ -6920,8 +6979,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* Safari icon */}
-                    {(() => {
-                      const safariRefIdx = dockCount + 4 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                    {dockPinnedApps.includes("safari") && (() => {
+                      const safariRefIdx = getPinnedDockRefIdx("safari")
                       const scale = scales[safariRefIdx] ?? 1
                       return (
                         <div
@@ -6931,17 +6990,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
                           onClick={e => {
                             e.stopPropagation()
-                            const isOnTop = windowOrder[windowOrder.length - 1] === "safari"
-                            if (!safariOpen || safariMinimized) {
-                              triggerDockBounce("safari")
-                              setSafariMinimized(false); setSafariMinimizing(false); setSafariOpen(true)
-                              setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
-                            } else if (isOnTop) {
-                              setSafariMinimizing(true)
-                              setTimeout(() => { setSafariMinimized(true); setSafariMinimizing(false) }, 340)
-                            } else {
-                              setWindowOrder(o => [...o.filter(k => k !== "safari"), "safari"])
-                            }
+                            openDockApp("safari")
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "safari" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
@@ -6952,8 +7011,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     })()}
 
                     {/* iTunes icon */}
-                    {(() => {
-                      const itunesRefIdx = dockCount + 5 + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0)
+                    {dockPinnedApps.includes("itunes") && (() => {
+                      const itunesRefIdx = getPinnedDockRefIdx("itunes")
                       const scale = scales[itunesRefIdx] ?? 1
                       return (
                         <div
@@ -6963,13 +7022,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           style={{ width: slotSize, height: slotSize, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", position: "relative" }}
                           onClick={e => {
                             e.stopPropagation()
-                            if (itunesOpen && itunesMinimized) {
-                              triggerDockBounce("itunes")
-                              setItunesMinimized(false); bringToFront("itunes")
-                            } else {
-                              if (!itunesOpen) triggerDockBounce("itunes")
-                              setItunesOpen(o => { if (!o) setWindowOrder(ord => [...ord.filter(k => k !== "itunes"), "itunes"]); else setWindowOrder(ord => ord.filter(k => k !== "itunes")); return !o })
-                            }
+                            openDockApp("itunes")
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "itunes" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
@@ -6982,6 +7045,95 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
                 </div>
               )}
+
+              {appContextMenu && (() => {
+                const isPinned = dockPinnedApps.includes(appContextMenu.appId)
+                const menuItems = appContextMenu.source === "launchpad"
+                  ? [
+                      { label: "Open", action: () => openDockApp(appContextMenu.appId) },
+                      null,
+                      isPinned
+                        ? { label: "Remove from Dock", action: () => removeDockApp(appContextMenu.appId) }
+                        : { label: "Add to Dock", action: () => pinDockApp(appContextMenu.appId) },
+                    ]
+                  : [
+                      { label: "Open", action: () => openDockApp(appContextMenu.appId) },
+                      null,
+                      { label: "Remove from Dock", action: () => removeDockApp(appContextMenu.appId) },
+                    ]
+                const menuW = Math.round(w * 0.23)
+                const clampedX = Math.min(appContextMenu.x, Math.max(12, w - 20 - menuW - 12))
+                const clampedY = Math.min(appContextMenu.y, Math.max(12, h - Math.round(h * 0.26)))
+                const rowPadY = Math.round(h * 0.008)
+                const rowPadX = Math.round(w * 0.013)
+                return (
+                  <div
+                    style={{ position: "absolute", left: clampedX, top: clampedY, zIndex: 1002 }}
+                    onContextMenu={e => e.preventDefault()}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div
+                      style={{
+                        background: isDark
+                          ? "linear-gradient(180deg, rgba(48,48,54,0.56) 0%, rgba(20,20,24,0.68) 100%)"
+                          : "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(245,248,252,0.64) 100%)",
+                        backdropFilter: "blur(34px) saturate(1.7)",
+                        WebkitBackdropFilter: "blur(34px) saturate(1.7)",
+                        borderRadius: 4,
+                        border: `0.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.55)"}`,
+                        boxShadow: isDark
+                          ? "0 18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)"
+                          : "0 18px 44px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.86)",
+                        minWidth: menuW,
+                        overflow: "hidden",
+                        fontFamily: "-apple-system,'SF Pro Text','SF Pro Display',BlinkMacSystemFont,sans-serif",
+                        fontSize: Math.round(w * 0.0135),
+                        lineHeight: 1.35,
+                        animation: "menuFadeIn 0.14s ease-out",
+                        padding: 4,
+                      }}
+                    >
+                      {menuItems.map((item, idx) => item === null ? (
+                        <div
+                          key={`app-sep-${idx}`}
+                          style={{
+                            height: 1,
+                            background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                            margin: `${Math.round(h * 0.004)}px ${Math.round(w * 0.008)}px`,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          key={`${appContextMenu.appId}-${idx}`}
+                          onMouseEnter={() => setAppContextMenuHovered(idx)}
+                          onMouseLeave={() => setAppContextMenuHovered(null)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            item.action()
+                            setAppContextMenu(null)
+                            setAppContextMenuHovered(null)
+                          }}
+                          style={{
+                            padding: `${rowPadY}px ${rowPadX}px`,
+                            color: appContextMenuHovered === idx ? "#fff" : (isDark ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.92)"),
+                            background: appContextMenuHovered === idx ? "linear-gradient(180deg, #0a84ff 0%, #007aff 100%)" : "transparent",
+                            cursor: "pointer",
+                            transition: "background 0.12s ease, color 0.12s ease",
+                            userSelect: "none",
+                            fontWeight: 500,
+                            borderRadius: 3,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: Math.round(w * 0.006),
+                          }}
+                        >
+                          <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Context Menu */}
               {contextMenu && (
@@ -7029,15 +7181,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div
                         style={{
                           background: isDark
-                            ? "linear-gradient(180deg, rgba(62,62,68,0.72) 0%, rgba(34,34,38,0.8) 100%)"
-                            : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
-                          backdropFilter: "blur(30px) saturate(1.5)",
-                          WebkitBackdropFilter: "blur(30px) saturate(1.5)",
-                          borderRadius: 6,
-                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
+                            ? "linear-gradient(180deg, rgba(48,48,54,0.56) 0%, rgba(20,20,24,0.68) 100%)"
+                            : "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(245,248,252,0.64) 100%)",
+                          backdropFilter: "blur(34px) saturate(1.7)",
+                          WebkitBackdropFilter: "blur(34px) saturate(1.7)",
+                          borderRadius: 4,
+                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.55)"}`,
                           boxShadow: isDark
-                            ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
-                            : "0 24px 60px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(148,163,184,0.12)",
+                            ? "0 18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)"
+                            : "0 18px 44px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.86)",
                           minWidth: menuW,
                           overflow: "hidden",
                           fontFamily: "-apple-system,'SF Pro Text','SF Pro Display',BlinkMacSystemFont,sans-serif",
@@ -7078,7 +7230,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 transition: "background 0.12s ease, color 0.12s ease",
                                 userSelect: "none",
                                 fontWeight: 500,
-                                borderRadius: 4,
+                                borderRadius: 3,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: Math.round(w * 0.006),
@@ -7145,15 +7297,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       <div
                         style={{
                           background: isDark
-                            ? "linear-gradient(180deg, rgba(62,62,68,0.72) 0%, rgba(34,34,38,0.8) 100%)"
-                            : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,247,251,0.88) 100%)",
-                          backdropFilter: "blur(30px) saturate(1.5)",
-                          WebkitBackdropFilter: "blur(30px) saturate(1.5)",
-                          borderRadius: 6,
-                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.18)"}`,
+                            ? "linear-gradient(180deg, rgba(48,48,54,0.56) 0%, rgba(20,20,24,0.68) 100%)"
+                            : "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(245,248,252,0.64) 100%)",
+                          backdropFilter: "blur(34px) saturate(1.7)",
+                          WebkitBackdropFilter: "blur(34px) saturate(1.7)",
+                          borderRadius: 4,
+                          border: `0.5px solid ${isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.55)"}`,
                           boxShadow: isDark
-                            ? "0 24px 60px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(0,0,0,0.18)"
-                            : "0 24px 60px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(148,163,184,0.12)",
+                            ? "0 18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)"
+                            : "0 18px 44px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.86)",
                           minWidth: menuW,
                           overflow: "hidden",
                           fontFamily: "-apple-system,'SF Pro Text','SF Pro Display',BlinkMacSystemFont,sans-serif",
