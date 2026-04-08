@@ -58,13 +58,13 @@ const projects = [
 ]
 
 export function ModernWork() {
-  const [macWidth, setMacWidth] = useState(860)
+  const [macWidth, setMacWidth] = useState(820)
 
   useEffect(() => {
     const update = () => {
-      if (window.innerWidth < 640) setMacWidth(Math.min(window.innerWidth - 26, 380))
-      else if (window.innerWidth < 1024) setMacWidth(Math.min(window.innerWidth - 50, 700))
-      else setMacWidth(860)
+      if (window.innerWidth < 640) setMacWidth(Math.min(window.innerWidth - 26, 360))
+      else if (window.innerWidth < 1024) setMacWidth(Math.min(window.innerWidth - 50, 670))
+      else setMacWidth(820)
     }
     update()
     window.addEventListener("resize", update)

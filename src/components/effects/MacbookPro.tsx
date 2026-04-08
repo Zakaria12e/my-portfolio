@@ -814,12 +814,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     const existing = openWindowsRef.current.find(w => w.projectIdx === projectIdx)
     if (existing) {
       if (existing.minimized) {
-        setOpenWindows(ws => ws.map(w => w.id === existing.id ? { ...w, minimized: false, minimizing: false } : w))
+        setOpenWindows(ws => ws.map(w => w.id === existing.id ? { ...w, minimized: false, minimizing: false, hoveredTl: -1 } : w))
       }
       setOpenWindows(ws => {
         const win = ws.find(w => w.id === existing.id)
         if (!win) return ws
-        return [...ws.filter(w => w.id !== existing.id), win]
+        return [...ws.filter(w => w.id !== existing.id), { ...win, hoveredTl: -1 }]
       })
       setFocusedWinId(existing.id)
       setWindowOrder(o => [...o.filter(k => k !== existing.id), existing.id])
@@ -1882,6 +1882,30 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       setHoveredMessagesTl(-1)
     }
   }, [messagesOpen, messagesMinimized])
+
+  useEffect(() => {
+    if (finderOpen && !finderMinimized) {
+      setHoveredFinderTl(-1)
+    }
+  }, [finderMinimized, finderOpen])
+
+  useEffect(() => {
+    if (terminalOpen && !termMinimized) {
+      setHoveredTermTl(-1)
+    }
+  }, [termMinimized, terminalOpen])
+
+  useEffect(() => {
+    if (messagesOpen && !messagesMinimized) {
+      setHoveredMessagesTl(-1)
+    }
+  }, [messagesMinimized, messagesOpen])
+
+  useEffect(() => {
+    if (safariOpen && !safariMinimized) {
+      setSafariHoveredTl(-1)
+    }
+  }, [safariMinimized, safariOpen])
 
   useEffect(() => {
     if (editingDesktopItemId === null) return
