@@ -127,6 +127,15 @@ type LaunchpadEntry = {
   projectIdx?: number
 }
 
+type LaunchpadGroup = {
+  id: string
+  kind: "group"
+  label: string
+  memberIds: string[]
+}
+
+type LaunchpadRenderable = LaunchpadEntry | LaunchpadGroup
+
 function TrafficLightSymbol({
   kind,
   color,
@@ -259,6 +268,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [launchpadOpen, setLaunchpadOpen] = useState(false)
   const [launchpadClosing, setLaunchpadClosing] = useState(false)
   const [launchpadSearch, setLaunchpadSearch] = useState("")
+  const [launchpadOrder, setLaunchpadOrder] = useState<string[]>([])
+  const [launchpadGroups, setLaunchpadGroups] = useState<Record<string, LaunchpadGroup>>({})
+  const [launchpadDraggingId, setLaunchpadDraggingId] = useState<string | null>(null)
+  const [launchpadEditingGroupId, setLaunchpadEditingGroupId] = useState<string | null>(null)
+  const [launchpadEditingName, setLaunchpadEditingName] = useState("")
   const [appSwitcherVisible, setAppSwitcherVisible] = useState(false)
   const [appSwitcherIndex, setAppSwitcherIndex] = useState(0)
   const [clock, setClock] = useState("")
@@ -425,6 +439,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const iconRefs    = useRef<(HTMLDivElement | null)[]>([])
   const vscodeAudioRef = useRef<HTMLAudioElement | null>(null)
   const launchpadCloseTimerRef = useRef<number | null>(null)
+  const launchpadGroupIdRef = useRef(0)
+  const launchpadRenameInputRef = useRef<HTMLInputElement>(null)
   const focusedDockIdxRef = useRef(-1)
   const arrowResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -471,12 +487,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setControlCenterOpen(false)
     setLaunchpadClosing(false)
     setLaunchpadSearch("")
+    setLaunchpadDraggingId(null)
+    setLaunchpadEditingGroupId(null)
+    setLaunchpadEditingName("")
     setLaunchpadOpen(true)
   }, [])
   const closeLaunchpad = useCallback(() => {
     if (!launchpadOpen && !launchpadClosing) return
     if (launchpadCloseTimerRef.current) window.clearTimeout(launchpadCloseTimerRef.current)
     setLaunchpadClosing(true)
+    setLaunchpadDraggingId(null)
+    setLaunchpadEditingGroupId(null)
+    setLaunchpadEditingName("")
     launchpadCloseTimerRef.current = window.setTimeout(() => {
       setLaunchpadOpen(false)
       setLaunchpadClosing(false)
@@ -552,10 +574,22 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (!query) return launchpadEntries
     return launchpadEntries.filter(entry => entry.label.toLowerCase().includes(query))
   }, [launchpadEntries, launchpadSearch])
+  const launchpadEntryMap = useMemo(() => Object.fromEntries(
+    launchpadEntries.map(entry => [entry.id, entry] as const)
+  ), [launchpadEntries])
+  const launchpadItems = useMemo<LaunchpadRenderable[]>(() => {
+    if (launchpadSearch.trim()) return filteredLaunchpadEntries
+    return launchpadOrder
+      .map((id) => {
+        if (launchpadGroups[id]) return launchpadGroups[id]
+        return launchpadEntryMap[id] ?? null
+      })
+      .filter((item): item is LaunchpadRenderable => item !== null)
+  }, [filteredLaunchpadEntries, launchpadEntryMap, launchpadGroups, launchpadOrder, launchpadSearch])
   const launchpadSlots = useMemo(() => {
     const totalSlots = 35
-    return Array.from({ length: totalSlots }, (_, index) => filteredLaunchpadEntries[index] ?? null)
-  }, [filteredLaunchpadEntries])
+    return Array.from({ length: totalSlots }, (_, index) => launchpadItems[index] ?? null)
+  }, [launchpadItems])
   const switchableWindows = useMemo<SwitchableItem[]>(() => {
     const entries: SwitchableItem[] = windowOrder.flatMap<SwitchableItem>((key) => {
       if (typeof key === "string" && key.startsWith("folder:")) {
@@ -822,6 +856,66 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       vscodeAudioRef.current.play().catch(() => {})
     }
   }, [closeLaunchpad, githubUrl, openWindow])
+  const beginLaunchpadGroupRename = useCallback((groupId: string) => {
+    const group = launchpadGroups[groupId]
+    if (!group) return
+    setLaunchpadEditingGroupId(groupId)
+    setLaunchpadEditingName(group.label)
+  }, [launchpadGroups])
+  const commitLaunchpadGroupRename = useCallback(() => {
+    if (!launchpadEditingGroupId) return
+    const nextLabel = launchpadEditingName.trim() || "Folder"
+    setLaunchpadGroups(prev => ({
+      ...prev,
+      [launchpadEditingGroupId]: {
+        ...prev[launchpadEditingGroupId],
+        label: nextLabel,
+      },
+    }))
+    setLaunchpadEditingGroupId(null)
+    setLaunchpadEditingName("")
+  }, [launchpadEditingGroupId, launchpadEditingName])
+  const handleLaunchpadDrop = useCallback((targetId: string) => {
+    if (!launchpadDraggingId || launchpadDraggingId === targetId || launchpadSearch.trim()) return
+    const getMembers = (id: string) => launchpadGroups[id]?.memberIds ?? [id]
+    const draggedMembers = getMembers(launchpadDraggingId)
+    const targetMembers = getMembers(targetId)
+    const mergedMembers = Array.from(new Set([...targetMembers, ...draggedMembers]))
+
+    if (launchpadGroups[targetId]) {
+      setLaunchpadGroups(prev => {
+        const next = {
+          ...prev,
+          [targetId]: { ...prev[targetId], memberIds: mergedMembers },
+        }
+        if (prev[launchpadDraggingId]) delete next[launchpadDraggingId]
+        return next
+      })
+      setLaunchpadOrder(prev => prev.filter(id => id !== launchpadDraggingId))
+    } else {
+      const groupId = `launchpad-group-${++launchpadGroupIdRef.current}`
+      const newGroup: LaunchpadGroup = {
+        id: groupId,
+        kind: "group",
+        label: "Folder",
+        memberIds: mergedMembers,
+      }
+      setLaunchpadGroups(prev => {
+        const next = { ...prev, [groupId]: newGroup }
+        if (prev[launchpadDraggingId]) delete next[launchpadDraggingId]
+        return next
+      })
+      setLaunchpadOrder(prev => {
+        const targetIndex = prev.indexOf(targetId)
+        const withoutMerged = prev.filter(id => id !== targetId && id !== launchpadDraggingId)
+        const next = [...withoutMerged]
+        next.splice(targetIndex >= 0 ? targetIndex : withoutMerged.length, 0, groupId)
+        return next
+      })
+      setTimeout(() => beginLaunchpadGroupRename(groupId), 20)
+    }
+    setLaunchpadDraggingId(null)
+  }, [beginLaunchpadGroupRename, launchpadDraggingId, launchpadGroups, launchpadSearch])
 
   const triggerDockBounce = useCallback((key: string) => {
     const activeTimer = dockBounceTimersRef.current[key]
@@ -1623,6 +1717,38 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }, 30)
     return () => clearTimeout(timer)
   }, [editingFolderItem])
+
+  useEffect(() => {
+    setLaunchpadOrder(prev => {
+      const groupIds = Object.keys(launchpadGroups)
+      const validPrev = prev.filter(id => groupIds.includes(id) || launchpadEntryMap[id])
+      const missingBaseIds = launchpadEntries
+        .map(entry => entry.id)
+        .filter(id => !validPrev.includes(id) && !Object.values(launchpadGroups).some(group => group.memberIds.includes(id)))
+      return prev.length === 0 ? launchpadEntries.map(entry => entry.id) : [...validPrev, ...missingBaseIds]
+    })
+  }, [launchpadEntries, launchpadEntryMap, launchpadGroups])
+
+  useEffect(() => {
+    setLaunchpadGroups(prev => {
+      const validIds = new Set(launchpadEntries.map(entry => entry.id))
+      const next = Object.fromEntries(
+        Object.entries(prev)
+          .map(([id, group]) => [id, { ...group, memberIds: group.memberIds.filter(memberId => validIds.has(memberId)) }] as const)
+          .filter(([, group]) => group.memberIds.length > 1)
+      ) as Record<string, LaunchpadGroup>
+      return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+    })
+  }, [launchpadEntries])
+
+  useEffect(() => {
+    if (!launchpadEditingGroupId) return
+    const timer = window.setTimeout(() => {
+      launchpadRenameInputRef.current?.focus()
+      launchpadRenameInputRef.current?.select()
+    }, 20)
+    return () => window.clearTimeout(timer)
+  }, [launchpadEditingGroupId])
 
   useEffect(() => {
     const totalSlots = 2 + dockCount + (showTerminalIcon ? 1 : 0) + (showGithubIcon ? 1 : 0) + 4
@@ -3069,7 +3195,28 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <button
                           key={entry.id}
                           type="button"
-                          onClick={() => activateLaunchpadEntry(entry)}
+                          draggable={!launchpadSearch.trim()}
+                          onDragStart={() => {
+                            setLaunchpadEditingGroupId(null)
+                            setLaunchpadEditingName("")
+                            setLaunchpadDraggingId(entry.id)
+                          }}
+                          onDragEnd={() => setLaunchpadDraggingId(null)}
+                          onDragOver={(e) => {
+                            if (!launchpadSearch.trim() && launchpadDraggingId && launchpadDraggingId !== entry.id) {
+                              e.preventDefault()
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            handleLaunchpadDrop(entry.id)
+                          }}
+                          onDoubleClick={() => {
+                            if (entry.kind === "group") beginLaunchpadGroupRename(entry.id)
+                          }}
+                          onClick={() => {
+                            if (entry.kind !== "group") activateLaunchpadEntry(entry)
+                          }}
                           style={{
                             appearance: "none",
                             border: "none",
@@ -3083,6 +3230,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             cursor: "pointer",
                             minWidth: 0,
                             minHeight: 0,
+                            borderRadius: Math.round(w * 0.014),
+                            boxShadow: launchpadDraggingId === entry.id ? "0 18px 28px rgba(0,0,0,0.18)" : "none",
+                            transform: launchpadDraggingId === entry.id ? "scale(1.04)" : undefined,
                             animation: launchpadClosing
                               ? "launchpadIconOut 0.2s cubic-bezier(0.4,0,0.2,1) forwards"
                               : "launchpadIconIn 0.36s cubic-bezier(0.22,1,0.36,1)",
@@ -3099,31 +3249,90 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               flexShrink: 0,
                             }}
                           >
-                            <img
-                              src={entry.icon}
-                              alt={entry.label}
-                              draggable={false}
-                              style={{
+                            {entry.kind === "group" ? (
+                              <div style={{
                                 width: "84%",
                                 height: "84%",
-                                objectFit: "contain",
-                                position: "relative",
-                                zIndex: 1,
-                              }}
-                            />
+                                borderRadius: Math.round(w * 0.016),
+                                background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.24)",
+                                border: `0.5px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.52)"}`,
+                                backdropFilter: "blur(18px) saturate(1.2)",
+                                WebkitBackdropFilter: "blur(18px) saturate(1.2)",
+                                display: "grid",
+                                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                                gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+                                gap: 2,
+                                padding: Math.round(w * 0.004),
+                              }}>
+                                {entry.memberIds.slice(0, 4).map(memberId => {
+                                  const member = launchpadEntryMap[memberId]
+                                  return member ? (
+                                    <img
+                                      key={memberId}
+                                      src={member.icon}
+                                      alt={member.label}
+                                      draggable={false}
+                                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                    />
+                                  ) : <div key={memberId} />
+                                })}
+                              </div>
+                            ) : (
+                              <img
+                                src={entry.icon}
+                                alt={entry.label}
+                                draggable={false}
+                                style={{
+                                  width: "84%",
+                                  height: "84%",
+                                  objectFit: "contain",
+                                  position: "relative",
+                                  zIndex: 1,
+                                }}
+                              />
+                            )}
                           </div>
                           <div style={{ textAlign: "center", lineHeight: 1.15, minHeight: Math.round(w * 0.028) }}>
-                            <div style={{
-                              fontSize: Math.round(w * 0.0112),
-                              fontWeight: 400,
-                              color: "#fff",
-                              textShadow: "0 1px 8px rgba(0,0,0,0.28)",
-                              fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: "100%",
-                            }}>{entry.label}</div>
+                            {entry.kind === "group" && launchpadEditingGroupId === entry.id ? (
+                              <input
+                                ref={launchpadRenameInputRef}
+                                value={launchpadEditingName}
+                                onChange={(e) => setLaunchpadEditingName(e.target.value)}
+                                onBlur={commitLaunchpadGroupRename}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitLaunchpadGroupRename()
+                                  if (e.key === "Escape") {
+                                    setLaunchpadEditingGroupId(null)
+                                    setLaunchpadEditingName("")
+                                  }
+                                }}
+                                style={{
+                                  width: Math.round(w * 0.09),
+                                  border: "none",
+                                  outline: "none",
+                                  background: isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.24)",
+                                  color: "#fff",
+                                  fontSize: Math.round(w * 0.0112),
+                                  fontWeight: 400,
+                                  textAlign: "center",
+                                  borderRadius: 6,
+                                  padding: `${Math.round(w * 0.002)}px ${Math.round(w * 0.004)}px`,
+                                  fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                                }}
+                              />
+                            ) : (
+                              <div style={{
+                                fontSize: Math.round(w * 0.0112),
+                                fontWeight: 400,
+                                color: "#fff",
+                                textShadow: "0 1px 8px rgba(0,0,0,0.28)",
+                                fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                maxWidth: "100%",
+                              }}>{entry.label}</div>
+                            )}
                           </div>
                         </button>
                       ) : (
