@@ -808,9 +808,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [])
 
   const bringToFront = useCallback((key: MacWindowKey) => {
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     setControlCenterOpen(false)
     setWindowOrder(o => [...o.filter(k => k !== key), key])
-  }, [])
+  }, [closeLaunchpad, launchpadClosing, launchpadOpen])
 
   const shouldSnapWindowToTop = useCallback((clientY: number) => {
     const rect = screenRef.current?.getBoundingClientRect()
@@ -1219,6 +1220,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
 
   const focusFolderWin = useCallback((id: number) => {
     const key = `folder:${id}` as const
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     setControlCenterOpen(false)
     setFolderWins(ws => {
       const win = ws.find(w => w.id === id)
@@ -1226,10 +1228,11 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       return [...ws.filter(w => w.id !== id), { ...win, minimized: false, minimizing: false }]
     })
     setWindowOrder(o => [...o.filter(k => k !== key), key])
-  }, [])
+  }, [closeLaunchpad, launchpadClosing, launchpadOpen])
 
   const focusFileEditorWin = useCallback((id: number) => {
     const key = `file:${id}` as const
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     setControlCenterOpen(false)
     setFileEditorWins(ws => {
       const win = ws.find(w => w.id === id)
@@ -1237,7 +1240,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       return [...ws.filter(w => w.id !== id), { ...win, minimized: false, minimizing: false }]
     })
     setWindowOrder(o => [...o.filter(k => k !== key), key])
-  }, [])
+  }, [closeLaunchpad, launchpadClosing, launchpadOpen])
 
   const getFolderUniqueName = useCallback((parentPath: string, type: "folder" | "file", requestedName: string, excludeName?: string) => {
     const sanitized = sanitizeEntryName(type, requestedName)
@@ -1276,6 +1279,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [])
 
   const openFileEditorAtPath = useCallback((itemPath: string, itemName: string) => {
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     const existing = fileEditorWins.find(f => f.path === itemPath)
     if (!existing) {
       const eid = fileEditorIdRef.current++
@@ -1291,9 +1295,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     } else {
       focusFileEditorWin(existing.id)
     }
-  }, [fileEditorWins, width, fileOrderKey, focusFileEditorWin])
+  }, [closeLaunchpad, fileEditorWins, fileOrderKey, focusFileEditorWin, launchpadClosing, launchpadOpen, width])
 
   const openFolderWindowAtPath = useCallback((itemPath: string, itemName: string) => {
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     const fid = folderWinIdRef.current++
     const screenW = width - 20
     const screenH = Math.round(width * 0.609)
@@ -1312,7 +1317,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       hoveredTl: -1,
     }])
     setWindowOrder(o => [...o.filter(k => k !== folderOrderKey(fid)), folderOrderKey(fid)])
-  }, [width, folderOrderKey, folderWins])
+  }, [closeLaunchpad, folderOrderKey, folderWins, launchpadClosing, launchpadOpen, width])
 
   const startFolderRename = useCallback((winId: number, path: string, name: string, type: "folder" | "file") => {
     setEditingFolderItem({ winId, path, originalName: name, type })
