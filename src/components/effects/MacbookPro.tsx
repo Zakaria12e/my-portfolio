@@ -271,6 +271,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [launchpadOrder, setLaunchpadOrder] = useState<string[]>([])
   const [launchpadGroups, setLaunchpadGroups] = useState<Record<string, LaunchpadGroup>>({})
   const [launchpadDraggingId, setLaunchpadDraggingId] = useState<string | null>(null)
+  const [launchpadDraggingMember, setLaunchpadDraggingMember] = useState<{ groupId: string; memberId: string } | null>(null)
   const [launchpadEditingGroupId, setLaunchpadEditingGroupId] = useState<string | null>(null)
   const [launchpadEditingName, setLaunchpadEditingName] = useState("")
   const [launchpadOpenGroupId, setLaunchpadOpenGroupId] = useState<string | null>(null)
@@ -923,6 +924,99 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }
     setLaunchpadDraggingId(null)
   }, [beginLaunchpadGroupRename, launchpadDraggingId, launchpadGroups, launchpadSearch])
+  const handleLaunchpadDropToRoot = useCallback(() => {
+    if (launchpadSearch.trim()) return
+
+    if (launchpadDraggingMember) {
+      const { groupId, memberId } = launchpadDraggingMember
+      const group = launchpadGroups[groupId]
+      if (!group || !group.memberIds.includes(memberId)) {
+        setLaunchpadDraggingMember(null)
+        return
+      }
+
+      const remainingIds = group.memberIds.filter(id => id !== memberId)
+
+      setLaunchpadGroups(prev => {
+        const next = { ...prev }
+        if (remainingIds.length > 1) {
+          next[groupId] = { ...prev[groupId], memberIds: remainingIds }
+        } else {
+          delete next[groupId]
+        }
+        return next
+      })
+
+      setLaunchpadOrder(prev => {
+        const groupIndex = prev.indexOf(groupId)
+        const withoutMoved = prev.filter(id => id !== memberId)
+        if (remainingIds.length <= 1) {
+          const withoutGroup = withoutMoved.filter(id => id !== groupId)
+          const insertAt = groupIndex >= 0 ? groupIndex : withoutGroup.length
+          const next = [...withoutGroup]
+          if (remainingIds.length === 1 && !next.includes(remainingIds[0])) next.splice(insertAt, 0, remainingIds[0])
+          next.splice(insertAt + (remainingIds.length === 1 ? 1 : 0), 0, memberId)
+          return next
+        }
+        const next = [...withoutMoved]
+        const insertAt = groupIndex >= 0 ? groupIndex + 1 : next.length
+        next.splice(insertAt, 0, memberId)
+        return next
+      })
+
+      if (remainingIds.length <= 1) {
+        setLaunchpadOpenGroupId(null)
+        setLaunchpadEditingGroupId(null)
+        setLaunchpadEditingName("")
+      }
+      setLaunchpadDraggingMember(null)
+      setLaunchpadDraggingId(null)
+      return
+    }
+
+    if (!launchpadDraggingId || !launchpadGroups[launchpadDraggingId]) return
+
+    const group = launchpadGroups[launchpadDraggingId]
+    if (!group || group.memberIds.length === 0) return
+
+    const movedId = group.memberIds[group.memberIds.length - 1]
+    const remainingIds = group.memberIds.slice(0, -1)
+
+    setLaunchpadGroups(prev => {
+      const next = { ...prev }
+      if (remainingIds.length > 1) {
+        next[launchpadDraggingId] = { ...prev[launchpadDraggingId], memberIds: remainingIds }
+      } else {
+        delete next[launchpadDraggingId]
+      }
+      return next
+    })
+
+    setLaunchpadOrder(prev => {
+      const groupIndex = prev.indexOf(launchpadDraggingId)
+      const withoutMoved = prev.filter(id => id !== movedId)
+      if (remainingIds.length <= 1) {
+        const withoutGroup = withoutMoved.filter(id => id !== launchpadDraggingId)
+        const insertAt = groupIndex >= 0 ? groupIndex : withoutGroup.length
+        const next = [...withoutGroup]
+        if (remainingIds.length === 1 && !next.includes(remainingIds[0])) next.splice(insertAt, 0, remainingIds[0])
+        next.splice(insertAt + (remainingIds.length === 1 ? 1 : 0), 0, movedId)
+        return next
+      }
+      const next = [...withoutMoved]
+      const insertAt = groupIndex >= 0 ? groupIndex + 1 : next.length
+      next.splice(insertAt, 0, movedId)
+      return next
+    })
+
+    if (remainingIds.length <= 1) {
+      setLaunchpadOpenGroupId(null)
+      setLaunchpadEditingGroupId(null)
+      setLaunchpadEditingName("")
+    }
+    setLaunchpadDraggingMember(null)
+    setLaunchpadDraggingId(null)
+  }, [launchpadDraggingId, launchpadDraggingMember, launchpadGroups, launchpadSearch])
 
   const triggerDockBounce = useCallback((key: string) => {
     const activeTimer = dockBounceTimersRef.current[key]
@@ -3200,6 +3294,15 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       </div>
                     </div>
                     <div
+                      onDragOver={(e) => {
+                        if (activeLaunchpadGroup && (launchpadDraggingMember || (launchpadDraggingId && launchpadGroups[launchpadDraggingId]))) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        handleLaunchpadDropToRoot()
+                      }}
                       style={{
                         width: "100%",
                         height: Math.round(h * 0.68),
@@ -3214,7 +3317,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         opacity: 1,
                         transition: "opacity 0.22s ease",
                         filter: "none",
-                        pointerEvents: activeLaunchpadGroup ? "none" : "auto",
+                        pointerEvents: "auto",
                       }}
                     >
                     {launchpadSlots.map((entry, index) => (
@@ -3226,9 +3329,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onDragStart={() => {
                             setLaunchpadEditingGroupId(null)
                             setLaunchpadEditingName("")
+                            setLaunchpadDraggingMember(null)
                             setLaunchpadDraggingId(entry.id)
                           }}
-                          onDragEnd={() => setLaunchpadDraggingId(null)}
+                          onDragEnd={() => {
+                            setLaunchpadDraggingId(null)
+                            setLaunchpadDraggingMember(null)
+                          }}
                           onDragOver={(e) => {
                             if (!launchpadSearch.trim() && launchpadDraggingId && launchpadDraggingId !== entry.id) {
                               e.preventDefault()
@@ -3379,8 +3486,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           left: "50%",
                           top: "55%",
                           transform: "translate(-50%, -50%)",
-                          width: Math.round(w * 0.34),
-                          minHeight: Math.round(h * 0.27),
+                          width: Math.round(w * (activeLaunchpadGroup.memberIds.length <= 4 ? 0.28 : activeLaunchpadGroup.memberIds.length <= 8 ? 0.34 : 0.4)),
+                          minHeight: Math.round(h * (activeLaunchpadGroup.memberIds.length <= 4 ? 0.2 : activeLaunchpadGroup.memberIds.length <= 8 ? 0.27 : 0.33)),
                           borderRadius: Math.round(w * 0.012),
                           background: "rgba(48,52,60,0.3)",
                           border: "0.5px solid rgba(255,255,255,0.12)",
@@ -3389,10 +3496,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             : "0 28px 56px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.1)",
                           backdropFilter: "blur(22px) saturate(1.15)",
                           WebkitBackdropFilter: "blur(22px) saturate(1.15)",
-                          padding: `${Math.round(w * 0.018)}px ${Math.round(w * 0.024)}px ${Math.round(w * 0.024)}px`,
+                          padding: `${Math.round(w * 0.012)}px ${Math.round(w * 0.016)}px ${Math.round(w * 0.016)}px`,
                           display: "flex",
                           flexDirection: "column",
-                          gap: Math.round(w * 0.018),
+                          gap: Math.round(w * 0.01),
                           animation: "launchpadFolderIn 0.26s cubic-bezier(0.22,1,0.36,1)",
                           zIndex: 4,
                         }}
@@ -3448,9 +3555,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                            gap: Math.round(w * 0.012),
-                            padding: `${Math.round(w * 0.006)}px ${Math.round(w * 0.004)}px 0`,
+                            gridTemplateColumns: `repeat(${Math.min(4, Math.max(2, Math.ceil(Math.sqrt(activeLaunchpadGroup.memberIds.length))))}, minmax(0, 1fr))`,
+                            gap: Math.round(w * 0.008),
+                            padding: `${Math.round(w * 0.003)}px ${Math.round(w * 0.002)}px 0`,
                           }}
                         >
                           {activeLaunchpadGroup.memberIds.map(memberId => {
@@ -3460,6 +3567,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               <button
                                 key={memberId}
                                 type="button"
+                                draggable={!launchpadSearch.trim()}
+                                onDragStart={() => {
+                                  setLaunchpadEditingGroupId(null)
+                                  setLaunchpadEditingName("")
+                                  setLaunchpadDraggingId(null)
+                                  setLaunchpadDraggingMember({ groupId: activeLaunchpadGroup.id, memberId })
+                                }}
+                                onDragEnd={() => {
+                                  setLaunchpadDraggingMember(null)
+                                  setLaunchpadDraggingId(null)
+                                }}
                                 onClick={() => activateLaunchpadEntry(member)}
                                 style={{
                                   appearance: "none",
@@ -3471,7 +3589,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                   justifyContent: "center",
                                   gap: Math.round(w * 0.006),
                                   cursor: "pointer",
-                                  padding: `${Math.round(w * 0.007)}px ${Math.round(w * 0.004)}px`,
+                                  padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.002)}px`,
                                   borderRadius: Math.round(w * 0.014),
                                   transition: "background 0.16s ease, transform 0.16s ease",
                                 }}
