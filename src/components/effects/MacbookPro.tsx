@@ -142,6 +142,10 @@ function isDockAppId(value: string): value is DockAppId {
   return DOCK_APP_ORDER.includes(value as DockAppId)
 }
 
+type DockContextMenuState =
+  | { x: number; y: number; source: "launchpad" | "dock"; kind: "app"; appId: DockAppId }
+  | { x: number; y: number; source: "dock"; kind: "project"; projectIdx: number }
+
 function TrafficLightSymbol({
   kind,
   color,
@@ -416,14 +420,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
   const [dockPeek, setDockPeek] = useState(false)
   const [dockPinnedApps, setDockPinnedApps] = useState<DockAppId[]>(DOCK_APP_ORDER)
+  const [hiddenProjectDockIds, setHiddenProjectDockIds] = useState<number[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId: number | null } | null>(null)
   const [contextMenuHovered, setContextMenuHovered] = useState<number | null>(null)
-  const [appContextMenu, setAppContextMenu] = useState<{
-    x: number
-    y: number
-    source: "launchpad" | "dock"
-    appId: DockAppId
-  } | null>(null)
+  const [appContextMenu, setAppContextMenu] = useState<DockContextMenuState | null>(null)
   const [appContextMenuHovered, setAppContextMenuHovered] = useState<number | null>(null)
   const [folderContextMenu, setFolderContextMenu] = useState<{
     x: number
@@ -484,9 +484,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const features = proj?.features ?? featuresProp
 
   const imgList: string[] = images && images.length > 0 ? images : src ? [src] : []
+  const visibleProjectIndices = useMemo(
+    () => (projects ?? []).map((_, index) => index).filter(index => !hiddenProjectDockIds.includes(index)),
+    [hiddenProjectDockIds, projects]
+  )
   // In projects mode, dock icons = one per project; otherwise = one per image
-  const dockCount = projects ? projects.length : imgList.length
-  const hasDock = dockCount > 1
+  const dockCount = projects ? visibleProjectIndices.length : imgList.length
+  const hasDock = projects ? dockCount > 0 : dockCount > 1
   const hasGithub = !!githubUrl && githubUrl !== "#"
   const showTerminalIcon = !!(description || projects)
   const showGithubIcon   = !!(hasGithub || projects)
@@ -507,6 +511,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [availableDockApps])
   const removeDockApp = useCallback((appId: DockAppId) => {
     setDockPinnedApps(prev => prev.filter(id => id !== appId))
+  }, [])
+  const removeProjectFromDock = useCallback((projectIdx: number) => {
+    setHiddenProjectDockIds(prev => prev.includes(projectIdx) ? prev : [...prev, projectIdx])
   }, [])
   const openLaunchpad = useCallback(() => {
     if (launchpadCloseTimerRef.current) {
@@ -2024,12 +2031,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     { type: "finder" as const, refIdx: 0 },
     { type: "launchpad" as const, refIdx: 1 },
     ...(projects
-      ? projects.map((_, i) => ({ type: "project" as const, projIdx: i, refIdx: i + 2 }))
+      ? visibleProjectIndices.map((projIdx, i) => ({ type: "project" as const, projIdx, refIdx: i + 2 }))
       : imgList.map((_, i) => ({ type: "image" as const, imgIdx: i, refIdx: i + 2 }))
     ),
     ...dockPinnedApps.map((appId, index) => ({ type: appId, refIdx: dockCount + 2 + index })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [projects?.length, imgList.length, dockCount, dockPinnedApps])
+  ], [projects?.length, visibleProjectIndices, imgList.length, dockCount, dockPinnedApps])
   const getPinnedDockRefIdx = useCallback((appId: DockAppId) => dockCount + 2 + dockPinnedApps.indexOf(appId), [dockCount, dockPinnedApps])
 
   // Reset focus when MacBook loses hover
@@ -3476,6 +3483,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               x: e.clientX - rect.left,
                               y: e.clientY - rect.top,
                               source: "launchpad",
+                              kind: "app",
                               appId: entry.id,
                             })
                           }}
@@ -6639,6 +6647,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ref={(el) => { iconRefs.current[0] = el }}
                       onMouseEnter={() => setHoveredSlot("app")}
                       onMouseLeave={() => setHoveredSlot(null)}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
                         const isOnTop = windowOrder[windowOrder.length - 1] === "finder"
@@ -6696,6 +6708,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                       ref={(el) => { iconRefs.current[1] = el }}
                       onMouseEnter={() => setHoveredSlot("launchpad")}
                       onMouseLeave={() => setHoveredSlot(null)}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
                         if (launchpadOpen) closeLaunchpad()
@@ -6746,16 +6762,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     }} />}
 
                     {/* Projects mode: one icon per project */}
-                    {hasDock && projects && projects.map((p, idx) => {
-                          const scale = scales[idx + 2] ?? 1
-                      const isActive = openWindows.some(w => w.projectIdx === idx)
-                      const isMinimized = openWindows.some(w => w.projectIdx === idx && w.minimized)
+                    {hasDock && projects && visibleProjectIndices.map((projectIdx, idx) => {
+                      const p = projects[projectIdx]
+                      const scale = scales[idx + 2] ?? 1
+                      const isActive = openWindows.some(w => w.projectIdx === projectIdx)
+                      const isMinimized = openWindows.some(w => w.projectIdx === projectIdx && w.minimized)
                       const iconSrc = isDark ? (p.iconDark ?? p.icon) : (p.icon ?? p.iconDark)
                       const thumb = iconSrc ?? p.images?.[0]
                       const slotKey = `proj-${idx}`
                       return (
                         <div
-                          key={idx}
+                          key={projectIdx}
                           ref={(el) => { iconRefs.current[idx + 2] = el }}
                           onMouseEnter={() => setHoveredSlot(slotKey)}
                           onMouseLeave={() => setHoveredSlot(null)}
@@ -6766,15 +6783,25 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            const existing = openWindows.find(w => w.projectIdx === idx)
+                            const existing = openWindows.find(w => w.projectIdx === projectIdx)
                             if (existing && !existing.minimized && existing.id === focusedWinId) {
                               updateWin(existing.id, { minimizing: true })
                               setTimeout(() => updateWin(existing.id, { minimized: true, minimizing: false }), 340)
                             } else {
                               const shouldBounce = !existing || existing.minimized
-                              if (shouldBounce) triggerDockBounce(`project-${idx}`)
-                              openWindow(idx)
+                              if (shouldBounce) triggerDockBounce(`project-${projectIdx}`)
+                              openWindow(projectIdx)
                             }
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "project", projectIdx })
                           }}
                         >
                           {/* label */}
@@ -6792,10 +6819,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                             transition: "opacity 0.12s ease",
                             border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)",
                             boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)",
-                          }}>{p.title ?? `Project ${idx + 1}`}</div>
+                          }}>{p.title ?? `Project ${projectIdx + 1}`}</div>
                           {thumb
-                            ? <img src={thumb} alt={p.title ?? `project ${idx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (isMinimized || dockBounceKeys[`project-${idx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
-                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8], animation: (isMinimized || dockBounceKeys[`project-${idx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                            ? <img src={thumb} alt={p.title ?? `project ${projectIdx + 1}`} draggable={false} style={{ width: slotSize, height: slotSize, objectFit: "contain", display: "block", flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", animation: (isMinimized || dockBounceKeys[`project-${projectIdx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
+                            : <div style={{ width: slotSize, height: slotSize, transform: `scale(${scale})`, transformOrigin: "bottom center", willChange: "transform", borderRadius: Math.round(slotSize * 0.22), flexShrink: 0, background: ["linear-gradient(135deg,#1A88FE,#0055D4)","linear-gradient(135deg,#34C759,#248A3D)","linear-gradient(135deg,#FF3B30,#C0001A)","linear-gradient(135deg,#FF9500,#C65900)","linear-gradient(135deg,#AF52DE,#7026B9)","linear-gradient(135deg,#5856D6,#3634A3)","linear-gradient(135deg,#32ADE6,#007AFF)","linear-gradient(135deg,#FF2D55,#D60034)"][idx % 8], animation: (isMinimized || dockBounceKeys[`project-${projectIdx}`]) ? "mbDockBounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) 2" : undefined }} />
                           }
                           <div style={{
                             position: "absolute", bottom: -(DOCK_PAD_Y - 3), left: "50%",
@@ -6872,6 +6899,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onContextMenu={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
+                          const rect = screenRef.current?.getBoundingClientRect()
+                          if (!rect) return
+                          setContextMenu(null)
+                          setFolderContextMenu(null)
+                          setAppContextMenuHovered(null)
+                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "terminal" })
                         }}
                       >
                         {/* macOS label */}
@@ -6955,6 +6988,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onContextMenu={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
+                          const rect = screenRef.current?.getBoundingClientRect()
+                          if (!rect) return
+                          setContextMenu(null)
+                          setFolderContextMenu(null)
+                          setAppContextMenuHovered(null)
+                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "github" })
                         }}
                       >
                         {/* macOS label */}
@@ -6997,6 +7036,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "vscode" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Visual Studio Code</div>
@@ -7022,6 +7067,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "messages" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
@@ -7048,6 +7099,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "safari" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
@@ -7074,6 +7131,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
+                            const rect = screenRef.current?.getBoundingClientRect()
+                            if (!rect) return
+                            setContextMenu(null)
+                            setFolderContextMenu(null)
+                            setAppContextMenuHovered(null)
+                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", kind: "app", appId: "itunes" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
@@ -7088,12 +7151,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
               )}
 
               {appContextMenu && (() => {
-                const isPinned = dockPinnedApps.includes(appContextMenu.appId)
-                const menuItems = appContextMenu.source === "launchpad"
+                const menuItems = appContextMenu.kind === "project"
+                  ? [
+                      { label: "Open", action: () => openWindow(appContextMenu.projectIdx) },
+                      null,
+                      { label: "Remove from Dock", action: () => removeProjectFromDock(appContextMenu.projectIdx) },
+                    ]
+                  : appContextMenu.source === "launchpad"
                   ? [
                       { label: "Open", action: () => openDockApp(appContextMenu.appId) },
                       null,
-                      isPinned
+                      dockPinnedApps.includes(appContextMenu.appId)
                         ? { label: "Remove from Dock", action: () => removeDockApp(appContextMenu.appId) }
                         : { label: "Add to Dock", action: () => pinDockApp(appContextMenu.appId) },
                     ]
@@ -7145,7 +7213,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         />
                       ) : (
                         <div
-                          key={`${appContextMenu.appId}-${idx}`}
+                          key={`${appContextMenu.kind === "project" ? `project-${appContextMenu.projectIdx}` : appContextMenu.appId}-${idx}`}
                           onMouseEnter={() => setAppContextMenuHovered(idx)}
                           onMouseLeave={() => setAppContextMenuHovered(null)}
                           onClick={(e) => {
