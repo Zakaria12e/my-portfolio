@@ -526,6 +526,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     if (!launchpadOpen && !launchpadClosing) return
     if (launchpadCloseTimerRef.current) window.clearTimeout(launchpadCloseTimerRef.current)
     setLaunchpadClosing(true)
+    setAppContextMenu(null)
+    setAppContextMenuHovered(null)
     setLaunchpadDraggingId(null)
     setLaunchpadEditingGroupId(null)
     setLaunchpadEditingName("")
@@ -808,6 +810,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [projects])
 
   const openWindow = useCallback((projectIdx: number) => {
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     const existing = openWindowsRef.current.find(w => w.projectIdx === projectIdx)
     if (existing) {
       if (existing.minimized) {
@@ -836,9 +839,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     }])
     setFocusedWinId(id)
     setWindowOrder(o => [...o.filter(k => k !== id), id])
-  }, [width])
+  }, [closeLaunchpad, launchpadClosing, launchpadOpen, width])
 
   function openDockApp(appId: DockAppId, event?: React.MouseEvent<HTMLDivElement>) {
+    if (launchpadOpen || launchpadClosing) closeLaunchpad()
     if (appId === "terminal") {
       const isOnTop = windowOrder[windowOrder.length - 1] === "terminal"
       if (!terminalOpen || termMinimized) {
@@ -6824,12 +6828,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onContextMenu={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          const rect = screenRef.current?.getBoundingClientRect()
-                          if (!rect) return
-                          setContextMenu(null)
-                          setFolderContextMenu(null)
-                          setAppContextMenuHovered(null)
-                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "terminal" })
                         }}
                       >
                         {/* macOS label */}
@@ -6913,12 +6911,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         onContextMenu={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          const rect = screenRef.current?.getBoundingClientRect()
-                          if (!rect) return
-                          setContextMenu(null)
-                          setFolderContextMenu(null)
-                          setAppContextMenuHovered(null)
-                          setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "github" })
                         }}
                       >
                         {/* macOS label */}
@@ -6961,12 +6953,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const rect = screenRef.current?.getBoundingClientRect()
-                            if (!rect) return
-                            setContextMenu(null)
-                            setFolderContextMenu(null)
-                            setAppContextMenuHovered(null)
-                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "vscode" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "vscode" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Visual Studio Code</div>
@@ -6992,12 +6978,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const rect = screenRef.current?.getBoundingClientRect()
-                            if (!rect) return
-                            setContextMenu(null)
-                            setFolderContextMenu(null)
-                            setAppContextMenuHovered(null)
-                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "messages" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "messages" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Messages</div>
@@ -7024,12 +7004,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const rect = screenRef.current?.getBoundingClientRect()
-                            if (!rect) return
-                            setContextMenu(null)
-                            setFolderContextMenu(null)
-                            setAppContextMenuHovered(null)
-                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "safari" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "safari" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>Safari</div>
@@ -7056,12 +7030,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                           onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const rect = screenRef.current?.getBoundingClientRect()
-                            if (!rect) return
-                            setContextMenu(null)
-                            setFolderContextMenu(null)
-                            setAppContextMenuHovered(null)
-                            setAppContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, source: "dock", appId: "itunes" })
                           }}
                         >
                           <div style={{ position: "absolute", bottom: `calc(100% + ${Math.round(slotSize * 0.3)}px)`, left: "50%", transform: "translateX(-50%)", background: isDark ? "rgba(30,30,32,0.72)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(22px) saturate(1.45)", WebkitBackdropFilter: "blur(22px) saturate(1.45)", borderRadius: 7, border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(255,255,255,0.52)", padding: `${Math.round(w * 0.004)}px ${Math.round(w * 0.011)}px`, fontSize: Math.round(w * 0.016), fontWeight: 400, fontFamily: "-apple-system,sans-serif", color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 100, opacity: hoveredSlot === "itunes" ? 1 : 0, transition: "opacity 0.12s ease", boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.34)" : "0 6px 18px rgba(15,23,42,0.08)" }}>iTunes</div>
