@@ -2415,8 +2415,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       zIndex: 2,
       borderRadius: "inherit",
       overflow: "hidden",
-      opacity: hovered ? 1 : 0,
-      transition: "opacity 0.6s ease",
     },
     hingeBump: {
       position: "absolute", top: 0, left: "50%",
