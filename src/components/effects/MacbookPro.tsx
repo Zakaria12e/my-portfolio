@@ -276,6 +276,9 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [hovered, setHovered] = useState(false)
   const [showHello, setShowHello] = useState(false)
   const [helloDismissing, setHelloDismissing] = useState(false)
+  const helloPlayedRef = useRef(false)
+  const [showNotif, setShowNotif] = useState(false)
+  const [notifBig, setNotifBig] = useState(false)
   const [macKeyboardActive, setMacKeyboardActive] = useState(false)
   const [qShortcutHeld, setQShortcutHeld] = useState(false)
   const [launchpadOpen, setLaunchpadOpen] = useState(false)
@@ -781,14 +784,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   // -- hover wake/sleep -------------------------------------------------------
   const handleMacEnter = useCallback(() => {
     setHovered(true)
-    setShowHello(true)
-    setHelloDismissing(false)
+    if (!helloPlayedRef.current) {
+      setShowHello(true)
+      setHelloDismissing(false)
+    }
   }, [])
 
   const handleMacLeave = useCallback(() => {
     setHovered(false)
     setShowHello(false)
     setHelloDismissing(false)
+    setShowNotif(false)
+    setNotifBig(false)
   }, [])
 
   // -- multi-window helpers ---------------------------------------------------
@@ -2345,6 +2352,43 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     },
     cam:    { width: camSize, height: camSize, borderRadius: "50%", background: "#2a2a2a", border: `0.5px solid #333`, flexShrink: 0 },
     micDot: { width: 0, height: 0 },
+    notifPill: (() => {
+      const fullW  = Math.round(w * 0.46)
+      const fullH  = Math.round(h * 0.21)
+      const notchW = notchWidth
+      const notchH = notchHeight
+      const sx = notifBig ? 1 : notchW / fullW
+      const sy = notifBig ? 1 : notchH / fullH
+      return {
+        position: "absolute" as const,
+        top: 0, left: "50%",
+        width: fullW, height: fullH,
+        background: isDark ? "rgba(18,18,20,0.92)" : "rgba(255,255,255,0.68)",
+        backdropFilter: "blur(40px) saturate(1.8)",
+        WebkitBackdropFilter: "blur(40px) saturate(1.8)",
+        borderRadius: `0 0 ${Math.round(w * 0.022)}px ${Math.round(w * 0.022)}px`,
+        borderLeft: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
+        borderRight: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
+        borderBottom: isDark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(255,255,255,0.7)",
+        borderTop: "none",
+        boxShadow: isDark ? "0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)" : "0 16px 48px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        overflow: "hidden",
+        zIndex: 12,
+        pointerEvents: "none" as const,
+        opacity: showNotif ? 1 : 0,
+        transformOrigin: "top center",
+        transform: `translateX(-50%) scaleX(${sx}) scaleY(${sy})`,
+        transition: [
+          "transform 0.52s cubic-bezier(0.32,0.72,0,1)",
+          "opacity 0.25s ease",
+        ].join(", "),
+      }
+    })(),
+    notifContent: {
+      display: "flex", flexDirection: "column" as const,
+      opacity: notifBig ? 1 : 0,
+      transition: notifBig ? "opacity 0.22s ease 0.28s" : "opacity 0.08s ease",
+    },
     screen: {
       position: "absolute",
       top: screenInsetY,
@@ -2461,6 +2505,54 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             <div style={s.cam} />
           </div>
 
+          {/* macOS notification */}
+          <div style={s.notifPill}>
+            <div style={s.notifContent}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: Math.round(w * 0.01),
+                padding: `${Math.round(h * 0.022)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.008)}px`,
+                borderBottom: isDark ? "0.5px solid rgba(255,255,255,0.07)" : "0.5px solid rgba(0,0,0,0.06)",
+              }}>
+                <div style={{
+                  width: Math.round(w * 0.028), height: Math.round(w * 0.028),
+                  borderRadius: Math.round(w * 0.006), flexShrink: 0,
+                  background: "linear-gradient(145deg,#34c759,#30b350)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width={Math.round(w * 0.016)} height={Math.round(w * 0.016)} viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                  </svg>
+                </div>
+                <span style={{
+                  fontSize: Math.round(w * 0.018), fontWeight: 500,
+                  color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)",
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                  letterSpacing: 0.1, flex: 1,
+                }}>Messages</span>
+                <span style={{
+                  fontSize: Math.round(w * 0.016),
+                  color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.28)",
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>now</span>
+              </div>
+              <div style={{
+                padding: `${Math.round(h * 0.016)}px ${Math.round(w * 0.022)}px ${Math.round(h * 0.022)}px`,
+                display: "flex", flexDirection: "column", gap: Math.round(h * 0.006),
+              }}>
+                <span style={{
+                  fontSize: Math.round(w * 0.02), fontWeight: 600,
+                  color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)", lineHeight: 1.2,
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>Zakaria</span>
+                <span style={{
+                  fontSize: Math.round(w * 0.019), fontWeight: 400,
+                  color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)", lineHeight: 1.3,
+                  fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                }}>Let&apos;s build something great bro</span>
+              </div>
+            </div>
+          </div>
+
           <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => {
             setMacKeyboardActive(true)
             setControlCenterOpen(false)
@@ -2529,8 +2621,17 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                   style={{ height: Math.round(w * 0.09) }}
                   speed={0.85}
                   onAnimationComplete={() => {
+                    helloPlayedRef.current = true
                     setHelloDismissing(true)
-                    setTimeout(() => setShowHello(false), 700)
+                    setTimeout(() => {
+                      setShowHello(false)
+                      setTimeout(() => {
+                        setShowNotif(true)
+                        setTimeout(() => setNotifBig(true),   200)
+                        setTimeout(() => setNotifBig(false), 2600)
+                        setTimeout(() => setShowNotif(false), 3100)
+                      }, 1000)
+                    }, 700)
                   }}
                 />
               </div>
