@@ -2488,7 +2488,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
       onMouseLeave={handleMacLeave}
       onMouseDownCapture={() => setMacKeyboardActive(true)}
     >
-      <audio ref={vscodeAudioRef} src="/sounds/trum-vscode-cmt.mp3" preload="auto" />
+      <audio ref={vscodeAudioRef} src="/sounds/faaa-sound.mp3" preload="auto" />
       <div style={s.lid}>
         <div style={s.bezel}>
           <div style={{
