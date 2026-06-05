@@ -19,7 +19,6 @@ import {
   SiGit,
 } from "react-icons/si"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 
 export function ModernAbout() {
   const skills = [
@@ -93,43 +92,6 @@ export function ModernAbout() {
     MongoDB: <SiMongodb className="text-green-500" />,
     "Tailwind CSS": <SiTailwindcss className="text-sky-400" />,
     Git: <SiGit className="text-orange-500" />,
-  }
-
-  const skillColors: { [key: string]: string } = {
-    JavaScript: "#FACC15",
-    TypeScript: "#3B82F6",
-    Laravel: "#EF4444",
-    React: "#22D3EE",
-    Mysql: "#2563EB",
-    Java: "#DC2626",
-    Python: "#EAB308",
-    "Node.js": "#16A34A",
-    "ShadCN UI": "var(--shadcn-color)",
-    Express: "#4B5563",
-    MongoDB: "#22C55E",
-    "Socket.io": "#4B5563",
-    "Tailwind CSS": "#38BDF8",
-    Git: "#F97316",
-  }
-
-
-  
-  // NEW: Skill levels for progress bars
-  const skillLevels = {
-    JavaScript: 85,
-    TypeScript: 80,
-    Express: 90,
-    Laravel: 70,
-    React: 80,
-    "ShadCN UI": 100, 
-    MongoDB: 100,
-    Java: 87,
-    Mysql: 100,
-    Python: 78,
-    "Node.js": 75,
-    "Socket.io": 60,
-    "Tailwind CSS": 90,
-    Git: 80,
   }
 
   const experiences = [
@@ -314,52 +276,6 @@ export function ModernAbout() {
             </div>
           </motion.div>
         </div>
-
-        {/* Skill progress bars */}
-        <motion.div
-          className="mb-24"
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h3 className="text-2xl font-bold text-center mb-8">Skill Proficiency</h3>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {Object.entries(skillLevels)
-              .slice(0, 8)
-              .map(([skill, level], index) => (
-                <motion.div
-                  key={skill}
-                  className="space-y-2"
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      {skillIcons[skill]}
-                      <span>{skill}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{level}%</span>
-                  </div>
-                  <div className="relative w-full">
-                    <Progress value={0} className="h-2 bg-muted" />
-                    <motion.div
-                      className="absolute top-0 left-0 h-2 rounded-full"
-                      initial={{ width: "0%" }}
-                      whileInView={{ width: `${level}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, delay: index * 0.1, ease: "easeOut" }}
-                      style={{
-                        backgroundColor: skillColors[skill],
-                      }}
-                    />
-                  </div>
-                </motion.div>
-              ))}
-          </div>
-        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 50 }}
