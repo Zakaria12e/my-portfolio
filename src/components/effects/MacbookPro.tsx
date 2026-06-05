@@ -467,6 +467,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const rafRef = useRef<number | null>(null)
   const targetScales = useRef<number[]>([])
   const currentScales = useRef<number[]>([])
+  const [shakeCursorScale, setShakeCursorScale] = useState(1)
+  const [shakeCursorPos, setShakeCursorPos] = useState({ x: -100, y: -100 })
+  const shakePointsRef = useRef<{ x: number; y: number; t: number }[]>([])
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { theme } = useTheme()
   const globalDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
   const [macDark, setMacDark] = useState(() => globalDark)
@@ -796,6 +800,39 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setHelloDismissing(false)
     setShowNotif(false)
     setNotifBig(false)
+    setShakeCursorPos({ x: -100, y: -100 })
+  }, [])
+
+  const handleScreenMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    setShakeCursorPos({ x, y })
+
+    const now = Date.now()
+    const pts = shakePointsRef.current
+    pts.push({ x, y, t: now })
+    // Keep only last 150ms of points
+    shakePointsRef.current = pts.filter(p => now - p.t < 150)
+
+    if (shakePointsRef.current.length >= 3) {
+      let totalDist = 0
+      const window = shakePointsRef.current
+      for (let i = 1; i < window.length; i++) {
+        const dx = window[i].x - window[i - 1].x
+        const dy = window[i].y - window[i - 1].y
+        totalDist += Math.sqrt(dx * dx + dy * dy)
+      }
+      const elapsed = window[window.length - 1].t - window[0].t
+      const speed = elapsed > 0 ? totalDist / elapsed : 0 // px/ms
+
+      if (speed > 1.8) {
+        const scale = Math.min(1 + (speed - 1.8) * 0.6, 4)
+        setShakeCursorScale(scale)
+        if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current)
+        shakeTimerRef.current = setTimeout(() => setShakeCursorScale(1), 400)
+      }
+    }
   }, [])
 
   // -- multi-window helpers ---------------------------------------------------
@@ -2551,7 +2588,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
             </div>
           </div>
 
-          <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onClick={() => {
+          <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onMouseMove={handleScreenMouseMove} onClick={() => {
             setMacKeyboardActive(true)
             setControlCenterOpen(false)
             setContextMenu(null)
@@ -7726,6 +7763,29 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                 })()
               )}
             </div>
+
+            {/* Shake-to-find cursor overlay */}
+            <div
+              style={{
+                position: "absolute",
+                left: shakeCursorPos.x,
+                top: shakeCursorPos.y,
+                pointerEvents: "none",
+                zIndex: 99999,
+                transform: `translate(-1px, -1px) scale(${shakeCursorScale})`,
+                transformOrigin: "top left",
+                transition: shakeCursorScale > 1
+                  ? "transform 0.08s ease-out"
+                  : "transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+                willChange: "transform",
+              }}
+            >
+              <img
+                src="https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg"
+                style={{ width: 20, height: 20, display: "block" }}
+                draggable={false}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -7746,6 +7806,10 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
         }
         [data-dock], [data-dock] * {
           cursor: url("https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775424556/normal-select_ihp9on.svg") 1 1, default !important;
+        }
+        [data-mac-screen],
+        [data-mac-screen] * {
+          cursor: none !important;
         }
         @keyframes mbFade {
           from { opacity: 0 } to { opacity: 1 }
