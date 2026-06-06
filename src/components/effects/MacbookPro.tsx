@@ -315,6 +315,12 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const [itunesSidebarSel, setItunesSidebarSel] = useState("recently-added")
   const [itunesSearch, setItunesSearch] = useState("")
   const itunesDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
+  const [itunesPlaying, setItunesPlaying] = useState(false)
+  const [itunesCurrentTrack, setItunesCurrentTrack] = useState<{ title: string; subtitle: string; accent: string; detail: string; duration: number } | null>(null)
+  const [itunesProgress, setItunesProgress] = useState(0)
+  const [itunesVolume, setItunesVolume] = useState(72)
+  const [itunesMuted, setItunesMuted] = useState(false)
+  const itunesProgressRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const WALLPAPERS = [
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775391427/macbg2_lpqquf.avif",
     "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775348567/wp8030357_ctm5ix.jpg",
@@ -391,6 +397,8 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   const fileEditorIdRef  = useRef(0)
   const fileEditorDragRef = useRef<{ id: number; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [controlCenterOpen, setControlCenterOpen] = useState(false)
+  const [appleMenuOpen, setAppleMenuOpen] = useState(false)
+  const [aboutThisMacOpen, setAboutThisMacOpen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [accentColor, setAccentColor] = useState("#0a84ff")
   const [showNotch, setShowNotch] = useState(true)
@@ -540,6 +548,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setFolderContextMenuHovered(null)
     setAppContextMenu(null)
     setAppContextMenuHovered(null)
+    setAppleMenuOpen(false)
   }, [])
   const pinDockApp = useCallback((appId: DockAppId) => {
     setDockPinnedApps(prev => DOCK_APP_ORDER.filter(id => availableDockApps.includes(id) && (id === appId || prev.includes(id))))
@@ -1959,6 +1968,23 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
   }, [itunesOpen])
 
   useEffect(() => {
+    if (itunesProgressRef.current) clearInterval(itunesProgressRef.current)
+    if (itunesPlaying && itunesCurrentTrack) {
+      itunesProgressRef.current = setInterval(() => {
+        setItunesProgress(p => {
+          if (p >= itunesCurrentTrack.duration) {
+            clearInterval(itunesProgressRef.current!)
+            setItunesPlaying(false)
+            return 0
+          }
+          return p + 1
+        })
+      }, 1000)
+    }
+    return () => { if (itunesProgressRef.current) clearInterval(itunesProgressRef.current) }
+  }, [itunesPlaying, itunesCurrentTrack])
+
+  useEffect(() => {
     if (!messagesOpen || messagesMinimized) {
       setHoveredMessagesTl(-1)
     }
@@ -2591,6 +2617,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
           <div ref={screenRef} data-mac-screen style={s.screen} onMouseEnter={resetTargets} onMouseMove={handleScreenMouseMove} onClick={() => {
             setMacKeyboardActive(true)
             setControlCenterOpen(false)
+            setAppleMenuOpen(false)
             setContextMenu(null)
             setAppContextMenu(null)
             setFolderContextMenu(null)
@@ -3935,14 +3962,89 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     transition: "background 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease",
                   }}>
                     {/* Left: logo + app/menu labels */}
-                    <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
-                      <img
-                        src={isDark
-                          ? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589104/image-removebg-preview_4_fhb1hw.png"
-                          : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589008/image-removebg-preview_3_vidndh.png"}
-                        alt="logo"
-                        style={{ height: Math.round(w * 0.0165), width: "auto", display: "block" }}
-                      />
+                    <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012), pointerEvents: "auto", position: "relative" }}>
+                      <div
+                        onClick={e => { e.stopPropagation(); setAppleMenuOpen(v => !v); setControlCenterOpen(false) }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: `${Math.round(mbH * 0.12)}px ${Math.round(w * 0.008)}px`, borderRadius: Math.round(w * 0.005), background: appleMenuOpen ? (isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)") : "transparent", cursor: "pointer", transition: "background 0.12s" }}
+                      >
+                        <img
+                          src={isDark
+                            ? "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589104/image-removebg-preview_4_fhb1hw.png"
+                            : "https://res.cloudinary.com/dectxiuco/image/upload/q_auto/f_auto/v1775589008/image-removebg-preview_3_vidndh.png"}
+                          alt="logo"
+                          draggable={false}
+                          style={{ height: Math.round(w * 0.0165), width: "auto", display: "block" }}
+                        />
+                      </div>
+                      {appleMenuOpen && (
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            marginTop: 2,
+                            width: Math.round(w * 0.26),
+                            background: isDark ? "rgba(30,30,32,0.88)" : "rgba(236,236,238,0.94)",
+                            backdropFilter: "blur(48px) saturate(2)",
+                            WebkitBackdropFilter: "blur(48px) saturate(2)",
+                            borderRadius: Math.round(w * 0.009),
+                            border: isDark ? "0.5px solid rgba(255,255,255,0.12)" : "0.5px solid rgba(0,0,0,0.08)",
+                            boxShadow: isDark ? "0 8px 40px rgba(0,0,0,0.64)" : "0 8px 40px rgba(0,0,0,0.18)",
+                            padding: `${Math.round(w * 0.004)}px 0`,
+                            zIndex: 25,
+                            fontFamily: "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif",
+                            userSelect: "none",
+                          }}
+                        >
+                          {[
+                            { label: "About This Mac", action: () => { setAboutThisMacOpen(true); setAppleMenuOpen(false) } },
+                            "divider",
+                            { label: "System Settings...", badge: "1 update", action: () => setAppleMenuOpen(false) },
+                            { label: "App Store", action: () => setAppleMenuOpen(false) },
+                            "divider",
+                            { label: "Recent Items", arrow: true, action: () => {} },
+                            "divider",
+                            { label: "Force Quit Finder", shortcut: "⌥⌘⎋", action: () => setAppleMenuOpen(false) },
+                            "divider",
+                            { label: "Sleep", action: () => setAppleMenuOpen(false) },
+                            { label: "Restart...", action: () => setAppleMenuOpen(false) },
+                            { label: "Shut Down...", action: () => setAppleMenuOpen(false) },
+                            "divider",
+                            { label: "Lock Screen", shortcut: "⌃⌘Q", action: () => setAppleMenuOpen(false) },
+                            { label: "Log Out Zakaria...", shortcut: "⇧⌘Q", action: () => setAppleMenuOpen(false) },
+                          ].map((item, i) => {
+                            if (item === "divider") return <div key={i} style={{ height: 0.5, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", margin: `${Math.round(w * 0.004)}px 0` }} />
+                            const it = item as { label: string; action: () => void; badge?: string; arrow?: boolean; shortcut?: string }
+                            return (
+                              <div
+                                key={i}
+                                onClick={it.action}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  padding: `${Math.round(w * 0.0055)}px ${Math.round(w * 0.014)}px`,
+                                  fontSize: Math.round(w * 0.013),
+                                  color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.88)",
+                                  cursor: "default",
+                                  borderRadius: Math.round(w * 0.004),
+                                  margin: `0 ${Math.round(w * 0.004)}px`,
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = isDark ? "rgba(10,132,255,0.85)" : "rgba(10,132,255,0.85)"; e.currentTarget.style.color = "#fff" }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.88)" }}
+                              >
+                                <span style={{ fontWeight: it.label === "About This Mac" ? 500 : 400 }}>{it.label}</span>
+                                <span style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.006) }}>
+                                  {it.badge && <span style={{ fontSize: Math.round(w * 0.0108), background: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)", borderRadius: 99, padding: `1px ${Math.round(w * 0.007)}px`, color: "inherit", opacity: 0.8 }}>{it.badge}</span>}
+                                  {it.shortcut && <span style={{ fontSize: Math.round(w * 0.0118), opacity: 0.55, letterSpacing: 1 }}>{it.shortcut}</span>}
+                                  {it.arrow && <span style={{ opacity: 0.55, fontSize: Math.round(w * 0.013) }}>›</span>}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       <span style={{ fontWeight: 700, color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.92)", fontSize: Math.round(w * 0.013), fontFamily: "'Iosevka Charon', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>Zakaria</span>
                       <div style={{ display: "flex", alignItems: "center", gap: Math.round(w * 0.012) }}>
                         {["File", "Edit", "View", "Go", "Window", "Help"].map((item) => (
@@ -4194,6 +4296,142 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         <div style={{ fontSize: fsPx(11), fontWeight: 400, fontFamily: ff, color: textSec, marginTop: 1 }}>Click to change</div>
                       </div>
                       <div style={{ marginLeft: "auto", color: textSec, fontSize: fsPx(16), lineHeight: 1, flexShrink: 0 }}>{">"}</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* About This Mac Modal */}
+              {hovered && aboutThisMacOpen && (() => {
+                const mbH = Math.round(h * 0.036)
+                const mw = Math.round(w * 0.22)
+                const ff = "-apple-system,'SF Pro Text',BlinkMacSystemFont,sans-serif"
+                const textPrimary = isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.88)"
+                const textSecondary = isDark ? "rgba(255,255,255,0.48)" : "rgba(0,0,0,0.46)"
+                const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+                const tlSz = Math.round(mw * 0.044)
+                const tlGap = Math.round(mw * 0.032)
+                const tlLeft = Math.round(mw * 0.052)
+                const rowFs = Math.round(mw * 0.058)
+                return (
+                  <div
+                    onClick={() => setAboutThisMacOpen(false)}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingTop: mbH,
+                      background: "rgba(0,0,0,0.16)",
+                    }}
+                  >
+                    <div
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        width: mw,
+                        background: isDark ? "rgba(44,44,46,0.96)" : "rgba(234,234,236,0.97)",
+                        backdropFilter: "blur(60px) saturate(2.2)",
+                        WebkitBackdropFilter: "blur(60px) saturate(2.2)",
+                        borderRadius: Math.round(mw * 0.04),
+                        border: `0.5px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)"}`,
+                        boxShadow: isDark
+                          ? "0 24px 72px rgba(0,0,0,0.72), 0 0 0 0.5px rgba(0,0,0,0.8)"
+                          : "0 24px 72px rgba(0,0,0,0.22), 0 0 0 0.5px rgba(148,163,184,0.2)",
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        fontFamily: ff,
+                        animation: "winIn 0.28s cubic-bezier(0.22,1,0.36,1)",
+                      }}
+                    >
+                      {/* title bar */}
+                      <div style={{ width: "100%", height: Math.round(mw * 0.1), flexShrink: 0, display: "flex", alignItems: "center", paddingLeft: tlLeft, gap: tlGap, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", borderBottom: `0.5px solid ${divider}` }}>
+                        {[
+                          { fill: "#ed6a5f", border: "#e24b41" },
+                          { fill: "#f6be50", border: "#e1a73e" },
+                          { fill: "#61c555", border: "#2dac2f" },
+                        ].map((btn, i) => (
+                          <div
+                            key={i}
+                            onClick={i === 0 ? () => setAboutThisMacOpen(false) : undefined}
+                            style={{ width: tlSz, height: tlSz, borderRadius: "50%", background: btn.fill, border: `0.5px solid ${btn.border}`, flexShrink: 0, cursor: i === 0 ? "pointer" : "default" }}
+                          />
+                        ))}
+                      </div>
+                      {/* MacBook SVG */}
+                      <div style={{ paddingTop: Math.round(mw * 0.05), paddingBottom: Math.round(mw * 0.028) }}>
+                        <svg width={Math.round(mw * 0.54)} viewBox="0 0 220 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Screen body */}
+                          <rect x="18" y="4" width="184" height="118" rx="9" fill={isDark ? "#3a3a3c" : "#b8b8bc"} />
+                          <rect x="22" y="8" width="176" height="110" rx="7" fill={isDark ? "#89b9f0" : "#82b4ec"} />
+                          {/* Screen glare */}
+                          <rect x="22" y="8" width="176" height="110" rx="7" fill="url(#screenGrad)" />
+                          <defs>
+                            <linearGradient id="screenGrad" x1="22" y1="8" x2="198" y2="118" gradientUnits="userSpaceOnUse">
+                              <stop stopColor="rgba(255,255,255,0.22)" />
+                              <stop offset="1" stopColor="rgba(255,255,255,0)" />
+                            </linearGradient>
+                          </defs>
+                          {/* Hinge */}
+                          <rect x="10" y="120" width="200" height="6" rx="2" fill={isDark ? "#2c2c2e" : "#a0a0a4"} />
+                          {/* Body base */}
+                          <rect x="4" y="126" width="212" height="18" rx="5" fill={isDark ? "#3a3a3c" : "#c8c8cc"} />
+                          {/* Body top surface */}
+                          <rect x="4" y="126" width="212" height="9" rx="5" fill={isDark ? "#48484a" : "#d8d8dc"} />
+                          {/* Keyboard area */}
+                          <rect x="52" y="127" width="116" height="7" rx="3" fill={isDark ? "#3a3a3c" : "#c0c0c4"} />
+                          {/* Trackpad */}
+                          <rect x="84" y="129" width="52" height="9" rx="3" fill={isDark ? "#2c2c2e" : "#b8b8bc"} />
+                        </svg>
+                      </div>
+                      {/* Mac model name */}
+                      <div style={{ fontSize: Math.round(mw * 0.082), fontWeight: 700, color: textPrimary, letterSpacing: -0.5, lineHeight: 1.1 }}>MacBook Pro</div>
+                      <div style={{ marginTop: Math.round(mw * 0.018), fontSize: Math.round(mw * 0.054), color: textSecondary, fontWeight: 400 }}>M4, 2025</div>
+                      {/* Specs */}
+                      <div style={{ marginTop: Math.round(mw * 0.038), width: "100%", padding: `0 ${Math.round(mw * 0.08)}px`, display: "flex", flexDirection: "column", gap: Math.round(mw * 0.014) }}>
+                        {[
+                          { label: "Chip", value: "Apple M4" },
+                          { label: "Memory", value: "16 GB" },
+                          { label: "Serial", value: "C02ZK9ABMD6W" },
+                          { label: "macOS", value: "Sequoia 15.5" },
+                        ].map(({ label, value }) => (
+                          <div key={label} style={{ display: "flex", justifyContent: "center", gap: Math.round(mw * 0.02), fontSize: rowFs }}>
+                            <span style={{ color: textSecondary, textAlign: "right", minWidth: Math.round(mw * 0.32) }}>{label}</span>
+                            <span style={{ color: textPrimary, fontWeight: 400, minWidth: Math.round(mw * 0.3) }}>{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* More Info button */}
+                      <div style={{ marginTop: Math.round(mw * 0.04), marginBottom: Math.round(mw * 0.028) }}>
+                        <button
+                          type="button"
+                          style={{
+                            background: isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.85)",
+                            border: isDark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(0,0,0,0.14)",
+                            borderRadius: Math.round(mw * 0.025),
+                            padding: `${Math.round(mw * 0.025)}px ${Math.round(mw * 0.07)}px`,
+                            fontSize: Math.round(mw * 0.052),
+                            color: textPrimary,
+                            cursor: "pointer",
+                            fontFamily: ff,
+                            fontWeight: 400,
+                            boxShadow: isDark ? "0 1px 0 rgba(255,255,255,0.06)" : "0 1px 2px rgba(0,0,0,0.12)",
+                          }}
+                        >
+                          More Info...
+                        </button>
+                      </div>
+                      {/* Divider */}
+                      <div style={{ width: "100%", height: 0.5, background: divider }} />
+                      {/* Copyright */}
+                      <div style={{ padding: `${Math.round(mw * 0.035)}px ${Math.round(mw * 0.06)}px`, textAlign: "center", fontSize: Math.round(mw * 0.043), color: textSecondary, lineHeight: 1.5 }}>
+                        <div style={{ color: isDark ? "rgba(10,132,255,0.9)" : "rgba(0,100,220,0.9)", cursor: "pointer" }}>Regulatory Certification</div>
+                        <div>™ and © 1983-2025 Apple Inc.</div>
+                        <div>All Rights Reserved.</div>
+                      </div>
                     </div>
                   </div>
                 )
@@ -5134,7 +5372,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: tlGap, paddingLeft: tlLeft, flexShrink: 0 }}>
                         {[
-                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, fn: () => { setItunesOpen(false); setItunesMinimized(false); setItunesMaximized(false); setItunesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "itunes")) } },
+                          { fill: "#ed6a5f", border: "#e24b41", kind: "close" as const, fn: () => { setItunesOpen(false); setItunesMinimized(false); setItunesMaximized(false); setItunesPos({ x: 0, y: 0 }); setWindowOrder(o => o.filter(k => k !== "itunes")); setItunesPlaying(false) } },
                           { fill: "#f6be50", border: "#e1a73e", kind: "minimize" as const, fn: () => { setItunesMinimizing(true); setTimeout(() => { setItunesMinimized(true); setItunesMinimizing(false) }, 340) } },
                           { fill: "#61c555", border: "#2dac2f", kind: "maximize" as const, fn: () => { setItunesMaximized(v => !v); setItunesMinimized(false) } },
                         ].map((btn, i) => (
@@ -5241,12 +5479,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                 {filteredAlbums.length} items available
                               </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.01), color: activeText, fontSize: Math.round(iw * 0.0125), fontWeight: 700, fontFamily: ff }}>
-                              <div style={{ width: Math.round(iw * 0.04), height: 6, borderRadius: 999, background: isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.12)", position: "relative", overflow: "hidden" }}>
-                                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent 0%, rgba(10,132,255,0.95) 26%, rgba(10,132,255,0.42) 72%, transparent 100%)" }} />
+                            {itunesCurrentTrack && (
+                              <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.01), color: activeText, fontSize: Math.round(iw * 0.0125), fontWeight: 700, fontFamily: ff }}>
+                                <div style={{ width: Math.round(iw * 0.04), height: 6, borderRadius: 999, background: isDark ? "rgba(10,132,255,0.18)" : "rgba(10,132,255,0.12)", position: "relative", overflow: "hidden" }}>
+                                  <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${(itunesProgress / itunesCurrentTrack.duration) * 100}%`, borderRadius: 999, background: "rgba(10,132,255,0.9)", transition: "width 1s linear" }} />
+                                </div>
+                                {itunesPlaying ? "Now Playing" : "Paused"}
                               </div>
-                              Playing
-                            </div>
+                            )}
                           </div>
                         </div>
 
@@ -5256,6 +5496,13 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                               <button
                                 key={`${itunesSidebarSel}-${album.title}`}
                                 type="button"
+                                onClick={() => {
+                                  const m = album.subtitle.match(/^(\d+):(\d{2})$/)
+                                  const dur = m ? parseInt(m[1]) * 60 + parseInt(m[2]) : Math.floor(Math.random() * 80) + 180
+                                  setItunesCurrentTrack({ title: album.title, subtitle: album.subtitle, accent: album.accent, detail: album.detail, duration: dur })
+                                  setItunesProgress(0)
+                                  setItunesPlaying(true)
+                                }}
                                 style={{
                                   border: "none",
                                   background: "transparent",
@@ -5286,6 +5533,14 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                                   <div style={{ position: "absolute", left: "11%", bottom: "11%", color: "#fff", fontSize: Math.round(iw * 0.022), fontWeight: 700, letterSpacing: -0.4, fontFamily: ff }}>
                                     {album.detail}
                                   </div>
+                                  {itunesCurrentTrack?.title === album.title && (
+                                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.32)" }}>
+                                      {itunesPlaying
+                                        ? <svg width={Math.round(iw * 0.028)} height={Math.round(iw * 0.028)} viewBox="0 0 20 20" fill="white"><rect x="4" y="3" width="4" height="14" rx="1.5" /><rect x="12" y="3" width="4" height="14" rx="1.5" /></svg>
+                                        : <svg width={Math.round(iw * 0.028)} height={Math.round(iw * 0.028)} viewBox="0 0 20 20" fill="white"><path d="M5 3.5 16 10 5 16.5Z" /></svg>
+                                      }
+                                    </div>
+                                  )}
                                 </div>
                                 <div style={{ minWidth: 0 }}>
                                   <div style={{ fontSize: Math.round(iw * 0.0138), fontWeight: 650, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -5301,6 +5556,83 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       </div>
                     </div>
+                    {itunesCurrentTrack && (
+                      <div style={{
+                        flexShrink: 0,
+                        height: Math.round(ih * 0.11),
+                        background: toolbarBg,
+                        borderTop: `0.5px solid ${divider}`,
+                        backdropFilter: "blur(16px) saturate(1.12)",
+                        WebkitBackdropFilter: "blur(16px) saturate(1.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: Math.round(iw * 0.016),
+                        padding: `0 ${Math.round(iw * 0.028)}px`,
+                        userSelect: "none",
+                      }}>
+                        <div style={{ width: Math.round(ih * 0.072), height: Math.round(ih * 0.072), borderRadius: 6, background: itunesCurrentTrack.accent, flexShrink: 0, position: "relative", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.28)" }}>
+                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0))" }} />
+                          <div style={{ position: "absolute", left: "10%", bottom: "10%", color: "#fff", fontSize: Math.round(iw * 0.018), fontWeight: 700, fontFamily: ff }}>{itunesCurrentTrack.detail}</div>
+                        </div>
+                        <div style={{ minWidth: 0, flex: "0 0 auto", width: Math.round(iw * 0.14) }}>
+                          <div style={{ fontSize: Math.round(iw * 0.013), fontWeight: 700, color: textPrimary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{itunesCurrentTrack.title}</div>
+                          <div style={{ marginTop: 2, fontSize: Math.round(iw * 0.011), color: textSecondary as string, fontFamily: ff, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{itunesCurrentTrack.subtitle}</div>
+                        </div>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: Math.round(ih * 0.014), minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.018) }}>
+                            <button type="button" onClick={e => { e.stopPropagation(); setItunesProgress(0) }} style={{ background: "none", border: "none", cursor: "pointer", color: textSecondary as string, padding: 0, display: "flex", alignItems: "center" }}>
+                              <svg width={Math.round(iw * 0.02)} height={Math.round(iw * 0.02)} viewBox="0 0 20 20" fill="currentColor"><rect x="3.5" y="3.5" width="2.5" height="13" rx="1" /><path d="M7.5 10 16.2 4v12Z" /></svg>
+                            </button>
+                            <button type="button" onClick={e => { e.stopPropagation(); setItunesPlaying(v => !v) }} style={{ background: isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.09)", border: "none", cursor: "pointer", color: textPrimary as string, width: Math.round(iw * 0.034), height: Math.round(iw * 0.034), borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              {itunesPlaying
+                                ? <svg width={Math.round(iw * 0.018)} height={Math.round(iw * 0.018)} viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="3" width="4" height="14" rx="1.5" /><rect x="12" y="3" width="4" height="14" rx="1.5" /></svg>
+                                : <svg width={Math.round(iw * 0.018)} height={Math.round(iw * 0.018)} viewBox="0 0 20 20" fill="currentColor"><path d="M5 3.5 16 10 5 16.5Z" /></svg>
+                              }
+                            </button>
+                            <button type="button" onClick={e => { e.stopPropagation(); setItunesProgress(0); setItunesPlaying(true) }} style={{ background: "none", border: "none", cursor: "pointer", color: textSecondary as string, padding: 0, display: "flex", alignItems: "center" }}>
+                              <svg width={Math.round(iw * 0.02)} height={Math.round(iw * 0.02)} viewBox="0 0 20 20" fill="currentColor"><rect x="14" y="3.5" width="2.5" height="13" rx="1" /><path d="M12.5 10 3.8 4v12Z" /></svg>
+                            </button>
+                          </div>
+                          <div style={{ width: "100%", display: "flex", alignItems: "center", gap: Math.round(iw * 0.01) }}>
+                            <span style={{ fontSize: Math.round(iw * 0.011), color: textSecondary as string, fontFamily: ff, flexShrink: 0, minWidth: Math.round(iw * 0.032), textAlign: "right" }}>
+                              {`${Math.floor(itunesProgress / 60)}:${String(itunesProgress % 60).padStart(2, "0")}`}
+                            </span>
+                            <div
+                              style={{ flex: 1, height: 4, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)", cursor: "pointer", position: "relative" }}
+                              onClick={e => {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+                                setItunesProgress(Math.round(pct * itunesCurrentTrack.duration))
+                              }}
+                            >
+                              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${(itunesProgress / itunesCurrentTrack.duration) * 100}%`, borderRadius: 999, background: "rgba(10,132,255,0.9)", transition: "width 1s linear" }} />
+                            </div>
+                            <span style={{ fontSize: Math.round(iw * 0.011), color: textSecondary as string, fontFamily: ff, flexShrink: 0, minWidth: Math.round(iw * 0.032) }}>
+                              {`-${Math.floor((itunesCurrentTrack.duration - itunesProgress) / 60)}:${String((itunesCurrentTrack.duration - itunesProgress) % 60).padStart(2, "0")}`}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: Math.round(iw * 0.01), flexShrink: 0, width: Math.round(iw * 0.13) }}>
+                          <button type="button" onClick={e => { e.stopPropagation(); setItunesMuted(v => !v) }} style={{ background: "none", border: "none", cursor: "pointer", color: textSecondary as string, padding: 0, display: "flex" }}>
+                            {(itunesMuted || itunesVolume === 0)
+                              ? <svg width={Math.round(iw * 0.018)} height={Math.round(iw * 0.018)} viewBox="0 0 20 20" fill="currentColor"><path d="M3 7h3l5-4v14l-5-4H3z" opacity=".5" /><path d="m13 8 4 4m0-4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" /></svg>
+                              : <svg width={Math.round(iw * 0.018)} height={Math.round(iw * 0.018)} viewBox="0 0 20 20" fill="currentColor"><path d="M3 7h3l5-4v14l-5-4H3z" />{itunesVolume > 50 && <path d="M14 5.5a6 6 0 0 1 0 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />}<path d="M12.5 8a3 3 0 0 1 0 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" /></svg>
+                            }
+                          </button>
+                          <div
+                            style={{ flex: 1, height: 4, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)", cursor: "pointer", position: "relative" }}
+                            onClick={e => {
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+                              setItunesVolume(Math.round(pct * 100))
+                              setItunesMuted(false)
+                            }}
+                          >
+                            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${itunesMuted ? 0 : itunesVolume}%`, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.7)" : "rgba(15,23,42,0.5)" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {!itunesMaximized && (
                       <ResizeHandle
                         onMouseDown={(e) => {
@@ -6753,15 +7085,18 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                     </div>
                   )}
                   <div
-                    onMouseEnter={() => {
-                      if (dockSleeping) setDockPeek(true)
+                    onMouseEnter={() => { if (dockSleeping) setDockPeek(true) }}
+                    onMouseLeave={() => { resetTargets() }}
+                    onMouseMove={(e) => { computeTargets(e.clientX) }}
+                    style={{
+                      paddingTop: Math.round(ICON_BASE * (MAX_SCALE - 1)),
+                      display: "flex",
+                      alignItems: "flex-end",
                     }}
-                    onMouseLeave={() => {
-                      resetTargets()
-                    }}
+                  >
+                  <div
                     ref={dockRef}
                     data-dock
-                    onMouseMove={(e) => { computeTargets(e.clientX) }}
                     style={{
                       display: "flex",
                       alignItems: "flex-end",
@@ -7431,6 +7766,7 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
                         </div>
                       )
                     })()}
+                  </div>
                   </div>
 
                 </div>
