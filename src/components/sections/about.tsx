@@ -1,7 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
-import type { JSX } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { useState, type JSX } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Code, Palette, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
@@ -21,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button"
 
 export function ModernAbout() {
+  const [activeAboutTab, setActiveAboutTab] = useState("experience")
+
   const skills = [
     "JavaScript",
     "TypeScript",
@@ -283,70 +285,65 @@ export function ModernAbout() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <Tabs defaultValue="experience" className="w-full max-w-4xl mx-auto">
+          <Tabs value={activeAboutTab} onValueChange={setActiveAboutTab} className="w-full max-w-4xl mx-auto">
             <TabsList className="grid w-full grid-cols-3 mb-8 bg-card">
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="experience" className="space-y-6">
-              {experiences.map((exp, index) => (
+            <TabsContent value={activeAboutTab} forceMount>
+              <AnimatePresence mode="popLayout" initial={false}>
                 <motion.div
-                  key={index}
-                  className="flex items-center justify-center gap-4 p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  key={activeAboutTab}
+                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className={activeAboutTab === "services" ? "grid sm:grid-cols-2 gap-6" : "space-y-6"}
                 >
-                  <div className="text-center w-full">
-                    <h4 className="text-xl font-semibold">{exp.title}</h4>
-                    <p className="text-muted-foreground mb-2">
-                      {exp.company} | {exp.period}
-                    </p>
-                    <p>{exp.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </TabsContent>
+                  {activeAboutTab === "experience" && experiences.map((exp) => (
+                    <div
+                      key={`${exp.company}-${exp.title}`}
+                      className="flex items-center justify-center gap-4 p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
+                    >
+                      <div className="text-center w-full">
+                        <h4 className="text-xl font-semibold">{exp.title}</h4>
+                        <p className="text-muted-foreground mb-2">
+                          {exp.company} | {exp.period}
+                        </p>
+                        <p>{exp.description}</p>
+                      </div>
+                    </div>
+                  ))}
 
-            <TabsContent value="education" className="space-y-6">
-              {education.map((edu, index) => (
-                <motion.div
-                  key={index}
-                  className="flex items-center justify-center gap-4 p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <div className="text-center w-full">
-                    <h4 className="text-xl font-semibold">{edu.degree}</h4>
-                    <p className="text-muted-foreground mb-2">
-                      {edu.institution} | {edu.period}
-                    </p>
-                    <p>{edu.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </TabsContent>
+                  {activeAboutTab === "education" && education.map((edu) => (
+                    <div
+                      key={`${edu.institution}-${edu.degree}`}
+                      className="flex items-center justify-center gap-4 p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
+                    >
+                      <div className="text-center w-full">
+                        <h4 className="text-xl font-semibold">{edu.degree}</h4>
+                        <p className="text-muted-foreground mb-2">
+                          {edu.institution} | {edu.period}
+                        </p>
+                        <p>{edu.description}</p>
+                      </div>
+                    </div>
+                  ))}
 
-            <TabsContent value="services" className="grid sm:grid-cols-2 gap-6">
-              {services.map((service, index) => (
-                <motion.div
-                  key={index}
-                  className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <div className="mb-4">{service.icon}</div>
-                  <h4 className="text-xl font-semibold mb-2">{service.title}</h4>
-                  <p className="text-muted-foreground">{service.description}</p>
+                  {activeAboutTab === "services" && services.map((service) => (
+                    <div
+                      key={service.title}
+                      className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm"
+                    >
+                      <div className="mb-4">{service.icon}</div>
+                      <h4 className="text-xl font-semibold mb-2">{service.title}</h4>
+                      <p className="text-muted-foreground">{service.description}</p>
+                    </div>
+                  ))}
                 </motion.div>
-              ))}
+              </AnimatePresence>
             </TabsContent>
           </Tabs>
         </motion.div>
