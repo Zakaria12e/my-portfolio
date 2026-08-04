@@ -6,6 +6,7 @@ import Home from './page'
 import { ThemeProvider } from '@/components/effects/theme-provider'
 import { Toaster } from "@/components/ui/sonner"
 import { ZakariaIntro } from '@/components/effects/ZakariaIntro'
+import StarsCanvas from '@/components/effects/StarBackground'
 
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <StarsCanvas />
       <motion.div
         aria-hidden={introVisible}
         animate={{

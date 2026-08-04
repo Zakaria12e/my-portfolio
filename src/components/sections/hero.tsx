@@ -5,7 +5,6 @@ import { Github, Linkedin } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { ProjectButton } from "@/components/effects/GlowEffectButton";
 import { TextLoop } from "@/components/effects/text-loop";
-import StarsCanvas from "@/components/effects/StarBackground";
 import {HeroStars} from "@/components/effects/stars";
 export function ModernHero() {
   return (
@@ -13,8 +12,6 @@ export function ModernHero() {
       id="home"
       className="relative min-h-screen flex items-center pt-20 "
     >
-      {/* Background elements */}
-      <StarsCanvas />
       <div className="container grid lg:grid-cols-2 gap-12 items-center">
         <motion.div
           className="space-y-8"
