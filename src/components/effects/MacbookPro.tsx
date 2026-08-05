@@ -805,7 +805,6 @@ export default function MacbookPro({ src, images: imagesProp, description: descP
     setHelloDismissing(false)
     setShowNotif(false)
     setNotifBig(false)
-    setShakeCursorPos({ x: -100, y: -100 })
   }, [])
 
   // -- multi-window helpers ---------------------------------------------------
