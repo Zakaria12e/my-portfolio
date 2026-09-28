@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Code, Palette, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
 import { AboutStars } from "@/components/effects/stars"
+import { ActivityHeatmap } from "@/components/activity-heatmap"
 import {
   SiJavascript,
   SiTypescript,
@@ -347,6 +348,9 @@ export function ModernAbout() {
             </TabsContent>
           </Tabs>
         </motion.div>
+        <div className="mt-16">
+          <ActivityHeatmap />
+        </div>
       </div>
     </section>
   )
