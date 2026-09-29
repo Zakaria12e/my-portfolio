@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { useState, type JSX } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Code, Palette, Download, Award, BookOpen, Briefcase, Lightbulb, Clock } from "lucide-react"
 import { AboutStars } from "@/components/effects/stars"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
@@ -287,11 +287,36 @@ export function ModernAbout() {
           transition={{ duration: 0.6 }}
         >
           <Tabs value={activeAboutTab} onValueChange={setActiveAboutTab} className="w-full max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-3 mb-8 bg-card">
-              <TabsTrigger value="experience">Experience</TabsTrigger>
-              <TabsTrigger value="education">Education</TabsTrigger>
-              <TabsTrigger value="services">Services</TabsTrigger>
-            </TabsList>
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center gap-1 p-1 rounded-[16px] bg-zinc-100 dark:bg-zinc-900/80 backdrop-blur-sm">
+                {[
+                  { value: "experience", label: "Experience" },
+                  { value: "education",  label: "Education"  },
+                  { value: "services",   label: "Services"   },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setActiveAboutTab(value)}
+                    className="relative px-6 py-2 text-sm font-medium rounded-[12px]"
+                  >
+                    {activeAboutTab === value && (
+                      <motion.div
+                        layoutId="about-seg"
+                        className="absolute inset-0 rounded-[12px] bg-white dark:bg-zinc-700 shadow-sm"
+                        transition={{ type: "spring", stiffness: 400, damping: 40, mass: 0.8 }}
+                      />
+                    )}
+                    <span className={`relative z-10 transition-colors duration-200 ${
+                      activeAboutTab === value
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                    }`}>
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <TabsContent value={activeAboutTab} forceMount>
               <AnimatePresence mode="popLayout" initial={false}>
