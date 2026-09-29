@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/effects/theme-provider'
 import { Toaster } from "@/components/ui/sonner"
 import { ZakariaIntro } from '@/components/effects/ZakariaIntro'
 import StarsCanvas from '@/components/effects/StarBackground'
+import { ModernHeader } from '@/components/sections/header'
 
 
 function App() {
@@ -30,6 +31,8 @@ function App() {
           </Routes>
         </Router>
       </motion.div>
+      {/* Header outside filter wrapper so position:fixed works correctly */}
+      <ModernHeader />
       <AnimatePresence>
         {introVisible && (
           <ZakariaIntro onComplete={() => setIntroVisible(false)} />

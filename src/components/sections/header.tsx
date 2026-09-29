@@ -1,30 +1,43 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
+import { Home, Briefcase, User, Mail } from "lucide-react"
 import { ModeToggle } from "@/components/effects/mode-toggle"
-import { X, Menu } from "lucide-react"
+
+function smoothScroll(href: string, duration = 780) {
+  const el = document.querySelector(href)
+  if (!el) return
+  const target = el.getBoundingClientRect().top + window.scrollY
+  const start = window.scrollY
+  const diff = target - start
+  let startTime: number | null = null
+
+  // Apple's deceleration curve
+  const ease = (t: number) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+  const step = (now: number) => {
+    if (!startTime) startTime = now
+    const elapsed = now - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    window.scrollTo(0, start + diff * ease(progress))
+    if (progress < 1) requestAnimationFrame(step)
+  }
+
+  requestAnimationFrame(step)
+}
 
 const NAV_ITEMS = [
-  { name: "Home",    href: "#home"    },
-  { name: "Work",    href: "#work"    },
-  { name: "About",   href: "#about"   },
-  { name: "Contact", href: "#contact" },
+  { name: "Home",    href: "#home",    icon: Home      },
+  { name: "Work",    href: "#work",    icon: Briefcase },
+  { name: "About",   href: "#about",   icon: User      },
+  { name: "Contact", href: "#contact", icon: Mail      },
 ]
 
 export function ModernHeader() {
-  const [scrolled,   setScrolled]   = useState(false)
-  const [active,     setActive]     = useState("Home")
-  const [menuOpen,   setMenuOpen]   = useState(false)
+  const [active, setActive] = useState("Home")
 
-  // Scroll detection
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  // Active section via IntersectionObserver
   useEffect(() => {
     const observers: IntersectionObserver[] = []
     NAV_ITEMS.forEach(({ name, href }) => {
@@ -42,131 +55,61 @@ export function ModernHeader() {
 
   const handleNav = (href: string, name: string) => {
     setActive(name)
-    setMenuOpen(false)
-    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" })
+    smoothScroll(href)
   }
 
   return (
-    <>
-      <motion.header
-        className="fixed top-0 left-0 right-0 z-50 flex justify-center"
-        initial={{ y: -80, opacity: 0 }}
-        animate={{ y: 0,   opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <motion.div
-          layout
-          animate={scrolled ? {
-            marginTop: 12,
-            paddingLeft: 20,
-            paddingRight: 20,
-            borderRadius: 999,
-          } : {
-            marginTop: 0,
-            paddingLeft: 0,
-            paddingRight: 0,
-            borderRadius: 0,
-          }}
-          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-          className={`w-full max-w-5xl transition-shadow ${
-            scrolled
-              ? "bg-background/80 backdrop-blur-xl border border-border/50 shadow-[0_4px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
-              : "bg-transparent"
-          }`}
-        >
-          <div className="flex items-center justify-between px-6 py-3">
-
-            {/* Logo */}
-            <motion.a
-              href="#home"
-              onClick={e => { e.preventDefault(); handleNav("#home", "Home") }}
-              whileHover={{ scale: 1.08 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="flex-shrink-0"
+    <motion.div
+      className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2"
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0,   opacity: 1 }}
+      transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Tab bar */}
+      <nav className="flex items-center gap-0.5 px-1.5 py-1.5 rounded-[26px] bg-background/75 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[0_4px_32px_rgba(0,0,0,0.14)] dark:shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
+        {NAV_ITEMS.map(({ name, href, icon: Icon }) => {
+          const isActive = active === name
+          return (
+            <button
+              key={name}
+              onClick={() => handleNav(href, name)}
+              aria-label={name}
+              className="relative flex flex-col items-center justify-center w-[58px] h-11 rounded-[18px] group"
             >
-              <img src="/moon-purple.png" alt="logo" className="w-8 h-8 hidden dark:block drop-shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
-              <img src="/moon-dark.png"   alt="logo" className="w-8 h-8 block dark:hidden" />
-            </motion.a>
-
-            {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1">
-              {NAV_ITEMS.map(({ name, href }) => {
-                const isActive = active === name
-                return (
-                  <a
-                    key={name}
-                    href={href}
-                    onClick={e => { e.preventDefault(); handleNav(href, name) }}
-                    className="relative px-4 py-1.5 text-sm font-medium transition-colors duration-200 rounded-full"
-                    style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full bg-foreground/8 dark:bg-foreground/10"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10">{name}</span>
-                  </a>
-                )
-              })}
-            </nav>
-
-            {/* Right */}
-            <div className="flex items-center gap-3">
-              <ModeToggle />
-              {/* Mobile hamburger */}
-              <button
-                onClick={() => setMenuOpen(o => !o)}
-                className="md:hidden flex items-center justify-center w-8 h-8 rounded-full hover:bg-foreground/8 transition-colors"
-                aria-label="Toggle menu"
+              {isActive && (
+                <motion.div
+                  layoutId="tab-bg"
+                  className="absolute inset-0 rounded-[18px] bg-foreground/[0.08] dark:bg-foreground/[0.12]"
+                  transition={{ type: "spring", stiffness: 380, damping: 42, mass: 0.8 }}
+                />
+              )}
+              <motion.div
+                animate={isActive ? { scale: 1.08, y: -0.5 } : { scale: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 380, damping: 38, mass: 0.7 }}
+                className="relative z-10"
               >
-                <AnimatePresence mode="wait" initial={false}>
-                  {menuOpen
-                    ? <motion.span key="x"   initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.18 }}><X size={18} /></motion.span>
-                    : <motion.span key="men" initial={{ rotate:  90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate:-90, opacity: 0 }} transition={{ duration: 0.18 }}><Menu size={18} /></motion.span>
-                  }
-                </AnimatePresence>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.header>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            key="mobile-menu"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{    opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="fixed top-[68px] left-4 right-4 z-40 rounded-2xl bg-background/95 backdrop-blur-xl border border-border/50 shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)] overflow-hidden"
-          >
-            <nav className="flex flex-col p-3 gap-1">
-              {NAV_ITEMS.map(({ name, href }, i) => (
-                <motion.a
-                  key={name}
-                  href={href}
-                  onClick={e => { e.preventDefault(); handleNav(href, name) }}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.2 }}
-                  className={`px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    active === name
-                      ? "bg-foreground/8 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                <Icon
+                  size={18}
+                  strokeWidth={isActive ? 2.1 : 1.7}
+                  className={`transition-colors duration-300 ${
+                    isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/60"
                   }`}
-                >
-                  {name}
-                </motion.a>
-              ))}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+                />
+              </motion.div>
+              <span className={`relative z-10 text-[9px] font-semibold mt-0.5 leading-none transition-colors duration-200 ${
+                isActive ? "text-foreground" : "text-muted-foreground"
+              }`}>
+                {name}
+              </span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* Toggle pill */}
+      <div className="flex items-center justify-center w-11 h-11 rounded-full bg-background/75 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[0_4px_32px_rgba(0,0,0,0.14)] dark:shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
+        <ModeToggle />
+      </div>
+    </motion.div>
   )
 }

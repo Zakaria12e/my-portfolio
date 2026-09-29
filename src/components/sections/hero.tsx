@@ -10,7 +10,7 @@ export function ModernHero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center pt-20 "
+      className="relative min-h-screen flex items-center"
     >
       <div className="container grid lg:grid-cols-2 gap-12 items-center">
         <motion.div
