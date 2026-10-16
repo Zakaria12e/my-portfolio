@@ -19,7 +19,10 @@
       "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"macOS control center glassmorphism dark system UI\" --design-system)",
       "Bash(python skills/ui-ux-pro-max/scripts/search.py \"portfolio project showcase window macOS dark minimal\" --design-system -p \"Portfolio MacOS Window\")",
       "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"portfolio project showcase window macOS dark minimal\" --design-system -p \"Portfolio MacOS Window\")",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(dir src *)",
+      "Bash(findstr /i \"voice\\\\|invite\\\\|discord\")",
+      "Bash(git *)"
     ]
   }
 }
