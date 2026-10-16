@@ -217,7 +217,7 @@ export function ModernAbout() {
             <h3 className="text-3xl font-bold">
               Hello, I'm{" "}
               <span className="text-primary drop-shadow-[0_0_13px_rgba(59,59,59,1)] dark:drop-shadow-[0_0_6px_rgba(200,200,200,1)]">
-                Zakaria
+                Zakaria El Bidali
               </span>
             </h3>
             <p className="text-muted-foreground">
